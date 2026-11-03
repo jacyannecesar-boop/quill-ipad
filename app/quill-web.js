@@ -21,9 +21,9 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       throw mod = 0, e;
     }
   };
-  var __export = (target, all) => {
+  var __export = (target2, all) => {
     for (var name in all)
-      __defProp(target, name, { get: all[name], enumerable: true });
+      __defProp(target2, name, { get: all[name], enumerable: true });
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -33,12 +33,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     }
     return to;
   };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  var __toESM = (mod, isNodeMode, target2) => (target2 = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
     // If the importer is in node compatibility mode or this is not an ESM
     // file that has been converted to a CommonJS file using a Babel-
     // compatible transform (i.e. "__esModule" has not been set), then set
     // "default" to the CommonJS "module.exports" for node compatibility.
-    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target2, "default", { value: mod, enumerable: true }) : target2,
     mod
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
@@ -110,10 +110,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       function tripletToBase64(num) {
         return lookup[num >> 18 & 63] + lookup[num >> 12 & 63] + lookup[num >> 6 & 63] + lookup[num & 63];
       }
-      function encodeChunk(uint8, start2, end) {
+      function encodeChunk(uint8, start3, end) {
         var tmp;
         var output = [];
-        for (var i3 = start2; i3 < end; i3 += 3) {
+        for (var i3 = start3; i3 < end; i3 += 3) {
           tmp = (uint8[i3] << 16 & 16711680) + (uint8[i3 + 1] << 8 & 65280) + (uint8[i3 + 2] & 255);
           output.push(tripletToBase64(tmp));
         }
@@ -568,12 +568,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       }
       Buffer9.byteLength = byteLength;
-      function slowToString(encoding, start2, end) {
+      function slowToString(encoding, start3, end) {
         let loweredCase = false;
-        if (start2 === void 0 || start2 < 0) {
-          start2 = 0;
+        if (start3 === void 0 || start3 < 0) {
+          start3 = 0;
         }
-        if (start2 > this.length) {
+        if (start3 > this.length) {
           return "";
         }
         if (end === void 0 || end > this.length) {
@@ -583,30 +583,30 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           return "";
         }
         end >>>= 0;
-        start2 >>>= 0;
-        if (end <= start2) {
+        start3 >>>= 0;
+        if (end <= start3) {
           return "";
         }
         if (!encoding) encoding = "utf8";
         while (true) {
           switch (encoding) {
             case "hex":
-              return hexSlice(this, start2, end);
+              return hexSlice(this, start3, end);
             case "utf8":
             case "utf-8":
-              return utf8Slice(this, start2, end);
+              return utf8Slice(this, start3, end);
             case "ascii":
-              return asciiSlice(this, start2, end);
+              return asciiSlice(this, start3, end);
             case "latin1":
             case "binary":
-              return latin1Slice(this, start2, end);
+              return latin1Slice(this, start3, end);
             case "base64":
-              return base64Slice(this, start2, end);
+              return base64Slice(this, start3, end);
             case "ucs2":
             case "ucs-2":
             case "utf16le":
             case "utf-16le":
-              return utf16leSlice(this, start2, end);
+              return utf16leSlice(this, start3, end);
             default:
               if (loweredCase) throw new TypeError("Unknown encoding: " + encoding);
               encoding = (encoding + "").toLowerCase();
@@ -676,20 +676,20 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       if (customInspectSymbol) {
         Buffer9.prototype[customInspectSymbol] = Buffer9.prototype.inspect;
       }
-      Buffer9.prototype.compare = function compare(target, start2, end, thisStart, thisEnd) {
-        if (isInstance(target, Uint8Array)) {
-          target = Buffer9.from(target, target.offset, target.byteLength);
+      Buffer9.prototype.compare = function compare(target2, start3, end, thisStart, thisEnd) {
+        if (isInstance(target2, Uint8Array)) {
+          target2 = Buffer9.from(target2, target2.offset, target2.byteLength);
         }
-        if (!Buffer9.isBuffer(target)) {
+        if (!Buffer9.isBuffer(target2)) {
           throw new TypeError(
-            'The "target" argument must be one of type Buffer or Uint8Array. Received type ' + typeof target
+            'The "target" argument must be one of type Buffer or Uint8Array. Received type ' + typeof target2
           );
         }
-        if (start2 === void 0) {
-          start2 = 0;
+        if (start3 === void 0) {
+          start3 = 0;
         }
         if (end === void 0) {
-          end = target ? target.length : 0;
+          end = target2 ? target2.length : 0;
         }
         if (thisStart === void 0) {
           thisStart = 0;
@@ -697,28 +697,28 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         if (thisEnd === void 0) {
           thisEnd = this.length;
         }
-        if (start2 < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
+        if (start3 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
           throw new RangeError("out of range index");
         }
-        if (thisStart >= thisEnd && start2 >= end) {
+        if (thisStart >= thisEnd && start3 >= end) {
           return 0;
         }
         if (thisStart >= thisEnd) {
           return -1;
         }
-        if (start2 >= end) {
+        if (start3 >= end) {
           return 1;
         }
-        start2 >>>= 0;
+        start3 >>>= 0;
         end >>>= 0;
         thisStart >>>= 0;
         thisEnd >>>= 0;
-        if (this === target) return 0;
+        if (this === target2) return 0;
         let x2 = thisEnd - thisStart;
-        let y = end - start2;
+        let y = end - start3;
         const len = Math.min(x2, y);
         const thisCopy = this.slice(thisStart, thisEnd);
-        const targetCopy = target.slice(start2, end);
+        const targetCopy = target2.slice(start3, end);
         for (let i2 = 0; i2 < len; ++i2) {
           if (thisCopy[i2] !== targetCopy[i2]) {
             x2 = thisCopy[i2];
@@ -928,17 +928,17 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           data: Array.prototype.slice.call(this._arr || this, 0)
         };
       };
-      function base64Slice(buf, start2, end) {
-        if (start2 === 0 && end === buf.length) {
+      function base64Slice(buf, start3, end) {
+        if (start3 === 0 && end === buf.length) {
           return base64.fromByteArray(buf);
         } else {
-          return base64.fromByteArray(buf.slice(start2, end));
+          return base64.fromByteArray(buf.slice(start3, end));
         }
       }
-      function utf8Slice(buf, start2, end) {
+      function utf8Slice(buf, start3, end) {
         end = Math.min(buf.length, end);
         const res = [];
-        let i2 = start2;
+        let i2 = start3;
         while (i2 < end) {
           const firstByte = buf[i2];
           let codePoint = null;
@@ -1011,49 +1011,49 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
         return res;
       }
-      function asciiSlice(buf, start2, end) {
+      function asciiSlice(buf, start3, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start2; i2 < end; ++i2) {
+        for (let i2 = start3; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2] & 127);
         }
         return ret;
       }
-      function latin1Slice(buf, start2, end) {
+      function latin1Slice(buf, start3, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start2; i2 < end; ++i2) {
+        for (let i2 = start3; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2]);
         }
         return ret;
       }
-      function hexSlice(buf, start2, end) {
+      function hexSlice(buf, start3, end) {
         const len = buf.length;
-        if (!start2 || start2 < 0) start2 = 0;
+        if (!start3 || start3 < 0) start3 = 0;
         if (!end || end < 0 || end > len) end = len;
         let out = "";
-        for (let i2 = start2; i2 < end; ++i2) {
+        for (let i2 = start3; i2 < end; ++i2) {
           out += hexSliceLookupTable[buf[i2]];
         }
         return out;
       }
-      function utf16leSlice(buf, start2, end) {
-        const bytes = buf.slice(start2, end);
+      function utf16leSlice(buf, start3, end) {
+        const bytes = buf.slice(start3, end);
         let res = "";
         for (let i2 = 0; i2 < bytes.length - 1; i2 += 2) {
           res += String.fromCharCode(bytes[i2] + bytes[i2 + 1] * 256);
         }
         return res;
       }
-      Buffer9.prototype.slice = function slice(start2, end) {
+      Buffer9.prototype.slice = function slice(start3, end) {
         const len = this.length;
-        start2 = ~~start2;
+        start3 = ~~start3;
         end = end === void 0 ? len : ~~end;
-        if (start2 < 0) {
-          start2 += len;
-          if (start2 < 0) start2 = 0;
-        } else if (start2 > len) {
-          start2 = len;
+        if (start3 < 0) {
+          start3 += len;
+          if (start3 < 0) start3 = 0;
+        } else if (start3 > len) {
+          start3 = len;
         }
         if (end < 0) {
           end += len;
@@ -1061,8 +1061,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         } else if (end > len) {
           end = len;
         }
-        if (end < start2) end = start2;
-        const newBuf = this.subarray(start2, end);
+        if (end < start3) end = start3;
+        const newBuf = this.subarray(start3, end);
         Object.setPrototypeOf(newBuf, Buffer9.prototype);
         return newBuf;
       };
@@ -1492,41 +1492,41 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       Buffer9.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
         return writeDouble(this, value, offset, false, noAssert);
       };
-      Buffer9.prototype.copy = function copy(target, targetStart, start2, end) {
-        if (!Buffer9.isBuffer(target)) throw new TypeError("argument should be a Buffer");
-        if (!start2) start2 = 0;
+      Buffer9.prototype.copy = function copy(target2, targetStart, start3, end) {
+        if (!Buffer9.isBuffer(target2)) throw new TypeError("argument should be a Buffer");
+        if (!start3) start3 = 0;
         if (!end && end !== 0) end = this.length;
-        if (targetStart >= target.length) targetStart = target.length;
+        if (targetStart >= target2.length) targetStart = target2.length;
         if (!targetStart) targetStart = 0;
-        if (end > 0 && end < start2) end = start2;
-        if (end === start2) return 0;
-        if (target.length === 0 || this.length === 0) return 0;
+        if (end > 0 && end < start3) end = start3;
+        if (end === start3) return 0;
+        if (target2.length === 0 || this.length === 0) return 0;
         if (targetStart < 0) {
           throw new RangeError("targetStart out of bounds");
         }
-        if (start2 < 0 || start2 >= this.length) throw new RangeError("Index out of range");
+        if (start3 < 0 || start3 >= this.length) throw new RangeError("Index out of range");
         if (end < 0) throw new RangeError("sourceEnd out of bounds");
         if (end > this.length) end = this.length;
-        if (target.length - targetStart < end - start2) {
-          end = target.length - targetStart + start2;
+        if (target2.length - targetStart < end - start3) {
+          end = target2.length - targetStart + start3;
         }
-        const len = end - start2;
-        if (this === target && typeof Uint8Array.prototype.copyWithin === "function") {
-          this.copyWithin(targetStart, start2, end);
+        const len = end - start3;
+        if (this === target2 && typeof Uint8Array.prototype.copyWithin === "function") {
+          this.copyWithin(targetStart, start3, end);
         } else {
           Uint8Array.prototype.set.call(
-            target,
-            this.subarray(start2, end),
+            target2,
+            this.subarray(start3, end),
             targetStart
           );
         }
         return len;
       };
-      Buffer9.prototype.fill = function fill(val, start2, end, encoding) {
+      Buffer9.prototype.fill = function fill(val, start3, end, encoding) {
         if (typeof val === "string") {
-          if (typeof start2 === "string") {
-            encoding = start2;
-            start2 = 0;
+          if (typeof start3 === "string") {
+            encoding = start3;
+            start3 = 0;
             end = this.length;
           } else if (typeof end === "string") {
             encoding = end;
@@ -1549,18 +1549,18 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         } else if (typeof val === "boolean") {
           val = Number(val);
         }
-        if (start2 < 0 || this.length < start2 || this.length < end) {
+        if (start3 < 0 || this.length < start3 || this.length < end) {
           throw new RangeError("Out of range index");
         }
-        if (end <= start2) {
+        if (end <= start3) {
           return this;
         }
-        start2 = start2 >>> 0;
+        start3 = start3 >>> 0;
         end = end === void 0 ? this.length : end >>> 0;
         if (!val) val = 0;
         let i2;
         if (typeof val === "number") {
-          for (i2 = start2; i2 < end; ++i2) {
+          for (i2 = start3; i2 < end; ++i2) {
             this[i2] = val;
           }
         } else {
@@ -1569,8 +1569,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (len === 0) {
             throw new TypeError('The value "' + val + '" is invalid for argument "value"');
           }
-          for (i2 = 0; i2 < end - start2; ++i2) {
-            this[i2 + start2] = bytes[i2 % len];
+          for (i2 = 0; i2 < end - start3; ++i2) {
+            this[i2 + start3] = bytes[i2 % len];
           }
         }
         return this;
@@ -1644,8 +1644,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       function addNumericalSeparator(val) {
         let res = "";
         let i2 = val.length;
-        const start2 = val[0] === "-" ? 1 : 0;
-        for (; i2 >= start2 + 4; i2 -= 3) {
+        const start3 = val[0] === "-" ? 1 : 0;
+        for (; i2 >= start3 + 4; i2 -= 3) {
           res = `_${val.slice(i2 - 3, i2)}${res}`;
         }
         return `${val.slice(0, i2)}${res}`;
@@ -2063,7 +2063,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         basename: function basename(path5, ext) {
           if (ext !== void 0 && typeof ext !== "string") throw new TypeError('"ext" argument must be a string');
           assertPath(path5);
-          var start2 = 0;
+          var start3 = 0;
           var end = -1;
           var matchedSlash = true;
           var i2;
@@ -2075,7 +2075,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
               var code = path5.charCodeAt(i2);
               if (code === 47) {
                 if (!matchedSlash) {
-                  start2 = i2 + 1;
+                  start3 = i2 + 1;
                   break;
                 }
               } else {
@@ -2095,14 +2095,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
                 }
               }
             }
-            if (start2 === end) end = firstNonSlashEnd;
+            if (start3 === end) end = firstNonSlashEnd;
             else if (end === -1) end = path5.length;
-            return path5.slice(start2, end);
+            return path5.slice(start3, end);
           } else {
             for (i2 = path5.length - 1; i2 >= 0; --i2) {
               if (path5.charCodeAt(i2) === 47) {
                 if (!matchedSlash) {
-                  start2 = i2 + 1;
+                  start3 = i2 + 1;
                   break;
                 }
               } else if (end === -1) {
@@ -2111,7 +2111,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
               }
             }
             if (end === -1) return "";
-            return path5.slice(start2, end);
+            return path5.slice(start3, end);
           }
         },
         extname: function extname(path5) {
@@ -2162,12 +2162,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (path5.length === 0) return ret;
           var code = path5.charCodeAt(0);
           var isAbsolute = code === 47;
-          var start2;
+          var start3;
           if (isAbsolute) {
             ret.root = "/";
-            start2 = 1;
+            start3 = 1;
           } else {
-            start2 = 0;
+            start3 = 0;
           }
           var startDot = -1;
           var startPart = 0;
@@ -2175,7 +2175,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           var matchedSlash = true;
           var i2 = path5.length - 1;
           var preDotState = 0;
-          for (; i2 >= start2; --i2) {
+          for (; i2 >= start3; --i2) {
             code = path5.charCodeAt(i2);
             if (code === 47) {
               if (!matchedSlash) {
@@ -2337,10 +2337,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     if (from === to) return;
     const node2 = nodes.get(from);
     if (!node2) throw fsError("ENOENT", "rename", from);
-    const target = nodes.get(to);
-    if (target?.dir && !node2.dir) throw fsError("EISDIR", "rename", to);
-    if (target?.dir && (children.get(to)?.size || 0) > 0) throw fsError("ENOTEMPTY", "rename", to);
-    if (target) remove(to);
+    const target2 = nodes.get(to);
+    if (target2?.dir && !node2.dir) throw fsError("EISDIR", "rename", to);
+    if (target2?.dir && (children.get(to)?.size || 0) > 0) throw fsError("ENOTEMPTY", "rename", to);
+    if (target2) remove(to);
     const parent = nodes.get(import_path_browserify.default.posix.dirname(to));
     if (!parent) throw fsError("ENOENT", "rename", to);
     if (node2.dir) {
@@ -3311,12 +3311,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     if (!options.recursive) throw fsError2("EISDIR", "cp", norm2(from));
     const src = norm2(from), dest = norm2(to);
     for (const p of walk(src)) {
-      const target = dest + p.slice(src.length);
+      const target2 = dest + p.slice(src.length);
       const item = get(p);
-      if (item.dir) mkdir(target, true);
+      if (item.dir) mkdir(target2, true);
       else {
-        if (options.errorOnExist && get(target)) throw fsError2("EEXIST", "cp", target);
-        write(target, new Uint8Array(item.data));
+        if (options.errorOnExist && get(target2)) throw fsError2("EEXIST", "cp", target2);
+        write(target2, new Uint8Array(item.data));
       }
     }
   }
@@ -3450,15 +3450,15 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     get: () => get2,
     request: () => request
   });
-  function request(target, options, callback) {
+  function request(target2, options, callback) {
     if (typeof options === "function") {
       callback = options;
       options = {};
     }
     let url;
-    if (typeof target === "string" || target instanceof URL) url = String(target);
+    if (typeof target2 === "string" || target2 instanceof URL) url = String(target2);
     else {
-      options = target;
+      options = target2;
       url = `https://${options.hostname || options.host}${options.path || "/"}`;
     }
     const headers = {};
@@ -3507,8 +3507,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     };
     return req;
   }
-  function get2(target, options, callback) {
-    const req = request(target, options, callback);
+  function get2(target2, options, callback) {
+    const req = request(target2, options, callback);
     req.end();
     return req;
   }
@@ -4143,12 +4143,12 @@ ${fmLine(key, text)}---
 ${raw}` : raw;
         const { lines, close } = bounds;
         const eol = lines[0].endsWith("\r") ? "\r" : "";
-        let start2 = -1;
+        let start3 = -1;
         let end = -1;
         for (let i2 = 1; i2 < close; i2++) {
           const colon = lines[i2].indexOf(":");
           if (colon < 1 || lines[i2].slice(0, colon).trim() !== key) continue;
-          start2 = i2;
+          start3 = i2;
           end = i2 + 1;
           if (lines[i2].slice(colon + 1).trim() === "|") {
             while (end < close && /^ {2}/.test(lines[end])) end++;
@@ -4156,7 +4156,7 @@ ${raw}` : raw;
           break;
         }
         const replacement = text ? fmLine(key, text).slice(0, -1).split("\n").map((line) => line + eol) : [];
-        if (start2 >= 0) lines.splice(start2, end - start2, ...replacement);
+        if (start3 >= 0) lines.splice(start3, end - start3, ...replacement);
         else if (replacement.length) lines.splice(close, 0, ...replacement);
         return lines.join("\n");
       }
@@ -4209,14 +4209,14 @@ ${raw}` : raw;
         }
         function diffWords(before, after, limit = 1e3) {
           const a = wordTokens(before), b = wordTokens(after);
-          let start2 = 0;
-          while (start2 < a.length && start2 < b.length && a[start2] === b[start2]) start2++;
+          let start3 = 0;
+          while (start3 < a.length && start3 < b.length && a[start3] === b[start3]) start3++;
           let endA = a.length, endB = b.length;
-          while (endA > start2 && endB > start2 && a[endA - 1] === b[endB - 1]) {
+          while (endA > start3 && endB > start3 && a[endA - 1] === b[endB - 1]) {
             endA--;
             endB--;
           }
-          const midA = a.slice(start2, endA), midB = b.slice(start2, endB);
+          const midA = a.slice(start3, endA), midB = b.slice(start3, endB);
           const edits = editDistance(midA, midB, limit);
           let kept;
           if (edits !== null) kept = (midA.length + midB.length - edits) / 2;
@@ -5465,7 +5465,7 @@ ${raw}` : raw;
             const at = p >= 0 && n < leads.length ? anchor[p] + (k - p) / 1e3 : n < leads.length ? anchor[n] - (n - k) / 1e3 : scenes.length + k / 1e3;
             leadPos.set(l.id, { at, planned: true });
           });
-          const place = (sceneId, leadId) => {
+          const place2 = (sceneId, leadId) => {
             if (order.has(sceneId)) return { at: order.get(sceneId), planned: false, sceneId, leadId: "" };
             if (leadPos.has(leadId)) {
               const lead = leads.find((l) => l.id === leadId);
@@ -5474,9 +5474,9 @@ ${raw}` : raw;
             return null;
           };
           return {
-            place,
-            clue: (cl) => place(cl.foundSceneId, cl.leadId),
-            reveal: () => place(c.revealSceneId, c.revealLeadId),
+            place: place2,
+            clue: (cl) => place2(cl.foundSceneId, cl.leadId),
+            reveal: () => place2(c.revealSceneId, c.revealLeadId),
             lead: (id) => leadPos.get(id) || null
           };
         }
@@ -5930,10 +5930,10 @@ ${raw}` : raw;
         0
       ]);
       clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
-      freb = function(eb, start2) {
+      freb = function(eb, start3) {
         var b = new u16(31);
         for (var i2 = 0; i2 < 31; ++i2) {
-          b[i2] = start2 += 1 << eb[i2 - 1];
+          b[i2] = start3 += 1 << eb[i2 - 1];
         }
         var r = new i32(b[30]);
         for (var i2 = 1; i2 < 30; ++i2) {
@@ -6771,14 +6771,14 @@ ${raw}` : raw;
       if (args[0] === "-q" && args[2] === "-d") {
         const dest = abs(args[3]);
         for (const [name, data] of Object.entries(readZip(abs(args[1])))) {
-          const target = norm(import_path_browserify4.default.posix.join(dest, name));
-          if (!target.startsWith(dest + "/")) throw new Error("unzip: unsafe path in archive");
+          const target2 = norm(import_path_browserify4.default.posix.join(dest, name));
+          if (!target2.startsWith(dest + "/")) throw new Error("unzip: unsafe path in archive");
           if (name.endsWith("/")) {
-            mkdir(target, true);
+            mkdir(target2, true);
             continue;
           }
-          mkdir(import_path_browserify4.default.posix.dirname(target), true);
-          write(target, data);
+          mkdir(import_path_browserify4.default.posix.dirname(target2), true);
+          write(target2, data);
         }
         return "";
       }
@@ -7015,7 +7015,7 @@ wait $child
           }
           if (!have || !have.equals(want)) fs.writeFileSync(p.customRules, want);
         }
-        async function start2() {
+        async function start3() {
           if (_server) return _server;
           if (_starting) return _starting;
           if (!isInstalled()) throw new Error("LanguageTool is not installed.");
@@ -7086,7 +7086,7 @@ wait $child
           if (!ENGLISH_LANGUAGES.has(language)) throw new TypeError("Unsupported LanguageTool dialect.");
           if (text.length > MAX_TEXT) throw new Error("This document is too long to check in one pass.");
           if (!text.trim()) return [];
-          const { port } = await start2();
+          const { port } = await start3();
           clearTimeout(_idleTimer);
           _idleTimer = setTimeout(() => {
             stop().catch(() => {
@@ -7417,9 +7417,9 @@ wait $child
           if (e.flags & 1) throw new EpubError("This EPUB is encrypted (DRM) and cannot be opened.");
           const lp = e.localOffset;
           if (lp + 30 > buf.length || buf.readUInt32LE(lp) !== 67324752) throw new EpubError("This EPUB is truncated or damaged.");
-          const start2 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
-          if (start2 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
-          const data = buf.subarray(start2, start2 + e.compSize);
+          const start3 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
+          if (start3 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
+          const data = buf.subarray(start3, start3 + e.compSize);
           const budget = Math.min(limits.maxEntryBytes, limits.maxTotalBytes - total);
           let out;
           if (e.method === 0) {
@@ -7899,8 +7899,8 @@ wait $child
           }
           return { t, i: i2 };
         }
-        function makeAnchor(text, start2, end) {
-          const s = Math.max(0, Math.min(start2, end)), e = Math.min(text.length, Math.max(start2, end));
+        function makeAnchor(text, start3, end) {
+          const s = Math.max(0, Math.min(start3, end)), e = Math.min(text.length, Math.max(start3, end));
           return {
             start: s,
             end: e,
@@ -8091,8 +8091,8 @@ wait $child
           if (scored.length > 1 && scored[0].score < scored[1].score + 5) return { status: "ambiguous", chapterIndex: ci, count: scored.length };
           return { status: "ok", chapterIndex: ci, start: scored[0].start, end: scored[0].end };
         }
-        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start2, end) {
-          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start2, end) };
+        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start3, end) {
+          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start3, end) };
         }
         function splitSentences(text) {
           const out = [];
@@ -10475,27 +10475,27 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           if (!files.length && !missing.length) throw new Error("This backup has no files to restore.");
           const plans = files.map((rel) => {
             const source = path5.resolve(resolved.backupDir, "files", rel);
-            const target = path5.resolve(resolved.projectDir, rel);
-            if (!isInside(path5.join(resolved.backupDir, "files"), source) || !isInside(resolved.projectDir, target) || !fs.existsSync(source)) throw new Error("Backup contains an invalid or missing file.");
+            const target2 = path5.resolve(resolved.projectDir, rel);
+            if (!isInside(path5.join(resolved.backupDir, "files"), source) || !isInside(resolved.projectDir, target2) || !fs.existsSync(source)) throw new Error("Backup contains an invalid or missing file.");
             try {
               if (fs.lstatSync(source).isSymbolicLink()) throw new Error("Backup file is a symbolic link.");
             } catch (e) {
               if (e.message.includes("symbolic")) throw e;
             }
-            return { rel, source, target, after: fs.readFileSync(source, "utf8") };
+            return { rel, source, target: target2, after: fs.readFileSync(source, "utf8") };
           });
           const deletions = missing.map((rel) => {
-            const target = path5.resolve(resolved.projectDir, rel);
-            if (!isInside(resolved.projectDir, target)) throw new Error("Backup contains an invalid missing-file path.");
-            return { rel, target };
+            const target2 = path5.resolve(resolved.projectDir, rel);
+            if (!isInside(resolved.projectDir, target2)) throw new Error("Backup contains an invalid missing-file path.");
+            return { rel, target: target2 };
           });
           const affected = [.../* @__PURE__ */ new Set([...plans.map((plan) => plan.rel), ...deletions.map((plan) => plan.rel)])];
           const before = new Map(affected.map((rel) => {
-            const target = path5.resolve(resolved.projectDir, rel);
+            const target2 = path5.resolve(resolved.projectDir, rel);
             try {
-              if (!fs.existsSync(target)) return [rel, null];
-              if (fs.lstatSync(target).isSymbolicLink()) throw new Error(`Target "${rel}" is a symbolic link.`);
-              return [rel, fs.readFileSync(target, "utf8")];
+              if (!fs.existsSync(target2)) return [rel, null];
+              if (fs.lstatSync(target2).isSymbolicLink()) throw new Error(`Target "${rel}" is a symbolic link.`);
+              return [rel, fs.readFileSync(target2, "utf8")];
             } catch (e) {
               if (e.message.includes("symbolic")) throw e;
               return [rel, null];
@@ -10525,11 +10525,11 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
             for (const plan of deletions) if (fs.existsSync(plan.target)) fs.unlinkSync(plan.target);
           } catch (restoreError) {
             for (const rel of affected) {
-              const target = path5.resolve(resolved.projectDir, rel);
+              const target2 = path5.resolve(resolved.projectDir, rel);
               const original = before.get(rel);
               if (original === null) {
-                if (fs.existsSync(target)) fs.unlinkSync(target);
-              } else atomicWriteFileSync(target, original, "utf8");
+                if (fs.existsSync(target2)) fs.unlinkSync(target2);
+              } else atomicWriteFileSync(target2, original, "utf8");
             }
             throw new Error(`Restore failed; current files were put back: ${restoreError.message}`);
           }
@@ -11407,19 +11407,19 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           const archived = store.archive.find((item) => item.id === id);
           if (!archived) return { ok: false, error: "That note is not in the archive." };
           const { scenes } = revisionScenes(novelRel, dir);
-          const target = scenes.find((s) => s.scene_id === archived.home_scene_id) || scenes.find((s) => s.chapter_id && s.chapter_id === archived.scope.chapters[0]) || scenes.find((s) => archived.scope.scenes.includes(s.scene_id)) || scenes[0];
-          if (!target) return { ok: false, error: "This novel has no scenes to put the note in." };
-          if (!findNotes(target.body).some((note) => note.id === id)) {
-            rewriteSceneBody(target.full, (body) => noteLine(id, archived.text) + "\n" + body);
+          const target2 = scenes.find((s) => s.scene_id === archived.home_scene_id) || scenes.find((s) => s.chapter_id && s.chapter_id === archived.scope.chapters[0]) || scenes.find((s) => archived.scope.scenes.includes(s.scene_id)) || scenes[0];
+          if (!target2) return { ok: false, error: "This novel has no scenes to put the note in." };
+          if (!findNotes(target2.body).some((note) => note.id === id)) {
+            rewriteSceneBody(target2.full, (body) => noteLine(id, archived.text) + "\n" + body);
           }
           Revisions.openNote(store, id, {
             text: archived.text,
-            sceneId: target.scene_id,
-            chapterId: target.chapter_id,
+            sceneId: target2.scene_id,
+            chapterId: target2.chapter_id,
             now: (/* @__PURE__ */ new Date()).toISOString()
           });
           writeRevisions(dir, store);
-          return { ok: true, path: target.path };
+          return { ok: true, path: target2.path };
         } catch (error) {
           return { ok: false, error: error.message };
         }
@@ -12781,17 +12781,17 @@ ${tags}`);
           if (!match.targetHash || currentHash !== match.targetHash) {
             throw new Error(`\u201C${match.fileTitle || "A result"}\u201D changed since the search. Search again before replacing.`);
           }
-          const start2 = Number(match.matchStart);
+          const start3 = Number(match.matchStart);
           const end = Number(match.matchEnd);
-          if (!Number.isInteger(start2) || !Number.isInteger(end) || start2 < 0 || end <= start2 || end > value.length || value.slice(start2, end) !== match.matchedText || value.slice(start2, end).toLowerCase() !== term.toLowerCase()) {
+          if (!Number.isInteger(start3) || !Number.isInteger(end) || start3 < 0 || end <= start3 || end > value.length || value.slice(start3, end) !== match.matchedText || value.slice(start3, end).toLowerCase() !== term.toLowerCase()) {
             throw new Error("A selected match is stale. Search again before replacing.");
           }
           if (!targets.has(key)) targets.set(key, { value, ref, occurrences: [] });
-          const target = targets.get(key);
-          if (target.value !== value) throw new Error("A replacement target changed during validation.");
-          if (target.occurrences.some((item) => item.start === start2 && item.end === end)) return;
-          target.occurrences.push({
-            start: start2,
+          const target2 = targets.get(key);
+          if (target2.value !== value) throw new Error("A replacement target changed during validation.");
+          if (target2.occurrences.some((item) => item.start === start3 && item.end === end)) return;
+          target2.occurrences.push({
+            start: start3,
             end,
             lineNumber: Number(match.lineNumber),
             lineMatchStart: Number(match.lineMatchStart)
@@ -12932,27 +12932,27 @@ ${tags}`);
             }
           }
           let replacementCount = 0;
-          for (const target of targets.values()) {
-            target.occurrences.sort((a, b) => b.start - a.start);
-            for (let i2 = 1; i2 < target.occurrences.length; i2++) {
-              if (target.occurrences[i2 - 1].start < target.occurrences[i2].end) {
+          for (const target2 of targets.values()) {
+            target2.occurrences.sort((a, b) => b.start - a.start);
+            for (let i2 = 1; i2 < target2.occurrences.length; i2++) {
+              if (target2.occurrences[i2 - 1].start < target2.occurrences[i2].end) {
                 throw new Error("Selected replacements overlap. Search again before replacing.");
               }
             }
-            let value = target.value;
-            for (const occurrence of target.occurrences) {
+            let value = target2.value;
+            for (const occurrence of target2.occurrences) {
               value = value.slice(0, occurrence.start) + String(replacement) + value.slice(occurrence.end);
               replacementCount++;
             }
-            const ref = target.ref;
+            const ref = target2.ref;
             if (ref.kind === "scene") {
               if (ref.field === "body") {
                 ref.doc.after = frontmatterPrefix(ref.doc.after) + value;
                 bodyChanges.push({
                   doc: ref.doc,
-                  before: target.value,
+                  before: target2.value,
                   after: value,
-                  occurrences: target.occurrences.slice()
+                  occurrences: target2.occurrences.slice()
                 });
               } else if (ref.field === "tags") {
                 ref.doc.after = setFrontmatterField(
@@ -13013,10 +13013,10 @@ ${tags}`);
               let nextQuote = quote;
               let delta = 0;
               for (const occurrence of inside2.sort((a, b) => b.start - a.start)) {
-                const start2 = occurrence.start - quoteStart;
+                const start3 = occurrence.start - quoteStart;
                 const end = occurrence.end - quoteStart;
-                nextQuote = nextQuote.slice(0, start2) + String(replacement) + nextQuote.slice(end);
-                delta += String(replacement).length - (end - start2);
+                nextQuote = nextQuote.slice(0, start3) + String(replacement) + nextQuote.slice(end);
+                delta += String(replacement).length - (end - start3);
               }
               comment.text = nextQuote;
               if (comment.anchor && Number.isInteger(comment.anchor.end)) comment.anchor.end += delta;
@@ -14301,8 +14301,8 @@ ${sc.text}`);
           return {};
         }
       }
-      function auditFindingId(rule, target) {
-        return crypto2.createHash("sha256").update(`${rule}\0${target}`).digest("hex").slice(0, 20);
+      function auditFindingId(rule, target2) {
+        return crypto2.createHash("sha256").update(`${rule}\0${target2}`).digest("hex").slice(0, 20);
       }
       function manuscriptAudit(dir) {
         const scenes = timelineScenes(dir).map((scene) => {
@@ -14325,16 +14325,16 @@ ${sc.text}`);
           };
         });
         const findings = [];
-        const add = (rule, category, severity, title, detail, target) => {
-          const targetKey = target.path || [target.eventId, target.factId].filter(Boolean).join(":") || target.label || title;
-          findings.push({ id: auditFindingId(rule, targetKey), rule, category, severity, title, detail, target });
+        const add = (rule, category, severity, title, detail, target2) => {
+          const targetKey = target2.path || [target2.eventId, target2.factId].filter(Boolean).join(":") || target2.label || title;
+          findings.push({ id: auditFindingId(rule, targetKey), rule, category, severity, title, detail, target: target2 });
         };
         const usesPov = scenes.some((scene) => String(scene.meta.scene_pov || "").trim());
         const usesStatus = scenes.some((scene) => String(scene.meta.scene_status || "").trim());
         const nonempty = scenes.map((scene) => scene.words).filter(Boolean).sort((a, b) => a - b);
         const median = nonempty.length ? (nonempty[Math.floor((nonempty.length - 1) / 2)] + nonempty[Math.ceil((nonempty.length - 1) / 2)]) / 2 : 0;
         for (const scene of scenes) {
-          const target = { kind: "scene", path: scene.path, label: scene.title };
+          const target2 = { kind: "scene", path: scene.path, label: scene.title };
           if (!String(scene.meta.scene_synopsis || "").trim()) {
             add(
               "missing-synopsis",
@@ -14342,7 +14342,7 @@ ${sc.text}`);
               "review",
               `${scene.title} has no synopsis`,
               "The scene synopsis is blank in the Inspector and Outliner.",
-              target
+              target2
             );
           }
           if (usesPov && !String(scene.meta.scene_pov || "").trim()) {
@@ -14352,7 +14352,7 @@ ${sc.text}`);
               "review",
               `${scene.title} has no scene POV`,
               "Other scenes use POV metadata, but this scene does not.",
-              target
+              target2
             );
           }
           if (usesStatus && !String(scene.meta.scene_status || "").trim()) {
@@ -14362,7 +14362,7 @@ ${sc.text}`);
               "review",
               `${scene.title} has no saved status`,
               "Other scenes use status metadata, but this scene does not.",
-              target
+              target2
             );
           }
           if (!scene.words) {
@@ -14372,7 +14372,7 @@ ${sc.text}`);
               "attention",
               `${scene.title} is empty`,
               "This scene currently contains no prose words.",
-              target
+              target2
             );
           } else if (nonempty.length >= 5 && median >= 100 && scene.words < median * 0.35 && median - scene.words >= 300) {
             add(
@@ -14381,7 +14381,7 @@ ${sc.text}`);
               "info",
               `${scene.title} is unusually short`,
               `${scene.words.toLocaleString()} words versus a manuscript median of ${Math.round(median).toLocaleString()}.`,
-              target
+              target2
             );
           } else if (nonempty.length >= 5 && median >= 100 && scene.words > median * 2.5 && scene.words - median >= 500) {
             add(
@@ -14390,7 +14390,7 @@ ${sc.text}`);
               "info",
               `${scene.title} is unusually long`,
               `${scene.words.toLocaleString()} words versus a manuscript median of ${Math.round(median).toLocaleString()}.`,
-              target
+              target2
             );
           }
           if (scene.stubs.length) {
@@ -14400,7 +14400,7 @@ ${sc.text}`);
               "attention",
               `${scene.stubs.length} placeholder${scene.stubs.length === 1 ? "" : "s"} in ${scene.title}`,
               `Includes ${scene.stubs.slice(0, 2).map((stub) => `\u201C${stub.slice(0, 80)}\u201D`).join(" and ")}.`,
-              target
+              target2
             );
           }
           if (scene.comments.length) {
@@ -14411,7 +14411,7 @@ ${sc.text}`);
               orphaned ? "attention" : "review",
               `${scene.comments.length} open comment${scene.comments.length === 1 ? "" : "s"} in ${scene.title}`,
               orphaned ? `${orphaned} comment anchor${orphaned === 1 ? " is" : "s are"} no longer attached to text.` : "Review or remove these comments in the scene.",
-              target
+              target2
             );
           }
         }
@@ -15325,7 +15325,7 @@ ${sc.text}`);
           fs.rmSync(tempRoot, { recursive: true, force: true });
         }
       }
-      function swapRestoredDirectory(source, target, label) {
+      function swapRestoredDirectory(source, target2, label) {
         const parent = path5.dirname(ROOT);
         const nonce = `${__quillProcess.pid}-${crypto2.randomBytes(4).toString("hex")}`;
         const staged = path5.join(parent, `.${path5.basename(ROOT)}-restore-${nonce}`);
@@ -15333,15 +15333,15 @@ ${sc.text}`);
         fs.cpSync(source, staged, { recursive: true, errorOnExist: true, dereference: false });
         let movedCurrent = false;
         try {
-          if (fs.existsSync(target)) {
-            if (fs.lstatSync(target).isSymbolicLink()) throw new Error(`The current ${label} is a symbolic link.`);
-            fs.renameSync(target, holding);
+          if (fs.existsSync(target2)) {
+            if (fs.lstatSync(target2).isSymbolicLink()) throw new Error(`The current ${label} is a symbolic link.`);
+            fs.renameSync(target2, holding);
             movedCurrent = true;
           }
-          fs.renameSync(staged, target);
+          fs.renameSync(staged, target2);
         } catch (error) {
           try {
-            if (movedCurrent && !fs.existsSync(target)) fs.renameSync(holding, target);
+            if (movedCurrent && !fs.existsSync(target2)) fs.renameSync(holding, target2);
           } catch {
           }
           throw error;
@@ -17272,6 +17272,117 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   init_vfs();
   init_ui();
   init_electron();
+
+  // web/scrollrail.js
+  var MIN_THUMB = 64;
+  var IDLE_MS = 1800;
+  var rail = document.createElement("div");
+  rail.className = "web-rail";
+  rail.setAttribute("aria-hidden", "true");
+  var thumb = document.createElement("div");
+  thumb.className = "web-rail-thumb";
+  rail.append(thumb);
+  var target = null;
+  var drag = null;
+  var idleTimer = null;
+  function scrollable(el2) {
+    if (!(el2 instanceof Element)) return false;
+    const { overflowY } = getComputedStyle(el2);
+    return (overflowY === "auto" || overflowY === "scroll") && el2.scrollHeight > el2.clientHeight + 40;
+  }
+  function findTarget() {
+    const area = document.querySelector('[id$="-modal"].show') || document.getElementById("main") || document.body;
+    const box = area.getBoundingClientRect();
+    let el2 = document.elementFromPoint(box.left + box.width / 2, box.top + Math.min(box.height / 2, 240));
+    while (el2 && el2 !== document.body) {
+      if (el2 !== rail && !rail.contains(el2) && scrollable(el2)) return el2;
+      el2 = el2.parentElement;
+    }
+    return null;
+  }
+  function wake() {
+    rail.classList.add("awake");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!drag) rail.classList.remove("awake");
+    }, IDLE_MS);
+  }
+  function place() {
+    if (!target || !target.isConnected || !scrollable(target)) {
+      rail.hidden = true;
+      return;
+    }
+    const box = target.getBoundingClientRect();
+    if (box.height < 160) {
+      rail.hidden = true;
+      return;
+    }
+    rail.hidden = false;
+    rail.style.top = `${box.top + 6}px`;
+    rail.style.height = `${box.height - 12}px`;
+    rail.style.left = `${box.right - rail.offsetWidth}px`;
+    const track = box.height - 12;
+    const size = Math.max(MIN_THUMB, track * target.clientHeight / target.scrollHeight);
+    const range = target.scrollHeight - target.clientHeight;
+    thumb.style.height = `${size}px`;
+    thumb.style.transform = `translateY(${range > 0 ? (track - size) * target.scrollTop / range : 0}px)`;
+  }
+  function retarget() {
+    const next = findTarget();
+    if (next !== target) target = next;
+    place();
+  }
+  thumb.addEventListener("pointerdown", (event2) => {
+    if (!target) return;
+    event2.preventDefault();
+    event2.stopPropagation();
+    thumb.setPointerCapture(event2.pointerId);
+    const track = rail.clientHeight - thumb.offsetHeight;
+    drag = { startY: event2.clientY, startTop: target.scrollTop, ratio: track > 0 ? (target.scrollHeight - target.clientHeight) / track : 0 };
+    rail.classList.add("dragging");
+    wake();
+  });
+  thumb.addEventListener("pointermove", (event2) => {
+    if (!drag || !target) return;
+    event2.preventDefault();
+    target.scrollTop = drag.startTop + (event2.clientY - drag.startY) * drag.ratio;
+    place();
+  });
+  var endDrag = () => {
+    drag = null;
+    rail.classList.remove("dragging");
+    wake();
+  };
+  thumb.addEventListener("pointerup", endDrag);
+  thumb.addEventListener("pointercancel", endDrag);
+  rail.addEventListener("pointerdown", (event2) => {
+    if (event2.target !== rail || !target) return;
+    event2.preventDefault();
+    const down = event2.clientY > thumb.getBoundingClientRect().top;
+    target.scrollBy({ top: (down ? 1 : -1) * target.clientHeight * 0.85, behavior: "smooth" });
+    wake();
+  });
+  document.addEventListener("scroll", (event2) => {
+    if (event2.target === target) {
+      place();
+      wake();
+    } else if (event2.target instanceof Element && !drag) {
+      target = null;
+      retarget();
+      if (event2.target === target) wake();
+    }
+  }, { capture: true, passive: true });
+  window.addEventListener("resize", retarget);
+  document.addEventListener("click", () => setTimeout(retarget, 300), true);
+  setInterval(() => {
+    if (!drag) retarget();
+  }, 1e3);
+  function start() {
+    document.body.append(rail);
+    retarget();
+  }
+
+  // web/boot.js
   globalThis.Buffer = import_buffer7.Buffer;
   globalThis.global = globalThis;
   globalThis.setImmediate ||= (fn, ...args) => setTimeout(fn, 0, ...args);
@@ -17279,7 +17390,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   document.documentElement.classList.add("quill-web");
   window.__quillWeb = { vfs: vfs_exports, ui: ui_exports };
   require_preload();
-  async function start() {
+  async function start2() {
     try {
       await load();
     } catch (error) {
@@ -17302,6 +17413,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   var fromHomeScreen = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   async function firstScreens(empty) {
     if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
+    start();
     await new Promise((r) => setTimeout(r, 600));
     if (onIPad && !fromHomeScreen) {
       const { response } = await messageBox({
@@ -17370,7 +17482,26 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     if (event2.target.closest?.("#web-restore-zip")) document.getElementById("recovery-archive-btn")?.click();
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
-  start();
+  if (navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.addEventListener("controllerchange", async () => {
+      const { response } = await messageBox({
+        message: "Quill has been updated",
+        detail: "Reload to use the new version. Your work is saved first.",
+        buttons: ["Later", "Reload"],
+        defaultId: 1,
+        cancelId: 0
+      });
+      if (response !== 1) return;
+      try {
+        if (typeof App !== "undefined") await App.flushPendingWork?.();
+      } catch {
+      }
+      await flush().catch(() => {
+      });
+      location.reload();
+    }, { once: true });
+  }
+  start2();
 })();
 /*! Bundled license information:
 
