@@ -1,0 +1,140 @@
+/* ui.css — Quill's shared components ("Quiet manuscript", docs/DESIGN-AUDIT.md).
+ *
+ * Loaded before style.css, so a view's old rules still win until that view is migrated.
+ * Colour, font and the base scales (--fs-xs…xl, --r…) live in style.css's theme blocks;
+ * this file adds the rest of the scale and the components built on it.
+ *
+ * Rules for new UI:
+ *  - Sections are separated by space, a .section-label and a hairline. Don't box a section.
+ *  - Only things you can click are boxed, and they use .card.
+ *  - Buttons are .btn (one shape). Filters and tags are .chip. Pick-one controls are .seg.
+ *  - Text colours: --text, --muted (secondary, AA), --subtle (placeholders, icons, meta).
+ *    --faint is for borders and disabled states, never for text.
+ *  - Use the tokens below instead of literal px; tools/check-css-tokens.js counts literals.
+ */
+
+:root{
+  /* Spacing: 4px steps. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
+  /* Type scale above style.css's --fs-xs 11 · sm 12 · md 13 · lg 15 · xl 18. */
+  --fs-2xl:22px; --fs-3xl:28px; --fs-4xl:36px;
+  --shadow-1:0 1px 2px rgba(0,0,0,.05);
+  --shadow-2:0 4px 16px rgba(0,0,0,.08);
+  --shadow-3:0 20px 60px rgba(0,0,0,.2);
+  /* Column widths: forms, tools and landings; wide tables and manuscripts. */
+  --w-page:680px; --w-wide:1040px;
+  --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888480' stroke-width='1.5'/%3E%3C/svg%3E");
+  --focus-ring:0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --drop-line-before:inset 0 2px 0 var(--accent);
+  --drop-line-after:inset 0 -2px 0 var(--accent);
+}
+
+/* Form controls use the interface font unless a rule says otherwise (browsers default to the system font). */
+:where(button, input, select, textarea){font-family:inherit}
+
+/* Checkboxes, radios and ranges take the accent instead of the system blue. */
+:where(input[type=checkbox], input[type=radio], input[type=range], progress){accent-color:var(--accent)}
+
+/* ── Focus: one visible ring for keyboard users ─────────────── */
+:where(button, a, summary, [role=button], .card):focus-visible{outline:none;box-shadow:var(--focus-ring)}
+
+/* ── Page layout ──────────────────────────────────────────── */
+.page-col{max-width:var(--w-page);margin:0 auto;padding:var(--sp-6) var(--sp-5) var(--sp-7)}
+.page-col.wide{max-width:var(--w-wide)}
+.page-head{margin-bottom:var(--sp-5)}
+.page-back{margin:0 0 var(--sp-3) calc(-1 * var(--sp-2))}
+.kicker{font:600 var(--fs-xs)/1.4 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:var(--sp-2)}
+.page-title{font:400 var(--fs-4xl)/1.15 var(--heading);letter-spacing:-.015em;color:var(--text)}
+.page-title.it{font-style:italic;font-size:var(--fs-3xl);letter-spacing:0;line-height:1.25}
+.page-title.it.long{font-size:var(--fs-2xl);line-height:1.35}
+.page-title em{color:var(--accent);font-style:italic}
+.page-sub{font-size:var(--fs-md);line-height:1.6;color:var(--muted);margin-top:var(--sp-2);max-width:560px}
+
+/* ── Sections: label + hairline, no box ───────────────────── */
+.section{margin-top:var(--sp-6)}
+.section:first-child{margin-top:0}
+.section-label{display:flex;align-items:center;gap:var(--sp-3);min-height:28px;margin-bottom:var(--sp-3);
+  font:600 var(--fs-xs)/1.4 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);order:1}
+.section-label > .section-actions{order:2;display:flex;gap:var(--sp-1);text-transform:none;letter-spacing:0;font-weight:400}
+.section-label.bare::after{display:none}
+.hint{font-size:var(--fs-xs);line-height:1.5;color:var(--muted)}
+.hint.subtle{color:var(--subtle)}
+
+/* ── Buttons: one shape ───────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 var(--sp-4);
+  border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);
+  font:500 var(--fs-md)/1 var(--ui);white-space:nowrap;cursor:pointer;
+  transition:background var(--ease),border-color var(--ease),color var(--ease)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted);padding:0 var(--sp-2)}
+.btn.ghost:hover{color:var(--text);background:var(--surface2)}
+.btn.primary.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{border-color:var(--danger)}
+.btn.sm{height:26px;padding:0 var(--sp-3);font-size:var(--fs-sm)}
+.btn.ghost.sm{padding:0 var(--sp-2)}
+.btn:disabled,.btn[aria-disabled=true]{opacity:.45;cursor:default;filter:none}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+.btn.icon{width:32px;padding:0;font-size:var(--fs-lg)}
+.btn.icon.sm{width:26px;font-size:var(--fs-md)}
+.btn-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2)}
+
+/* ── Chips: filters and tags, one selected state ──────────── */
+.chip{display:inline-flex;align-items:center;gap:var(--sp-1);height:28px;padding:0 var(--sp-3);
+  border:1px solid var(--border);border-radius:var(--r-pill);background:none;color:var(--muted);
+  font:400 var(--fs-sm)/1 var(--ui);cursor:pointer;transition:all var(--ease)}
+.chip:hover{color:var(--text);border-color:var(--border2)}
+.chip.on,.chip.active,.chip[aria-pressed=true]{background:var(--adim);border-color:var(--adim);color:var(--accent);font-weight:500}
+.chip-row{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+
+/* ── Segmented: pick one of a few ─────────────────────────── */
+.seg{display:inline-flex;gap:2px;padding:2px;background:var(--surface2);border-radius:var(--r)}
+.seg > button{height:26px;padding:0 var(--sp-3);border:0;border-radius:var(--r-sm);background:none;
+  color:var(--muted);font:400 var(--fs-sm)/1 var(--ui);cursor:pointer}
+.seg > button:hover{color:var(--text)}
+.seg > button.on,.seg > button.active,.seg > button[aria-pressed=true]{background:var(--surface);color:var(--text);font-weight:500;box-shadow:var(--shadow-1)}
+
+/* ── Fields ───────────────────────────────────────────────── */
+.field{width:100%;min-height:34px;padding:7px var(--sp-3);border:1px solid var(--border);border-radius:var(--r);
+  background:var(--surface);color:var(--text);font:400 var(--fs-md)/1.5 var(--ui);outline:none;
+  -webkit-user-select:text;user-select:text;transition:border-color var(--ease)}
+.field:focus{border-color:var(--accent)}
+.field::placeholder{color:var(--subtle)}
+textarea.field{min-height:84px;resize:vertical}
+select.field{appearance:none;-webkit-appearance:none;padding-right:28px;cursor:pointer;
+  background-image:var(--chevron);
+  background-repeat:no-repeat;background-position:right 10px center}
+.field.auto{width:auto}
+.check{display:inline-flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);color:var(--text);cursor:pointer}
+.check input{accent-color:var(--accent);width:14px;height:14px;margin:0}
+
+/* ── Card: clickable things only ──────────────────────────── */
+.card{position:relative;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;width:100%;text-align:left;padding:var(--sp-4);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);
+  font-family:var(--ui);cursor:pointer;transition:border-color var(--ease)}
+.card:hover{border-color:var(--accent)}
+.card.static{cursor:default}
+.card.static:hover{border-color:var(--border)}
+.card.disabled{opacity:.45;cursor:default}
+.card.disabled:hover{border-color:var(--border)}
+.card-kicker{font:600 var(--fs-xs)/1.4 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:var(--sp-1)}
+.card-title{font:500 var(--fs-lg)/1.4 var(--heading);color:var(--text)}
+.card-text{font-size:var(--fs-sm);line-height:1.55;color:var(--muted);margin-top:var(--sp-1)}
+.card-meta{font-size:var(--fs-xs);color:var(--subtle);margin-top:var(--sp-2)}
+.card-x{position:absolute;top:var(--sp-2);right:var(--sp-2)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--sp-3)}
+.card-list{display:flex;flex-direction:column;gap:var(--sp-2)}
+
+/* ── Field list: labelled rows split by hairlines (forms without boxes) ── */
+.field-list > .fl-row{display:grid;grid-template-columns:120px 1fr;gap:var(--sp-3);align-items:baseline;
+  padding:var(--sp-3) 0;border-bottom:1px solid var(--border)}
+.field-list > .fl-row > label{font:600 var(--fs-xs)/1.4 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ── Empty state ──────────────────────────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);padding:var(--sp-7) var(--sp-4);text-align:center}
+.empty-state svg{width:28px;height:28px;stroke:var(--subtle);fill:none;stroke-width:1.5}
+.empty-state p{font-size:var(--fs-md);color:var(--muted);max-width:360px;line-height:1.55}
+.empty-state.inline{align-items:flex-start;text-align:left;padding:var(--sp-3) 0}

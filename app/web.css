@@ -1,0 +1,31 @@
+/* web.css — iPad-only additions: the sheets from web/ui.js, safe areas, touch, and hiding the
+ * few settings that only work on the Mac. Loaded after style.css by the web build. */
+
+/* ── Sheets (message boxes, file pickers, Save to Files) ─────── */
+.web-sheet-backdrop{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;
+  padding:var(--sp-5);background:rgba(0,0,0,.28)}
+.web-sheet{width:min(440px,100%);background:var(--surface);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--r-lg,12px);box-shadow:var(--shadow-3);padding:var(--sp-5)}
+.web-sheet h3{font:400 var(--fs-xl)/1.3 var(--heading);margin:0 0 var(--sp-2)}
+.web-sheet p{font-size:var(--fs-md);line-height:1.55;color:var(--muted);margin:0 0 var(--sp-2);white-space:pre-line}
+.web-sheet .web-sheet-hint{font-size:var(--fs-sm)}
+.web-sheet .web-sheet-status:empty{display:none}
+.web-sheet .web-sheet-status{color:var(--danger)}
+.web-sheet-buttons{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-4)}
+
+.web-print-frame{position:fixed;left:-10000px;top:0;width:850px;height:1100px;border:0;opacity:0;pointer-events:none}
+
+/* ── Home-screen app: the status bar and rounded corners ─────── */
+html.quill-web body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  height:100dvh;box-sizing:border-box;-webkit-text-size-adjust:100%}
+
+/* ── Mac-only settings ──────────────────────────────────────── */
+html.quill-web .settings-row:has(#settings-lt-install),
+html.quill-web .web-hidden{display:none !important}
+
+/* ── Touch: controls the Mac shows on hover stay visible ────── */
+@media (hover:none){
+  .workspace-saved-search-delete,.scrap-insert,.outliner-build,.b-drag-handle,.bsv-history-del,
+  .outline-beat-del,.sl-rep-del,.idea-sidebar-actions,.case-pick-action,.case-move,.file-drag{opacity:1}
+  .folder-row.active .folder-actions,.file-row.active .file-actions{display:flex}
+}

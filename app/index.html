@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Quill">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob: https://openrouter.ai https://api.openai.com https://auth.openai.com; frame-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Quill</title>
+<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="web.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div id="drag-region"></div>
+    <img id="quill-logo" src="assets/quill-icon.png" alt="Quill" title="Home" style="cursor:pointer" data-toolbar-action="home">
+    <h1>quill</h1>
+    <button class="icon-btn" id="theme-btn" title="Dark mode">
+      <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="icon-btn" id="new-folder-btn" title="New folder">
+      <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+    </button>
+    <button class="icon-btn" id="new-file-btn" title="New file (⌘N)">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div id="project-workspace-header">
+    <button id="all-projects-btn" title="Return to all projects">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>All Projects</span>
+    </button>
+    <button id="workspace-project-title" title="Open project overview">
+      <span id="workspace-project-name">Project</span>
+      <span id="workspace-project-kind">Novel</span>
+    </button>
+  </div>
+  <div id="practice-sidebar-section">
+    <div class="sidebar-flush-header">
+      <span class="sidebar-section-caret" id="practice-section-caret">▸</span>
+      <span class="sidebar-flush-label">Practice</span>
+    </div>
+    <div id="practice-list-sidebar"></div>
+  </div>
+  <div id="ideas-sidebar-section">
+    <div class="sidebar-flush-header">
+      <span class="sidebar-section-caret" id="ideas-section-caret">▸</span>
+      <span class="sidebar-flush-label">Ideas</span>
+      <button class="icon-btn sidebar-flush-btn" id="idea-new-btn-sidebar" title="New idea">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div id="idea-list-sidebar"></div>
+  </div>
+  <div class="sidebar-flush-header" id="projects-sidebar-heading" style="margin-top:4px">
+    <span class="sidebar-section-caret" id="projects-section-caret">▸</span>
+    <span class="sidebar-flush-label">Projects</span>
+    <button class="icon-btn sidebar-flush-btn" id="project-new-btn-sidebar" title="New project">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div id="tree-wrap"></div>
+  <div id="binder-selection-bar" class="hidden">
+    <span id="binder-selection-count">0 scenes selected</span>
+    <button id="binder-add-collection-btn">Add to collection…</button>
+    <button id="binder-clear-selection-btn" title="Clear selection">×</button>
+  </div>
+  <div id="sidebar-footer">
+    <span id="footer-path">~/Documents/Quill</span>
+    <button id="recovery-open-btn" class="sidebar-footer-btn" title="Recovery Center">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V6l-8-3z"/><path d="M8.5 12a3.5 3.5 0 1 0 1-2.5"/><polyline points="8.5 7.5 8.5 10.5 11.5 10.5"/></svg>
+      Recovery
+    </button>
+    <button id="trash-open-btn" class="sidebar-footer-btn" title="Trash">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      Trash
+    </button>
+    <button id="settings-open-btn" class="sidebar-footer-btn" title="Settings (⌘,)">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- Toolbar. data-tip + data-shortcut become the tooltip (toolbar.js); data-views / data-kinds
+       say where a control appears (view = #toolbar[data-view], kind = novel | journal | other). -->
+  <div id="toolbar">
+    <button class="tb-btn" id="sidebar-toggle-btn" data-tip="Show or hide the sidebar" data-shortcut="sidebar">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <button class="tb-btn" id="back-btn" data-tip="Go back">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="tb-sep" data-views="editor chapter"></div>
+    <button class="tb-btn" data-save-selection data-fmt="bold" data-tip="Bold" data-shortcut="bold" data-views="editor chapter"><b>B</b></button>
+    <button class="tb-btn" data-save-selection data-fmt="italic" data-tip="Italic" data-shortcut="italic" data-views="editor chapter"><i>I</i></button>
+    <button class="tb-btn" data-save-selection data-fmt="formatBlock,blockquote" data-tip="Block quote" data-shortcut="quote" data-views="editor chapter" data-kinds="journal other">
+      <svg viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+    </button>
+    <button class="tb-btn" data-save-selection data-fmt="insertUnorderedList" data-tip="Bulleted list" data-shortcut="bullets" data-views="editor chapter" data-kinds="journal other">
+      <svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <button class="tb-btn" data-save-selection data-fmt="insertOrderedList" data-tip="Numbered list" data-shortcut="numbers" data-views="editor chapter" data-kinds="journal other">
+      <svg viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tb-btn break-tb-btn" data-save-selection data-toolbar-action="scene-break" data-tip="Scene break — insert * * * between scenes" data-shortcut="sceneBreak" data-views="editor">* * *</button>
+    <button class="tb-btn" id="revision-note-btn" data-tip="Revision note — park a 💡 reminder in the page" data-shortcut="revisionNote" data-views="editor chapter">
+      <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>
+    </button>
+    <div class="tb-sep" data-views="editor chapter"></div>
+    <select id="font-picker" data-tip="Manuscript font" data-views="editor chapter">
+      <option value="poppins">Poppins</option>
+      <option value="lora">Lora</option>
+      <option value="libsans">Sans-Serif</option>
+      <option value="baskerville">Baskerville</option>
+      <option value="mono">Monospace</option>
+    </select>
+    <div class="font-size-stepper" id="font-size-stepper" data-views="editor chapter">
+      <button id="fs-dec" class="fs-btn" data-tip="Smaller text">−</button>
+      <span id="fs-val" title="Text size in points">16</span>
+      <button id="fs-inc" class="fs-btn" data-tip="Larger text">+</button>
+    </div>
+    <div class="tb-sep" data-views="editor chapter"></div>
+    <button class="tb-btn" id="find-btn" data-tip="Find and replace in this scene" data-shortcut="find" data-views="editor">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="tb-btn" id="global-search-btn" data-tip="Search all your writing" data-shortcut="searchAll" data-views="empty landing">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="tb-btn" id="more-btn" data-save-selection data-tip="More tools — formatting, synonyms, grammar, search" aria-haspopup="menu" aria-expanded="false" data-views="editor chapter">
+      <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <div class="tb-sep" data-views="editor chapter landing board read-draft"></div>
+    <button class="tb-btn" id="notes-btn" data-tip="Scene inspector — synopsis, notes, comments, scraps, sprint" data-shortcut="inspector" data-views="editor">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+    </button>
+    <button class="tb-btn" id="outline-btn" data-tip="Scene beats — the plan for this scene, beside the page" data-shortcut="beats" data-views="editor" data-kinds="novel">
+      <svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="6" cy="19" r="2"/><line x1="6" y1="7" x2="6" y2="10"/><line x1="6" y1="14" x2="6" y2="17"/><line x1="11" y1="5" x2="20" y2="5"/><line x1="11" y1="12" x2="18" y2="12"/><line x1="11" y1="19" x2="16" y2="19"/></svg>
+    </button>
+    <button class="tb-btn" id="split-btn" data-tip="Reference panel — characters and World Bible beside your page" data-shortcut="reference" data-views="editor chapter landing" data-kinds="novel">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+    </button>
+    <button class="tb-btn" id="board-btn" data-tip="Board — scene cards for this chapter" data-views="editor chapter landing board" data-kinds="novel">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    </button>
+    <button class="tb-btn" id="read-btn" data-tip="Read draft — this chapter as manuscript pages (whole novel from the novel page)" data-views="editor chapter landing read-draft" data-kinds="novel">
+      <svg viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
+    </button>
+    <button class="tb-btn" id="focus-btn" data-tip="Focus mode — hide everything but the page (Esc to leave)" data-shortcut="focus" data-views="editor chapter">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <div id="tb-right">
+      <span class="save-indicator" id="save-indicator"></span>
+      <button class="tb-btn" id="snapshot-btn" data-tip="Snapshots — save this scene as it is now, or restore an earlier version" data-views="editor" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="tb-menu" id="more-menu" role="menu" aria-label="More tools" hidden>
+    <div class="tb-menu-label">Formatting</div>
+    <button role="menuitem" data-fmt="underline" data-tip="Underline" data-shortcut="underline"><span style="text-decoration:underline">U</span> Underline</button>
+    <button role="menuitem" data-fmt="strikeThrough" data-tip="Strikethrough" data-shortcut="strike"><span style="text-decoration:line-through">S</span> Strikethrough</button>
+    <button role="menuitem" data-fmt="formatBlock,blockquote" data-tip="Block quote" data-shortcut="quote"><span>❝</span> Block quote</button>
+    <button role="menuitem" data-fmt="insertUnorderedList" data-tip="Bulleted list" data-shortcut="bullets"><span>•</span> Bulleted list</button>
+    <button role="menuitem" data-fmt="insertOrderedList" data-tip="Numbered list" data-shortcut="numbers"><span>1.</span> Numbered list</button>
+    <button role="menuitem" data-fmt="removeFormat;formatBlock,p" data-tip="Clear formatting — plain body text"><span>⌫</span> Clear formatting</button>
+    <div class="tb-menu-sep"></div>
+    <div class="tb-menu-label">Tools</div>
+    <button role="menuitem" id="more-synonyms" data-tip="Synonyms for the word at the cursor" data-shortcut="synonyms"><span>≈</span> Synonyms</button>
+    <button role="menuitem" id="grammar-btn" data-tip="Grammar and style check for this scene"><span>✓</span> Grammar &amp; style check</button>
+    <button role="menuitem" id="more-search" data-tip="Search all your writing" data-shortcut="searchAll"><span>⌕</span> Search all files</button>
+    <div class="tb-menu-sep"></div>
+    <button role="menuitem" id="more-shortcuts" data-tip="Keyboard shortcuts" data-shortcut="shortcuts"><span>⌘</span> Keyboard shortcuts</button>
+    <button role="menuitem" id="more-guide" data-tip="What's what in Quill — a one-line guide to every tool"><span>?</span> What’s what in Quill</button>
+  </div>
+
+  <div id="editor-row">
+
+  <!-- SCENE BEATS STRIP -->
+  <div id="scene-outline">
+    <div id="outline-header">
+      <span class="outline-title">Scene beats</span>
+      <button class="icon-btn" id="outline-close-btn" title="Close scene beats">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="outline-beats"></div>
+    <div id="outline-add">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Add beat</span>
+    </div>
+    <div id="outline-footer">
+      <span id="outline-progress-label">0 of 0 beats</span>
+      <div id="outline-progress-track"><div id="outline-progress-fill"></div></div>
+      <div class="outline-footer-actions">
+        <button class="outline-copy-btn" id="outline-copy-btn" title="Copy every scene beat to the clipboard">Copy beats</button>
+        <button class="outline-review-btn" id="outline-review-btn" title="Send beats to Brainstorm for feedback">✦ Review beats</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="content-area">
+
+    <!-- EMPTY STATE -->
+    <div id="view-empty" class="view active">
+      <div id="dashboard">
+
+        <!-- GREETING -->
+        <div id="dashboard-top">
+          <div id="dashboard-greeting"></div>
+          <button id="dash-backup-health" class="dash-backup-health checking" type="button" title="Open Backup settings">
+            <span class="dash-backup-dot"></span>
+            <span class="dash-backup-copy">
+              <span id="dash-backup-title" class="dash-backup-title">Checking backup…</span>
+              <span id="dash-backup-detail" class="dash-backup-detail">Verifying your newest archive</span>
+            </span>
+            <span class="dash-backup-arrow">›</span>
+          </button>
+        </div>
+
+        <!-- ACTIVE MANUSCRIPT: progress + continue writing -->
+        <section id="dash-manuscript-card" style="display:none"></section>
+
+        <!-- FIRST RUN: no novel or journal yet -->
+        <section id="dash-start" class="dash-start" hidden>
+          <h2>Start your first project</h2>
+          <p>A <b>novel</b> holds acts, chapters and scenes, with planning tools for characters, structure and revision. A <b>journal</b> holds dated entries with mood and tags.</p>
+          <div class="dash-start-actions">
+            <button class="btn primary" type="button" data-start-type="novel">Start a novel</button>
+            <button class="btn" type="button" data-start-type="journal">Start a journal</button>
+          </div>
+          <p class="dash-start-hint">You can add more projects any time with the + next to Projects in the sidebar. Help → Keyboard Shortcuts (⌘/) lists every shortcut.</p>
+        </section>
+
+        <!-- GLIMPSE FROM DRAFT: an open pull-quote, not a panel -->
+        <figure id="dashboard-glimpse" style="display:none">
+          <blockquote id="dash-glimpse-text" class="dash-glimpse-text"></blockquote>
+          <figcaption class="dash-glimpse-meta">
+            <span id="dash-glimpse-source"></span>
+            <button class="dash-text-btn" id="dash-glimpse-refresh" type="button">↺ Another</button>
+          </figcaption>
+        </figure>
+
+        <!-- YOUR WRITING: stat line, heat map, daily goal -->
+        <section id="dash-writing">
+          <div class="section-label dash-section-header">
+            <span class="dash-section-label">Your writing</span>
+            <span class="section-actions dash-section-links">
+              <button class="dash-text-btn" id="dash-achievements-btn" type="button">🏆 Achievements →</button>
+              <button class="dash-text-btn" id="dash-history-btn" type="button">View history →</button>
+            </span>
+          </div>
+          <p id="dash-stats-error" class="dash-stats-error" role="alert" hidden></p>
+          <div id="dash-stat-line" class="dash-stat-line"></div>
+          <div id="dash-heatmap" class="dash-heatmap"></div>
+          <div id="dash-goal-block">
+            <div id="dash-goal-row">
+              <span class="dash-goal-name">Daily goal</span>
+              <div class="l-prog-wrap"><div class="l-prog-bar" id="dash-goal-bar" style="width:0%"></div></div>
+              <span id="dash-goal-label"></span>
+              <button class="btn sm" id="dash-goal-edit">Set goal</button>
+            </div>
+            <div id="dash-goal-edit-row" style="display:none">
+              <input id="dash-goal-input" type="number" min="0" max="200000" class="l-field" placeholder="e.g. 500">
+              <span class="dash-goal-hint">words a day</span>
+              <button class="btn primary" id="dash-goal-save">Save</button>
+              <button class="btn" id="dash-goal-clear">Turn off</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- LANDING -->
+    <div id="view-landing" class="view">
+      <div id="landing-scroll">
+        <div id="landing-inner"></div>
+      </div>
+    </div>
+
+    <!-- EDITOR + NOTES -->
+    <div id="view-editor" class="view">
+      <div id="editor-wrap">
+        <div id="editor-inner">
+          <div id="doc-meta">
+            <span id="entry-date"></span>
+            <span id="word-count"></span>
+            <span id="read-time"></span>
+            <span id="time-spent" style="display:none"></span>
+          </div>
+          <input type="text" id="entry-title" placeholder="Title" autocomplete="off" spellcheck="true">
+          <div id="meta-fields">
+            <div class="meta-mood-wrap" id="meta-mood-wrap">
+              <span class="meta-mood-label" id="meta-mood-label">Mood</span>
+              <div class="meta-mood-dots" id="meta-mood-dots">
+                <button class="mood-dot" data-mood="" title="Clear" data-emoji="">·</button>
+                <button class="mood-dot" data-mood="😊 Good"        title="Good"       data-emoji="😊">😊</button>
+                <button class="mood-dot" data-mood="😌 Calm"        title="Calm"       data-emoji="😌">😌</button>
+                <button class="mood-dot" data-mood="🔥 Energized"   title="Energized"  data-emoji="🔥">🔥</button>
+                <button class="mood-dot" data-mood="🥰 Grateful"    title="Grateful"   data-emoji="🥰">🥰</button>
+                <button class="mood-dot" data-mood="😐 Neutral"     title="Neutral"    data-emoji="😐">😐</button>
+                <button class="mood-dot" data-mood="😔 Low"         title="Low"        data-emoji="😔">😔</button>
+                <button class="mood-dot" data-mood="😤 Frustrated"  title="Frustrated" data-emoji="😤">😤</button>
+                <button class="mood-dot" data-mood="😴 Tired"       title="Tired"      data-emoji="😴">😴</button>
+                <button class="mood-dot" data-mood="😰 Anxious"     title="Anxious"    data-emoji="😰">😰</button>
+                <button class="mood-dot mood-add-btn" id="mood-add-btn" title="Add your own mood" type="button">+</button>
+              </div>
+              <div class="mood-add-popover" id="mood-add-popover">
+                <div class="mood-add-row">
+                  <input type="text" id="mood-add-emoji" class="mood-add-emoji" placeholder="😊" maxlength="8" autocomplete="off">
+                  <input type="text" id="mood-add-label" class="mood-add-label" placeholder="Label (e.g. Hollow)" maxlength="24" autocomplete="off">
+                  <button type="button" id="mood-add-confirm" class="mood-add-confirm">Add</button>
+                </div>
+                <div class="mood-add-hint">On Mac: ⌃⌘Space to open the emoji picker · Esc to cancel</div>
+              </div>
+            </div>
+            <input type="text" id="tags-input" class="meta-tags-input" placeholder="+ tags" style="-webkit-user-select:text;user-select:text">
+            <!-- keep hidden select for save compatibility -->
+            <select id="mood-select" style="display:none">
+              <option value=""></option>
+              <option>😊 Good</option><option>😐 Neutral</option>
+              <option>😔 Low</option><option>😤 Frustrated</option>
+              <option>😌 Calm</option><option>🔥 Energized</option>
+              <option>😴 Tired</option><option>🥰 Grateful</option>
+              <option>😰 Anxious</option>
+            </select>
+          </div>
+          <div id="goal-row">
+            <div id="goal-track"><div id="goal-fill" style="width:0%"></div></div>
+            <span id="goal-label">0 / 0</span>
+            <span id="goal-done">✓ Goal reached</span>
+          </div>
+          <div id="entry-body" data-placeholder="Start writing…"></div>
+          <div id="selection-wc" style="display:none"></div>
+        </div>
+      </div>
+      <div id="inspector-panel">
+        <div id="inspector-header">
+          <span class="inspector-title">Scene Inspector</span>
+          <button class="icon-btn" id="inspector-collapse-all-btn" title="Collapse all sections">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 4 18 9"/><polyline points="6 15 12 20 18 15"/></svg>
+          </button>
+          <button class="icon-btn" id="inspector-close-btn" data-tip="Close the inspector">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="inspector-tabs" class="seg">
+          <button class="inspector-tab active" data-inspector-tab="scene">Scene</button>
+          <button class="inspector-tab" data-inspector-tab="sprint">Sprint</button>
+          <button class="inspector-tab" data-inspector-tab="scraps">Scraps</button>
+        </div>
+        <div id="inspector-scroll" data-tab="scene">
+
+          <!-- SYNOPSIS -->
+          <div class="insp-section" id="insp-synopsis-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-synopsis-body">
+              <span>Synopsis</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-synopsis-body" class="insp-section-body">
+              <textarea id="insp-synopsis" class="insp-field" rows="3" placeholder="What happens in this scene…"></textarea>
+              <div class="insp-field-hint">Also shown on this scene’s corkboard card.</div>
+            </div>
+          </div>
+
+          <!-- WORD GOAL -->
+          <div class="insp-section" id="insp-goal-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-goal-body">
+              <span>Word Goal</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-goal-body" class="insp-section-body">
+              <div class="insp-goal-row">
+                <input id="insp-goal-input" type="number" min="0" class="insp-field insp-goal-field" placeholder="Target words">
+                <span id="insp-goal-progress" class="insp-goal-progress"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- NOTES -->
+          <div class="insp-section" id="insp-notes-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-notes-body">
+              <span>Scene notes</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-notes-body" class="insp-section-body">
+              <div id="notes-body" contenteditable="true" data-placeholder="Scene notes…"></div>
+            </div>
+          </div>
+
+          <!-- COMMENTS -->
+          <div class="insp-section" id="insp-comments-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-comments-body">
+              <span>Comments</span>
+              <span id="insp-comment-count" class="insp-count"></span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-comments-body" class="insp-section-body">
+              <div class="comments-wrap">
+                <div class="comments-toolbar">
+                  <button class="btn ghost sm" id="view-all-comments-btn">View all comments →</button>
+                </div>
+                <div class="comments-empty" id="comments-empty" style="display:none">No comments yet. Select words in the scene and choose Revisit, Rewrite, Research, Cut or Note.</div>
+                <div id="comments-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STUBS -->
+          <div class="insp-section" id="insp-stubs-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-stubs-body">
+              <span>Stubs</span>
+              <span id="insp-stub-count" class="insp-count"></span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-stubs-body" class="insp-section-body">
+              <div class="stubs-wrap">
+                <div class="comments-empty" id="stubs-empty" style="display:none">No stubs in this scene. Type [a placeholder in brackets] or press ⌘[ to leave a gap to fill later.</div>
+                <div id="stubs-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REVISION NOTES -->
+          <div class="insp-section" id="insp-revisions-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-revisions-body">
+              <span>Revision notes</span>
+              <span id="insp-revision-count" class="insp-count"></span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-revisions-body" class="insp-section-body">
+              <div class="stubs-wrap">
+                <div class="comments-empty" id="revisions-empty" style="display:none">No revision notes here. Press ⌘⇧R to add one.</div>
+                <div id="revisions-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OPTIONAL SCENE DETAILS -->
+          <div class="insp-section collapsed" id="insp-details-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-details-body">
+              <span>Optional Details</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-details-body" class="insp-section-body insp-details-body">
+              <span class="insp-lbl">Status</span>
+              <div class="seg insp-status-pills" id="insp-status-pills">
+                <button class="insp-pill active" data-status="drafting">Drafting</button>
+                <button class="insp-pill" data-status="revising">Revising</button>
+                <button class="insp-pill" data-status="polishing">Polishing</button>
+                <button class="insp-pill" data-status="done">Done</button>
+              </div>
+              <div class="insp-grid">
+                <div>
+                  <span class="insp-lbl">POV</span>
+                  <input id="insp-pov" class="insp-field" placeholder="Whose eyes?">
+                </div>
+                <div>
+                  <span class="insp-lbl">Setting</span>
+                  <input id="insp-setting" class="insp-field" placeholder="Where and when">
+                </div>
+              </div>
+              <details class="insp-serves" id="insp-serves">
+                <summary><span class="insp-lbl">Serves beat</span> <span id="insp-serves-summary">None</span></summary>
+                <div id="insp-serves-chips"></div>
+              </details>
+              <div>
+                <span class="insp-lbl">Purpose &amp; Conflict</span>
+                <textarea id="insp-purpose" class="insp-field" rows="2" placeholder="Why this scene must exist…"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- TIMELINE METADATA -->
+          <div class="insp-section collapsed" id="insp-timeline-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-timeline-body">
+              <span>Timeline</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-timeline-body" class="insp-section-body insp-details-body">
+              <div class="insp-field-hint">Optional. Adding any value seeds this scene the next time you open the project Timeline.</div>
+              <div class="insp-grid">
+                <div><span class="insp-lbl">When</span><input id="insp-timeline-when" class="insp-field" placeholder="Day 12, ten years earlier…"></div>
+                <div><span class="insp-lbl">Time</span><input id="insp-timeline-time" class="insp-field" placeholder="After sunset"></div>
+                <div><span class="insp-lbl">Duration</span><input id="insp-timeline-duration" class="insp-field" placeholder="About two hours"></div>
+                <div><span class="insp-lbl">Track</span><input id="insp-timeline-track" class="insp-field" placeholder="Present, backstory…"></div>
+              </div>
+              <div class="insp-field-hint">After seeding, the timeline event is independent; linking never makes the scene its owner.</div>
+              <div class="insp-timeline-status-row">
+                <span id="insp-timeline-status">Not on timeline</span>
+                <button class="btn sm" id="insp-timeline-open" type="button">Open Timeline →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SPRINT -->
+          <div class="insp-section collapsed" id="insp-sprint-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-sprint-body">
+              <span>Sprint Timer</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-sprint-body" class="insp-section-body">
+              <div class="sprint-wrap">
+                <div class="sprint-ring-wrap">
+                  <svg class="sprint-ring" viewBox="0 0 100 100">
+                    <circle class="sprint-ring-bg"   cx="50" cy="50" r="44"/>
+                    <circle class="sprint-ring-fill" id="sprint-ring-fill" cx="50" cy="50" r="44"/>
+                  </svg>
+                  <div class="sprint-center">
+                    <div class="sprint-time" id="sprint-time">25:00</div>
+                    <div class="sprint-delta" id="sprint-word-delta"></div>
+                  </div>
+                </div>
+                <div class="sprint-presets">
+                  <button class="sprint-preset" data-min="10">10m</button>
+                  <button class="sprint-preset active" data-min="25">25m</button>
+                  <button class="sprint-preset" data-min="45">45m</button>
+                  <input id="sprint-custom" type="number" min="1" max="180" placeholder="Custom" class="sprint-custom-input">
+                </div>
+                <div class="sprint-controls">
+                  <button class="btn primary" id="sprint-start">Start</button>
+                  <button class="btn"   id="sprint-pause" disabled>Pause</button>
+                  <button class="btn"   id="sprint-reset">Reset</button>
+                </div>
+                <div class="sprint-done-msg" id="sprint-done-msg" style="display:none"></div>
+              </div>
+              <div class="stats-divider">Writing Stats</div>
+              <div class="stats-wrap">
+                <div class="stats-grid">
+                  <div class="stat-card stat-card-accent">
+                    <div class="stat-val" id="stat-today-words">—</div>
+                    <div class="stat-lbl">Words today</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-val" id="stat-streak">—</div>
+                    <div class="stat-lbl">Writing streak</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-val" id="stat-sessions">—</div>
+                    <div class="stat-lbl">Total sprints</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-val" id="stat-longest">—</div>
+                    <div class="stat-lbl">Longest sprint</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-val" id="stat-scene-time">—</div>
+                    <div class="stat-lbl">On this scene</div>
+                  </div>
+                </div>
+                <div class="chart-section" id="scene-times-section" style="display:none">
+                  <div class="chart-title">Time per scene</div>
+                  <div id="scene-times-list" class="scene-times-list"></div>
+                </div>
+                <div class="chart-section">
+                  <div class="chart-title">Words — last 7 days</div>
+                  <div id="week-chart" class="week-chart"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAGS -->
+          <div class="insp-section collapsed" id="insp-tags-section">
+            <div class="insp-section-title insp-collapsible" data-target="insp-tags-body">
+              <span>Tags</span>
+              <span class="insp-caret">▸</span>
+            </div>
+            <div id="insp-tags-body" class="insp-section-body">
+              <div class="tags-wrap">
+                <div class="tags-search-row">
+                  <input id="tag-search-input" type="text" placeholder="Filter tags…" class="tag-search-input">
+                </div>
+                <div id="tag-cloud" class="tag-cloud"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SCRAPS (novel-wide) -->
+          <div class="insp-section" id="insp-scraps-section">
+            <div id="insp-scraps" class="insp-scraps"></div>
+          </div>
+
+        </div><!-- /inspector-scroll -->
+      </div><!-- /inspector-panel -->
+    </div>
+
+    <!-- BOARD -->
+    <!-- GLOBAL SEARCH -->
+    <div id="view-search" class="view">
+      <div class="search-header">
+        <button class="icon-btn" id="search-back-btn" data-tip="Back">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="search-input-wrap">
+          <svg class="search-input-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="global-search-input" class="l-field" placeholder="Search manuscript, notes, beats, cards…"
+            style="-webkit-user-select:text;user-select:text">
+        </div>
+        <div class="search-scope-wrap">
+          <button class="chip search-scope active" data-scope="project">This project</button>
+          <button class="chip search-scope" data-scope="all">All projects</button>
+        </div>
+        <span id="search-result-count" class="search-result-count"></span>
+      </div>
+      <div class="search-replace-bar">
+        <span class="search-replace-label">Replace with</span>
+        <input type="text" id="global-replace-input" class="l-field" placeholder="Replacement text (blank deletes)"
+          style="-webkit-user-select:text;user-select:text">
+        <button class="btn sm" id="search-review-replace-btn">Review replacements…</button>
+        <button class="btn sm" id="search-save-btn">Save search</button>
+        <span id="search-replace-status" class="search-replace-status"></span>
+      </div>
+      <div id="search-results-list" class="search-results-list"></div>
+    </div>
+
+    <!-- STATIC COLLECTION -->
+    <div id="view-collection" class="view">
+      <div class="collection-header">
+        <button class="icon-btn" id="collection-back-btn" data-tip="Back">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="collection-kicker">Collection</div>
+          <h2 id="collection-title">Collection</h2>
+        </div>
+        <span id="collection-count"></span>
+      </div>
+      <div id="collection-list"></div>
+    </div>
+
+    <!-- TAG SEARCH RESULTS -->
+    <div id="view-tags" class="view">
+      <div id="tag-results-header">
+        <button class="icon-btn" id="tag-back-btn" data-tip="Back">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 id="tag-results-title">Tag</h2>
+        <span id="tag-results-count"></span>
+      </div>
+      <div id="tag-results-list"></div>
+    </div>
+
+    <!-- COMMENT SEARCH VIEW -->
+    <div id="view-comment-search" class="view">
+      <div id="comment-search-header">
+        <button class="icon-btn" id="comment-search-back" data-tip="Back">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 id="comment-search-title">All Comments</h2>
+        <span id="comment-search-count"></span>
+      </div>
+      <div class="comment-search-filters" id="comment-search-filters">
+        <button class="cs-filter active" data-type="all">All</button>
+        <button class="cs-filter" data-type="revisit">Revisit</button>
+        <button class="cs-filter" data-type="rewrite">Rewrite</button>
+        <button class="cs-filter" data-type="research">Research</button>
+        <button class="cs-filter" data-type="cut">Cut</button>
+        <button class="cs-filter" data-type="note">Note</button>
+      </div>
+      <div id="comment-search-list"></div>
+    </div>
+
+    <!-- READ DRAFT (toolbar view) -->
+    <!-- SCRIVENINGS (edit a whole chapter across its scene files) -->
+    <div id="view-chapter" class="view">
+      <div id="chapter-header">
+        <button class="icon-btn" id="chapter-back" title="Back to chapter">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 id="chapter-title">Chapter</h2>
+        <span id="chapter-wc"></span>
+        <span id="chapter-save-indicator" class="save-indicator"></span>
+      </div>
+      <div id="chapter-scroll">
+        <div id="chapter-error"></div>
+        <div id="chapter-body" data-placeholder="This chapter has no scenes yet."></div>
+      </div>
+    </div>
+
+    <div id="view-read-draft" class="view">
+      <div id="read-draft-header">
+        <button class="icon-btn" id="read-draft-back" data-tip="Back to writing">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 id="read-draft-title">Read Draft</h2>
+        <span id="read-draft-wc"></span>
+        <button class="btn sm read-draft-export" id="read-draft-export">Whole novel →</button>
+      </div>
+      <div id="read-draft-scroll">
+        <div id="read-draft-content" class="read-content"></div>
+      </div>
+    </div>
+
+    <!-- BRAINSTORM (toolbar view) -->
+    <div id="view-brainstorm" class="view">
+      <div id="bsv-sidebar">
+        <div id="bsv-sidebar-header">
+          <span>Conversations</span>
+          <button class="btn sm" id="bsv-new-btn">+ New</button>
+        </div>
+        <div id="bsv-history-list"></div>
+        <div id="bsv-model-indicator">
+          <button type="button" class="ai-model-link" data-open-settings="ai" title="Change the model in Settings → AI">Model: <span id="bsv-model-name">Claude Haiku 4.5</span></button>
+          <button class="icon-btn" id="bsv-gear-btn" title="Instructions">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+        </div>
+        <div id="bsv-api-settings" style="display:none">
+          <div id="bsv-settings-pane-instr">
+            <div class="bsv-instr-hint">Edit the AI's role and context for this session. Changes apply to your next message. Reset restores the auto-generated prompt.</div>
+            <textarea id="bsv-instructions-ta" class="bs-input bsv-instr-ta"
+              placeholder="System instructions…" spellcheck="false"></textarea>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn primary" id="bsv-save-instr" style="flex:1">Save</button>
+              <button class="btn sm" id="bsv-reset-instr">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="bsv-main">
+        <div id="bsv-header">
+          <button class="icon-btn" id="bsv-back" data-tip="Back">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span id="bsv-convo-title">Brainstorm</span>
+          <button class="btn sm" id="bsv-review-chapter" style="display:none">Review current chapter</button>
+        </div>
+        <div id="bsv-messages"></div>
+        <div id="bsv-input-row">
+          <div id="bsv-ctx-row"><button id="bsv-ctx-btn"></button></div>
+          <textarea id="bsv-input" class="bs-textarea" rows="5"
+            placeholder="Ask anything about your story… ⌘↵ to send"></textarea>
+          <button class="btn primary bs-send" id="bsv-send">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── IDEA WORKSHOP ──────────────────────────────────────── -->
+    <div id="view-ideas" class="view no-idea">
+
+      <!-- EMPTY STATE when no idea selected -->
+      <div id="idea-empty-state" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;">
+        <div style="font-size:28px;opacity:.2;">✦</div>
+        <div style="font-size:13px;color:var(--muted);font-style:italic;text-align:center;max-width:240px;line-height:1.6;">Select an idea from the sidebar, or create a new one</div>
+      </div>
+
+      <!-- PAGE: the idea itself — title, notes, fragments -->
+      <div id="idea-page">
+        <div id="idea-page-inner">
+          <div class="idea-head">
+            <input id="idea-title-input" class="idea-title-input" placeholder="Name this idea…" spellcheck="false">
+            <div class="idea-header-actions">
+              <button class="btn sm" id="idea-ai-toggle" aria-pressed="false">✦ Ask AI</button>
+              <button class="btn sm" id="idea-hatch-btn">🥚 Hatch novel</button>
+              <button class="icon-btn idea-icon-sm" id="idea-delete-btn" title="Delete idea" aria-label="Delete idea">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="idea-meta-row">
+            <label class="chip idea-status-chip" title="Status">
+              <span class="idea-status-dot" id="idea-status-dot"></span>
+              <select id="idea-status" aria-label="Status">
+                <option value="hot">Hot</option>
+                <option value="developing">Developing</option>
+                <option value="shelved">Shelved</option>
+              </select>
+            </label>
+            <div id="idea-tags-wrap" class="idea-tags-wrap"></div>
+          </div>
+
+          <div id="idea-scratchpad" class="idea-scratchpad" contenteditable="true" spellcheck="true"
+            data-placeholder="Dump everything here. A feeling, a scene, a question, a 'what if.' No pressure, no structure.&#10;&#10;This is just for you."></div>
+
+          <section class="section idea-fragments-section">
+            <div class="section-label">Fragments<span class="section-actions"><button class="btn sm" id="idea-add-fragment-btn">+ Fragment</button></span></div>
+            <!-- fragment add form (hidden by default) -->
+            <div id="idea-fragment-form" style="display:none">
+              <select id="idea-fragment-type" class="bs-input idea-frag-type-sel">
+                <option value="vibe">Vibe</option>
+                <option value="scene">Scene fragment</option>
+                <option value="image">Image / aesthetic</option>
+                <option value="tone ref">Tone ref</option>
+                <option value="character">Character note</option>
+                <option value="dialogue">Dialogue</option>
+                <option value="location">Location</option>
+                <option value="conflict">Conflict</option>
+                <option value="symbol">Symbol / motif</option>
+                <option value="worldbuilding">Worldbuilding</option>
+                <option value="theme">Theme</option>
+                <option value="note">Note</option>
+              </select>
+              <textarea id="idea-fragment-body" class="bs-input idea-frag-ta"
+                placeholder="Write the fragment…" rows="3"></textarea>
+              <div class="idea-frag-form-btns">
+                <button class="btn primary" id="idea-fragment-save">Save</button>
+                <button class="btn" id="idea-fragment-pick" hidden>Choose picture…</button>
+                <button class="btn sm" id="idea-fragment-cancel">Cancel</button>
+              </div>
+            </div>
+
+            <div id="idea-fragments-grid" class="idea-fragments-grid"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- AI DRAWER: opens from Ask AI -->
+      <aside id="idea-ai-drawer" aria-label="Idea AI">
+        <div class="idea-drawer-head">
+          <div class="seg idea-mode-toggle">
+            <button class="idea-mode-btn active" id="idea-mode-develop" data-mode="develop">Develop</button>
+            <button class="idea-mode-btn" id="idea-mode-explore" data-mode="explore">Explore</button>
+          </div>
+          <div class="idea-chat-header-right">
+            <button class="icon-btn idea-icon-sm" id="idea-new-convo-btn" title="New conversation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+            </button>
+            <button class="icon-btn idea-icon-sm" id="idea-gear-btn" title="Instructions">
+              <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
+            <button class="icon-btn idea-icon-sm" id="idea-ai-close" title="Close">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- instructions panel -->
+        <div id="idea-api-settings" style="display:none">
+          <div class="bsv-instr-hint">Edit the AI's role for idea sessions. Reset restores the default prompt.</div>
+          <textarea id="idea-instructions-ta" class="bs-input bsv-instr-ta"
+            placeholder="System instructions…" spellcheck="false"></textarea>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn primary" id="idea-save-instr" style="flex:1">Save</button>
+            <button class="btn sm" id="idea-reset-instr">Reset</button>
+          </div>
+        </div>
+
+        <div id="idea-messages" class="idea-messages"></div>
+        <div id="idea-new-convo-confirm" class="idea-new-convo-confirm" style="display:none">
+          <span>Start fresh? This chat won't be saved.</span>
+          <button class="btn primary" id="idea-new-convo-yes" style="padding:2px 10px;font-size:12px">Clear</button>
+          <button class="btn sm" id="idea-new-convo-no">Cancel</button>
+        </div>
+
+        <div class="idea-ctx-row"><button id="idea-ctx-btn"></button></div>
+        <div class="idea-input-row">
+          <textarea id="idea-input" class="bs-textarea" rows="3"
+            placeholder="Tell me about the idea… ⌘↵ to send"></textarea>
+          <button class="btn primary bs-send" id="idea-send">Send</button>
+        </div>
+        <button type="button" class="ai-model-link idea-model-foot" data-open-settings="ai" title="Change the model in Settings → AI">Model: <span id="idea-model-name" class="idea-model-name"></span></button>
+      </aside>
+
+      <!-- HATCH MODAL — panes: configure → loading → preview -->
+      <div id="idea-hatch-modal" style="display:none">
+        <div class="idea-hatch-backdrop" id="idea-hatch-backdrop"></div>
+        <div class="idea-hatch-dialog">
+
+          <!-- PANE 1: name + section toggles -->
+          <div id="idea-hatch-pane-name">
+            <h3 class="idea-hatch-title">🥚 Hatch this novel</h3>
+            <p class="idea-hatch-hint">The AI will read your entire idea and generate a structured preview. Choose what to include below.</p>
+            <label class="idea-hatch-label">Project name <span class="idea-hatch-req">*</span></label>
+            <input id="idea-hatch-name" class="bs-input" placeholder="My Vampire Romance" style="margin-bottom:14px">
+            <label class="idea-hatch-label">Generate these sections</label>
+            <div class="hatch-toggles" id="hatch-toggles">
+              <button class="chip hatch-toggle-pill active" data-section="novel">Novel fields</button>
+              <button class="chip hatch-toggle-pill active" data-section="beats">Story beats</button>
+              <button class="chip hatch-toggle-pill active" data-section="characters">Characters</button>
+              <button class="chip hatch-toggle-pill active" data-section="worldbible">World Bible</button>
+            </div>
+            <div id="idea-hatch-error" class="idea-hatch-error" style="margin-top:8px"></div>
+            <div class="idea-hatch-btns" style="margin-top:14px">
+              <button class="btn primary" id="idea-hatch-next">Generate preview →</button>
+              <button class="btn sm" id="idea-hatch-cancel">Cancel</button>
+            </div>
+          </div>
+
+          <!-- PANE 2: loading -->
+          <div id="idea-hatch-pane-loading" style="display:none">
+            <div class="idea-hatch-loading">
+              <div class="idea-hatch-spinner"></div>
+              <div id="idea-hatch-loading-msg" class="idea-hatch-loading-msg">Reading your idea…</div>
+            </div>
+          </div>
+
+          <!-- PANE 3: preview — name lives here too -->
+          <div id="idea-hatch-pane-preview" style="display:none">
+            <div class="idea-hatch-preview-header">
+              <h3 class="idea-hatch-title" style="margin:0">Preview your novel</h3>
+              <p class="idea-hatch-hint" style="margin:4px 0 8px">All fields are editable — this is a strong first draft, not gospel.</p>
+              <label class="idea-hatch-label">Project name <span class="idea-hatch-req">*</span></label>
+              <input id="idea-hatch-name-preview" class="bs-input" placeholder="My Vampire Romance" style="margin-bottom:4px">
+            </div>
+            <div class="idea-hatch-preview-scroll">
+
+              <div class="hp-section" id="hp-section-novel">
+                <div class="hp-section-label">Novel</div>
+                <div class="hp-field-row"><span class="hp-label">Genre</span><input id="hp-genre" class="hp-field"></div>
+                <div class="hp-field-row"><span class="hp-label">Logline</span><textarea id="hp-logline" class="hp-field" rows="2"></textarea></div>
+                <div class="hp-field-row"><span class="hp-label">Themes</span><input id="hp-themes" class="hp-field"></div>
+                <div class="hp-field-row"><span class="hp-label">POV</span><input id="hp-pov" class="hp-field"></div>
+                <div class="hp-field-row"><span class="hp-label">Synopsis</span><textarea id="hp-synopsis" class="hp-field" rows="4"></textarea></div>
+              </div>
+
+              <div class="hp-section" id="hp-section-beats">
+                <div class="hp-section-label">Story beats</div>
+                <div id="hp-beats"></div>
+              </div>
+
+              <div class="hp-section" id="hp-section-characters">
+                <div class="hp-section-label">Characters</div>
+                <div id="hp-characters"></div>
+              </div>
+
+              <div class="hp-section" id="hp-section-worldbible">
+                <div class="hp-section-label">World Bible cards</div>
+                <div id="hp-wb-cards"></div>
+              </div>
+
+            </div>
+            <div class="idea-hatch-btns" style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:4px">
+              <button class="btn primary" id="idea-hatch-confirm">Hatch novel →</button>
+              <button class="btn sm" id="idea-hatch-cancel2" data-toolbar-action="hatch-cancel">Cancel</button>
+            </div>
+            <div id="idea-hatch-error2" class="idea-hatch-error" style="margin-top:6px"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /view-ideas -->
+
+    <div id="view-stylelab" class="view">
+      <div id="stylelab-inner"></div>
+    </div>
+
+    <div id="view-saved-passages" class="view">
+      <div id="saved-passages-inner"></div>
+    </div>
+
+    <!-- CONCEPT ART (toolbar view) -->
+    <div id="view-concept-art" class="view">
+      <div id="ca-view">
+        <div id="ca-header">
+          <div>
+            <div id="ca-subtitle" class="kicker"></div>
+            <div id="ca-title" class="page-title">Concept art</div>
+          </div>
+          <div id="ca-header-actions">
+            <button class="btn sm" id="ca-add-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add images
+            </button>
+          </div>
+        </div>
+        <div id="ca-tagbar"></div>
+        <div id="ca-grid"></div>
+        <div id="ca-empty" style="display:none">
+          <div id="ca-empty-icon">
+            <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12"  cy="7.5"  r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg>
+          </div>
+          <div id="ca-empty-title">No concept art yet</div>
+          <div id="ca-empty-sub">Add reference images, mood boards, and AI-generated art for this novel.</div>
+          <button class="btn sm" id="ca-empty-add-btn">Add your first image</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+
+  <div id="split-divider" style="display:none"></div>
+
+  <!-- SPLIT REFERENCE PANEL -->
+  <div id="split-panel">
+    <div id="split-panel-tabs">
+      <!-- dynamic tabs injected by app.js -->
+      <button class="icon-btn" id="split-close-btn" style="margin-left:auto;flex-shrink:0" data-tip="Close the reference panel">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="split-panel-body">
+      <!-- dynamic panes injected by app.js -->
+    </div>
+  </div>
+
+  </div><!-- /editor-row -->
+
+</div><!-- /main -->
+
+<!-- AI ASK POPOVER -->
+<div id="ai-ask-popover" style="display:none">
+  <div class="ai-ask-selection" id="ai-ask-selection"></div>
+  <textarea id="ai-ask-input" class="ai-ask-textarea" placeholder="Ask about this… e.g. 'Is this in character?' or 'How can I make this more visceral?'" rows="2"></textarea>
+  <div id="ai-ask-response" class="ai-ask-response" style="display:none"></div>
+  <div class="ai-ask-footer">
+    <button class="btn primary" id="ai-ask-send" style="height:26px;padding:0 12px;font-size:11.5px">Ask</button>
+    <button class="btn sm" id="ai-ask-save" style="display:none">Save as note</button>
+    <button class="icon-btn" id="ai-ask-close" data-tip="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- COMMENT POPOVER (inline note editor; replaces auto-opening the Scene Inspector) -->
+<div id="comment-popover" style="display:none">
+  <div class="cp-header">
+    <div class="cp-types">
+      <button class="cp-type-btn" data-type="revisit"  title="Come back to this">⟳</button>
+      <button class="cp-type-btn" data-type="rewrite"  title="Needs rewriting">✎</button>
+      <button class="cp-type-btn" data-type="research" title="Needs research">?</button>
+      <button class="cp-type-btn" data-type="cut"      title="Consider cutting">✂</button>
+      <button class="cp-type-btn" data-type="note"     title="General note">✦</button>
+    </div>
+    <div class="cp-header-actions">
+      <button class="icon-btn" id="cp-delete" title="Remove comment">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+      <button class="icon-btn" id="cp-close" title="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="cp-quote" id="cp-quote"></div>
+  <textarea id="cp-note" class="cp-note" placeholder="Add a note…" rows="3"></textarea>
+  <div class="cp-footer">
+    <span class="cp-date" id="cp-date"></span>
+    <button class="btn sm" id="cp-open-inspector">Open in Inspector</button>
+  </div>
+</div>
+
+<div id="thesaurus-popover" style="display:none">
+  <div class="th-header">
+    <div class="th-title">
+      <span class="th-word" id="th-word"></span>
+      <span class="th-base" id="th-base"></span>
+    </div>
+    <button class="icon-btn" id="th-close" title="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="th-body" id="th-groups"></div>
+  <div class="th-empty" id="th-empty" style="display:none"></div>
+</div>
+
+<!-- COMMENT TOOLBAR (appears on text selection) -->
+<div id="comment-toolbar" style="display:none">
+  <!-- Row 1: Formatting -->
+  <div class="ct-fmt-row">
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="bold"        title="Bold (⌘B)"><b>B</b></button>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="italic"      title="Italic (⌘I)"><i>I</i></button>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="underline"   title="Underline (⌘U)" style="text-decoration:underline">U</button>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="strikeThrough" title="Strikethrough" style="text-decoration:line-through">S</button>
+    <div class="ct-fmt-sep"></div>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="formatBlock,h1" title="Heading 1" style="font-weight:700;font-size:10px">H1</button>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="formatBlock,h2" title="Heading 2" style="font-weight:700;font-size:10px">H2</button>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="formatBlock,h3" title="Heading 3" style="font-weight:700;font-size:10px">H3</button>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="formatBlock,p"  title="Body paragraph" style="font-size:12px">¶</button>
+    <div class="ct-fmt-sep"></div>
+    <button class="ct-fmt-btn" data-keep-focus data-fmt="formatBlock,blockquote" title="Block quote">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+    </button>
+  </div>
+  <!-- Row 2: Comments + Ask AI -->
+  <div class="ct-comment-row">
+    <span class="ct-label">Comment:</span>
+    <button class="ct-btn" data-type="revisit" title="Come back to this">⟳ Revisit</button>
+    <button class="ct-btn" data-type="rewrite" title="Needs rewriting">✎ Rewrite</button>
+    <button class="ct-btn" data-type="research" title="Needs research">? Research</button>
+    <button class="ct-btn" data-type="cut"      title="Consider cutting">✂ Cut</button>
+    <button class="ct-btn" data-type="note"     title="General note">✦ Note</button>
+    <div class="tb-sep" style="height:14px"></div>
+    <button class="ct-btn ct-ai-btn" id="ct-ask-ai-btn" title="Ask AI about this">✦ Ask AI</button>
+  </div>
+</div>
+
+<!-- FIND BAR -->
+<div id="find-bar">
+  <input id="find-input" placeholder="Find…">
+  <span id="find-count"></span>
+  <button class="icon-btn" id="find-prev" data-tip="Previous match"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+  <button class="icon-btn" id="find-next" data-tip="Next match"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+  <input id="replace-input" placeholder="Replace…">
+  <button class="btn sm" id="replace-btn">Replace</button>
+  <button class="btn sm" id="replace-all-btn">All</button>
+  <button class="icon-btn" id="find-close-btn" data-tip="Close find"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="find-options">
+    <label title="Match uppercase and lowercase exactly"><input type="checkbox" id="find-case"> Case sensitive</label>
+    <label title="Match complete words only"><input type="checkbox" id="find-word"> Whole word</label>
+    <label title="Treat the search as a regular expression"><input type="checkbox" id="find-regex"> Regex</label>
+    <label title="Search only the current text selection"><input type="checkbox" id="find-selection"> In selection</label>
+  </div>
+</div>
+
+<div id="focus-hint">Esc or ⌘. to exit focus mode</div>
+<div id="location-hint" aria-label="Current manuscript location"></div>
+
+<!-- MODALS -->
+<div class="overlay" id="new-project-modal">
+  <div class="modal md">
+    <h3>New project</h3>
+    <label class="modal-lbl">Name</label>
+    <input id="new-project-name" placeholder="e.g. Blood & Starlight" autocomplete="off">
+    <label class="modal-lbl">Type</label>
+    <div class="np-type-row">
+      <button class="card np-type-btn active" data-type="novel">
+        <span class="np-type-icon">✦</span>
+        <span class="np-type-label">Novel</span>
+        <span class="np-type-desc">Scenes, acts, chapters, world bible</span>
+      </button>
+      <button class="card np-type-btn" data-type="journal">
+        <span class="np-type-icon">◎</span>
+        <span class="np-type-label">Journal</span>
+        <span class="np-type-desc">Daily entries, reflections, freewriting</span>
+      </button>
+      <button class="card np-type-btn" data-type="scratch">
+        <span class="np-type-icon">✂</span>
+        <span class="np-type-label">Scratch</span>
+        <span class="np-type-desc">Fragments, prompts, orphaned ideas</span>
+      </button>
+    </div>
+    <div class="np-import-row">
+      <span>Already have a draft?</span>
+      <button class="dash-text-btn" id="np-import-btn" type="button">Import a manuscript…</button>
+      <span id="np-import-status" class="np-import-status"></span>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" id="new-project-cancel">Cancel</button>
+      <button class="btn primary" id="new-project-create">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="folder-modal">
+  <div class="modal">
+    <h3>New folder</h3>
+    <label class="modal-lbl">Name</label>
+    <input id="folder-name-input" placeholder="e.g. My Novel" autocomplete="off">
+    <div id="folder-type-row">
+      <label class="modal-lbl" id="folder-type-label">Type</label>
+      <select id="folder-type-select">
+        <option value="novel">Novel</option>
+        <option value="journal">Journal</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" id="folder-cancel">Cancel</button>
+      <button class="btn primary" id="folder-create">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="rename-modal">
+  <div class="modal">
+    <h3 id="rename-title">Rename</h3>
+    <input id="rename-input" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn" id="rename-cancel">Cancel</button>
+      <button class="btn primary" id="rename-confirm">Rename</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="name-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="name-modal-heading">
+    <h3 id="name-modal-heading">Name it</h3>
+    <label class="modal-lbl" for="name-modal-input">Name</label>
+    <input id="name-modal-input" autocomplete="off">
+    <div id="name-location" hidden>
+      <div id="name-location-project"></div>
+      <div id="name-act-row">
+        <label class="modal-lbl" for="name-act-select">Act</label>
+        <select id="name-act-select"></select>
+      </div>
+      <div id="name-chapter-row">
+        <label class="modal-lbl" for="name-chapter-select">Chapter</label>
+        <select id="name-chapter-select"></select>
+      </div>
+      <p id="name-location-preview" aria-live="polite"></p>
+    </div>
+    <p class="name-modal-hint" id="name-modal-hint"></p>
+    <div class="modal-btns">
+      <button class="btn" id="name-modal-cancel">Cancel</button>
+      <button class="btn primary" id="name-modal-confirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="simple-folder-modal">
+  <div class="modal">
+    <h3>New folder</h3>
+    <input id="simple-folder-input" placeholder="Folder name…" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn" id="simple-folder-cancel">Cancel</button>
+      <button class="btn primary" id="simple-folder-confirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="achievement-toast" id="achievement-toast" role="status" aria-live="polite" title="See all achievements"></div>
+
+<div class="overlay" id="delete-modal">
+  <div class="modal">
+    <h3>Move to Trash?</h3>
+    <p id="delete-msg">The file will be moved to Trash. You can restore it any time.</p>
+    <div class="modal-btns">
+      <button class="btn" id="delete-cancel">Cancel</button>
+      <button class="btn primary danger" id="delete-confirm">Move to Trash</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP CHOOSER -->
+<div class="overlay" id="backup-choice-modal">
+  <div class="modal backup-choice-modal">
+    <h3>Back up <span id="backup-choice-project"></span></h3>
+    <p>Choose a portable project copy or protect your complete Quill library in iCloud Drive.</p>
+    <div class="backup-choice-grid">
+      <button class="backup-choice-card" id="backup-choice-local">
+        <span class="backup-choice-title">Local project ZIP</span>
+        <span class="backup-choice-detail">Save this project to a folder or external drive.</span>
+      </button>
+      <button class="backup-choice-card" id="backup-choice-cloud">
+        <span class="backup-choice-title">Cloud library backup</span>
+        <span class="backup-choice-detail">Back up every project, including artwork, notes, scraps, and timelines, to your chosen iCloud Drive folder.</span>
+      </button>
+    </div>
+    <div id="backup-choice-status" class="backup-choice-status" aria-live="polite"></div>
+    <div class="modal-btns">
+      <button class="btn" id="backup-choice-close">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE RESTORE -->
+<div class="overlay" id="archive-restore-modal">
+  <div class="modal archive-restore-modal">
+    <h3>Restore from a backup</h3>
+    <p id="archive-restore-summary">Choose a Quill ZIP backup to inspect.</p>
+    <div id="archive-restore-content" hidden>
+      <label class="modal-lbl" for="archive-restore-project">Project to recover</label>
+      <select id="archive-restore-project"></select>
+      <div id="archive-restore-details" class="archive-restore-details"></div>
+      <div class="archive-restore-warning">Before changing anything, Quill creates and verifies a safety ZIP of your current library in Documents/Quill Recovery Backups.</div>
+    </div>
+    <div id="archive-restore-status" class="archive-restore-status" aria-live="polite"></div>
+    <div class="modal-btns archive-restore-actions">
+      <button class="btn" id="archive-restore-close">Cancel</button>
+      <button class="btn" id="archive-restore-project-btn" hidden>Restore project</button>
+      <button class="btn primary danger" id="archive-restore-library-btn" hidden>Restore complete library</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECOVERY CENTER -->
+<div class="overlay" id="recovery-modal">
+  <div class="modal recovery-modal">
+    <div class="recovery-head">
+      <div>
+        <h3>Recovery Center</h3>
+        <p>Preview scene, timeline, and project backups before restoring.</p>
+      </div>
+      <select id="recovery-filter" aria-label="Filter recovery items">
+        <option value="all">All backups</option>
+        <option value="snapshot">Scene snapshots</option>
+        <option value="timeline-snapshot">Timeline snapshots</option>
+        <option value="project-backup">Project backups</option>
+      </select>
+    </div>
+    <div class="recovery-layout">
+      <div id="recovery-list" class="recovery-list"><div class="recovery-empty">Loading…</div></div>
+      <div class="recovery-preview">
+        <div id="recovery-preview-empty" class="recovery-empty">Choose a backup to preview it.</div>
+        <div id="recovery-preview-content" hidden>
+          <div class="recovery-preview-head">
+            <div>
+              <div id="recovery-preview-title" class="recovery-preview-title"></div>
+              <div id="recovery-preview-meta" class="recovery-preview-meta"></div>
+            </div>
+            <select id="recovery-file-select" aria-label="File to preview"></select>
+          </div>
+          <div class="recovery-compare">
+            <section><span>Backup version</span><pre id="recovery-backup-text"></pre></section>
+            <section><span>Current version</span><pre id="recovery-current-text"></pre></section>
+          </div>
+          <div id="recovery-status" class="recovery-status"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns recovery-actions">
+      <button class="btn" id="recovery-archive-btn">Restore ZIP…</button>
+      <span class="recovery-action-spacer"></span>
+      <button class="btn" id="recovery-close-btn">Close</button>
+      <button class="btn primary" id="recovery-restore-btn" disabled>Restore this backup</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settings-modal">
+  <div class="modal settings-modal">
+    <div class="settings-body">
+      <nav class="settings-rail">
+        <h3>Settings</h3>
+        <button class="settings-tab" data-tab="appearance">Appearance</button>
+        <button class="settings-tab" data-tab="editor">Editor</button>
+        <button class="settings-tab" data-tab="writing">Writing</button>
+        <button class="settings-tab" data-tab="backups">Backups</button>
+        <button class="settings-tab" data-tab="you">You</button>
+        <button class="settings-tab" data-tab="ai">AI</button>
+        <button class="settings-tab" data-tab="stylelab">Style Lab</button>
+      </nav>
+
+      <section class="settings-pane" data-pane="appearance">
+        <div class="settings-section">Theme</div>
+        <div class="settings-swatches">
+          <button class="settings-swatch" data-palette-choice="light" style="--sw-bg:#f5f4f1;--sw-text:#181816;--sw-accent:#2d6a4f">
+            <div class="settings-swatch-preview"><i></i><i></i><b></b></div><span>Light</span>
+          </button>
+          <button class="settings-swatch" data-palette-choice="paper" style="--sw-bg:#eef0f2;--sw-text:#1c2126;--sw-accent:#3a5f8a">
+            <div class="settings-swatch-preview"><i></i><i></i><b></b></div><span>Paper</span>
+          </button>
+          <button class="settings-swatch" data-palette-choice="sepia" style="--sw-bg:#efe6d2;--sw-text:#3b2f22;--sw-accent:#8a5a2b">
+            <div class="settings-swatch-preview"><i></i><i></i><b></b></div><span>Sepia</span>
+          </button>
+          <button class="settings-swatch" data-palette-choice="dark" style="--sw-bg:#111110;--sw-text:#e6e4de;--sw-accent:#c4849a">
+            <div class="settings-swatch-preview"><i></i><i></i><b></b></div><span>Dark</span>
+          </button>
+          <button class="settings-swatch" data-palette-choice="midnight" style="--sw-bg:#0d1117;--sw-text:#dbe2ec;--sw-accent:#5b86c0">
+            <div class="settings-swatch-preview"><i></i><i></i><b></b></div><span>Midnight</span>
+          </button>
+          <button class="settings-swatch" data-palette-choice="system" style="--sw-bg:#888;--sw-text:#888;--sw-accent:#888">
+            <div class="settings-swatch-preview"><i></i><i></i><b></b></div><span>Match system</span>
+          </button>
+        </div>
+        <div class="settings-row" id="settings-system-row" hidden>
+          <div><span class="settings-label">Match system uses</span><span class="settings-hint" id="settings-system-now"></span></div>
+          <div class="settings-control settings-system-pick">
+            <div class="seg settings-seg" data-seg="systemLight" title="In light mode">
+              <button data-value="light">Light</button><button data-value="paper">Paper</button><button data-value="sepia">Sepia</button>
+            </div>
+            <div class="seg settings-seg" data-seg="systemDark" title="In dark mode">
+              <button data-value="dark">Dark</button><button data-value="midnight">Midnight</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Accent color</span><span class="settings-hint">Buttons, highlights, the caret and progress bars.</span></div>
+          <div class="settings-control">
+            <input type="color" id="settings-accent">
+            <button class="btn sm" id="settings-accent-reset">Use theme default</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Interface text size</span><span class="settings-hint">Sidebar, toolbar, panels and dialogs. Your manuscript keeps its own size.</span></div>
+          <div class="settings-control">
+            <div class="seg settings-seg" data-seg="uiSize">
+              <button data-value="small">Small</button><button data-value="default">Default</button><button data-value="large">Large</button><button data-value="larger">Larger</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Interface font</span><span class="settings-hint">Menus, buttons, labels and form fields. Your manuscript font is set from the toolbar.</span></div>
+          <div class="settings-control"><select id="settings-ui-font"><option value="poppins">Poppins</option><option value="system">System (San Francisco)</option><option value="libsans">Sans-Serif</option><option value="lora">Lora</option><option value="baskerville">Baskerville</option></select></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Heading font</span><span class="settings-hint">Page titles, scene titles and dialog headings.</span></div>
+          <div class="settings-control"><select id="settings-heading-font"><option value="lora">Lora</option><option value="baskerville">Baskerville</option><option value="poppins">Poppins</option><option value="system">System (San Francisco)</option><option value="libsans">Sans-Serif</option></select></div>
+        </div>
+      </section>
+
+      <section class="settings-pane" data-pane="editor" hidden>
+        <div class="settings-section">Page</div>
+        <div class="settings-row">
+          <div><span class="settings-label">Zoom</span><span class="settings-hint">Magnifies the page without changing the font size. ⌘= / ⌘− / ⌘0.</span></div>
+          <div class="settings-control"><input type="range" data-key="zoom" min="0.5" max="2" step="0.1"><span class="settings-out" data-out="zoom"></span></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Page width</span><span class="settings-hint">Maximum width of the writing column.</span></div>
+          <div class="settings-control"><input type="range" data-key="pageWidth" min="560" max="1100" step="20"><span class="settings-out" data-out="pageWidth"></span></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Side margins</span><span class="settings-hint">Space on either side of the text.</span></div>
+          <div class="settings-control"><input type="range" data-key="margin" min="20" max="140" step="4"><span class="settings-out" data-out="margin"></span></div>
+        </div>
+
+        <div class="settings-section">Text</div>
+        <div class="settings-row">
+          <div><span class="settings-label">Line spacing</span><span class="settings-hint">Space between lines of prose.</span></div>
+          <div class="settings-control"><input type="range" data-key="lineHeight" min="1.4" max="2.2" step="0.05"><span class="settings-out" data-out="lineHeight"></span></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Paragraphs</span><span class="settings-hint">Space between paragraphs, or indent the first line.</span></div>
+          <div class="settings-control">
+            <div class="seg settings-seg" data-seg="indent">
+              <button data-value="off">Spacing</button><button data-value="on">First-line indent</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Default font</span><span class="settings-hint">Used when a document or novel doesn't set its own.</span></div>
+          <div class="settings-control">
+            <select id="settings-font">
+              <option value="poppins">Poppins</option>
+              <option value="lora">Lora</option>
+              <option value="libsans">Sans-Serif</option>
+              <option value="baskerville">Baskerville</option>
+              <option value="mono">Monospace</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Default text size</span><span class="settings-hint">A novel's manuscript size, set on its overview page, takes priority.</span></div>
+          <div class="settings-control"><input type="number" id="settings-font-size" min="12" max="28"> <span class="settings-out">px</span></div>
+        </div>
+      </section>
+
+      <section class="settings-pane" data-pane="writing" hidden>
+        <div class="settings-section">While writing</div>
+        <div class="settings-row">
+          <div><span class="settings-label">Typewriter scrolling</span><span class="settings-hint">Keeps the line you're typing near the middle of the screen.</span></div>
+          <div class="settings-control"><input type="checkbox" id="settings-typewriter"></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Spellcheck</span><span class="settings-hint">Underline misspelled words in scenes and chapters.</span></div>
+          <div class="settings-control"><input type="checkbox" id="settings-spellcheck"></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">English dialect</span><span class="settings-hint">Used by both offline grammar checkers.</span></div>
+          <div class="settings-control">
+            <select id="settings-dialect">
+              <option value="american">American</option>
+              <option value="british">British</option>
+              <option value="canadian">Canadian</option>
+              <option value="australian">Australian</option>
+              <option value="indian">Indian</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Inline grammar highlights</span><span class="settings-hint">Show grammar suggestions as underlines in the editor.</span></div>
+          <div class="settings-control"><input type="checkbox" id="settings-grammar"></div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <span class="settings-label">Deeper grammar checking</span>
+            <span class="settings-hint" id="settings-lt-hint">Runs LanguageTool on your Mac next to the built-in checker. Catches more mistakes (me/I, less/fewer, its/it's, lay/lie…). Nothing leaves your computer.</span>
+            <div class="settings-lt-progress" id="settings-lt-progress" hidden><div></div></div>
+          </div>
+          <div class="settings-control">
+            <button class="btn sm" id="settings-lt-install">Install</button>
+            <input type="checkbox" id="settings-lt-enabled" hidden>
+            <button class="btn sm danger" id="settings-lt-remove" hidden>Remove</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-pane" data-pane="backups" hidden>
+        <div class="settings-section">Backups</div>
+        <div class="settings-backup-intro">
+          Your library lives on this iPad. <b>Back Up Now</b> makes a complete ZIP of it; save that to iCloud Drive.
+          To bring work over from the Mac, use <b>Restore ZIP…</b> on one of the Mac's iCloud backups.
+          Desktop Quill can restore the iPad's ZIPs the same way.
+        </div>
+        <div class="settings-row web-hidden">
+          <div><span class="settings-label">Backup folder</span><span class="settings-hint" id="settings-cloud-folder"></span></div>
+          <div class="settings-control"><button class="btn sm" id="settings-cloud-choose">Choose</button></div>
+        </div>
+        <div class="settings-row web-hidden"><input type="checkbox" id="settings-cloud-auto">
+          <select id="settings-cloud-retention"><option value="10">10</option></select></div>
+        <div class="settings-backup-actions">
+          <button class="btn sm web-hidden" id="settings-cloud-open">Open Folder</button>
+          <button class="btn sm" id="web-restore-zip">Restore ZIP…</button>
+          <button class="btn primary" id="settings-cloud-now">Back Up Now</button>
+        </div>
+        <div class="settings-backup-status" id="settings-cloud-status"></div>
+        <div class="settings-backup-note">Deleting Quill from the Home Screen deletes the library stored on this iPad. Back up first.</div>
+      </section>
+
+      <section class="settings-pane" data-pane="you" hidden>
+        <div class="settings-section">You</div>
+        <div class="settings-row">
+          <div><span class="settings-label">Your name</span><span class="settings-hint">What the dashboard greeting calls you.</span></div>
+          <div class="settings-control"><input type="text" id="settings-user-name" class="settings-text" placeholder="Your name" autocomplete="off"></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Daily word goal</span><span class="settings-hint">Words a day across everything you write. Shown on the dashboard. 0 turns it off.</span></div>
+          <div class="settings-control"><input type="number" id="settings-daily-goal" min="0" max="200000" step="50"> <span class="settings-out">words</span></div>
+        </div>
+      </section>
+
+      <section class="settings-pane" data-pane="ai" hidden>
+        <div class="settings-section">AI tools</div>
+        <div class="settings-backup-intro">
+          Brainstorm, Ask AI, the Ideas chat, the Scene Generator, Style Lab and What If all use the
+          model you pick here. Each tool keeps its own instructions. Use OpenRouter with your own key,
+          your ChatGPT plan, or both; keys and sign-in tokens are stored on this iPad and never shown again.
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Model</span><span class="settings-hint">ChatGPT models appear here once you connect.</span></div>
+          <div class="settings-control"><select id="settings-ai-model"></select></div>
+        </div>
+        <div class="settings-row" id="settings-ai-custom-row" hidden>
+          <div><span class="settings-label">Custom model ID</span><span class="settings-hint">Any OpenRouter model slug, e.g. meta-llama/llama-3.1-8b-instruct.</span></div>
+          <div class="settings-control"><input type="text" id="settings-ai-custom" class="settings-text" autocomplete="off" spellcheck="false"> <button class="btn sm" id="settings-ai-custom-save">Add</button></div>
+        </div>
+        <div class="settings-row" id="settings-ai-saved-row" hidden>
+          <div><span class="settings-label">Your custom models</span></div>
+          <div class="settings-control settings-ai-saved" id="settings-ai-saved"></div>
+        </div>
+        <div class="settings-section web-hidden">ChatGPT</div>
+        <div class="settings-row web-hidden">
+          <div><span class="settings-label" id="settings-cg-title">Use your ChatGPT plan</span><span class="settings-hint" id="settings-cg-status">Plus and Pro plans can power Quill's AI tools without an API key. Usage counts toward your plan. Quill only sends what you attach; ChatGPT never shares your chats or memory with Quill.</span></div>
+          <div class="settings-control" id="settings-cg-actions"><button class="btn sm primary" id="settings-cg-connect">Continue with ChatGPT</button></div>
+        </div>
+        <div class="settings-cg-usage" id="settings-cg-usage-box" hidden></div>
+        <div class="settings-section">OpenRouter</div>
+        <div class="settings-row">
+          <div><span class="settings-label">OpenRouter API key</span><span class="settings-hint" id="settings-ai-status">Get one at openrouter.ai/keys.</span></div>
+          <div class="settings-control"><input type="password" id="settings-ai-key" class="settings-text" autocomplete="off" spellcheck="false"> <button class="btn sm" id="settings-ai-save">Save key</button></div>
+        </div>
+      </section>
+      <section class="settings-pane" data-pane="stylelab" hidden>
+        <div id="settings-stylelab"></div>
+      </section>
+    </div>
+    <div class="settings-footer">
+      <button class="btn" id="settings-reset-btn">Reset all</button>
+      <button class="btn primary" id="settings-done-btn">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRASH VIEWER MODAL -->
+<div class="overlay" id="trash-modal">
+  <div class="modal lg">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0">Trash</h3>
+      <button class="btn" id="trash-empty-btn" style="font-size:11.5px;height:26px;padding:0 12px">Empty Trash</button>
+    </div>
+    <div id="trash-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+      <div style="color:var(--muted);font-size:12.5px;padding:12px 0">Trash is empty.</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" id="trash-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SNAPSHOT MODAL -->
+<div class="overlay" id="snapshot-modal">
+  <div class="modal md">
+    <h3>Snapshots</h3>
+    <p style="margin-bottom:12px">Up to 25 manual checkpoints per scene. Restoring saves your current version first.</p>
+    <div id="snapshot-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;min-height:40px"></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input id="snapshot-name-input" type="text" class="l-field" placeholder="Name (optional)…" style="-webkit-user-select:text;user-select:text;flex:1;margin:0;height:32px;font-size:12px">
+      <button class="btn primary" id="snapshot-save-btn" style="white-space:nowrap">Save Snapshot</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" id="snapshot-recovery-btn" title="Backups of your whole library, and every scene's automatic snapshots" style="margin-right:auto">Recovery Center…</button>
+      <button class="btn" id="snapshot-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Snapshot restore confirm overlay -->
+<div class="overlay" id="snapshot-restore-modal">
+  <div class="modal">
+    <h3>Restore Snapshot</h3>
+    <p style="margin-bottom:12px">Your current version will be saved as a snapshot before restoring. Give it a name?</p>
+    <input id="snapshot-restore-name" type="text" class="l-field" placeholder="Current version name (optional)…" style="-webkit-user-select:text;user-select:text;margin-bottom:4px;font-size:12px">
+    <div class="modal-btns">
+      <button class="btn" id="snapshot-restore-cancel">Cancel</button>
+      <button class="btn primary" id="snapshot-restore-confirm">Restore</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="wb-add-modal">
+  <div class="modal">
+    <h3 id="wb-add-modal-title">New Entry</h3>
+    <input id="wb-add-modal-input" type="text" class="l-field"
+      placeholder="Enter a name…"
+      style="-webkit-user-select:text;user-select:text;margin-bottom:4px">
+    <div class="modal-btns">
+      <button class="btn" id="wb-add-modal-cancel">Cancel</button>
+      <button class="btn primary" id="wb-add-modal-confirm">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="name-prompt-modal">
+  <div class="modal md">
+    <h3 id="name-prompt-title">Name</h3>
+    <p id="name-prompt-message" style="display:none;margin-bottom:12px"></p>
+    <input id="name-prompt-input" type="text" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn" id="name-prompt-cancel">Cancel</button>
+      <button class="btn primary" id="name-prompt-confirm">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="scrap-overlay">
+  <div class="modal scrap-card" id="scrap-card">
+    <button class="icon-btn scrap-close" id="scrap-close" title="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <textarea id="scrap-edit-text" rows="2" placeholder="The line…"></textarea>
+    <button class="scrap-unlock" id="scrap-unlock-btn">Pinned lines are protected. Edit the line anyway</button>
+    <textarea id="scrap-edit-note" placeholder="Where it came from, who says it, where it might go…"></textarea>
+    <div class="scrap-card-footer">
+      <div class="scrap-colors" id="scrap-colors"></div>
+      <span class="scrap-used-where" id="scrap-used-where"></span>
+      <button class="btn sm" id="scrap-used-btn">Mark used</button>
+      <div class="scrap-promote-actions" id="scrap-promote-actions">
+        <label><input type="checkbox" id="scrap-promote-remove"> Remove from inbox</label>
+        <button class="btn sm" id="scrap-promote-btn">Develop in Ideas →</button>
+      </div>
+      <button class="btn sm" id="scrap-pin-btn">Pin &amp; protect</button>
+      <button class="btn sm scrap-delete" id="scrap-delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cork-edit-overlay">
+  <div class="modal card-popout-modal cork-edit-modal">
+    <div class="popout-header">
+      <h3 id="cork-edit-chapter">Scene card</h3>
+      <button class="icon-btn" id="cork-edit-close" title="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="cork-edit-body">
+      <input id="cork-edit-title" type="text" placeholder="Scene title…">
+      <textarea id="cork-edit-synopsis" placeholder="What happens in this scene…"></textarea>
+      <div class="b-tone-picker" id="cork-edit-tones"></div>
+    </div>
+    <div class="cork-edit-footer">
+      <span class="cork-edit-saved" id="cork-edit-saved"></span>
+      <button class="btn primary danger" id="cork-edit-delete">Delete</button>
+      <button class="btn" id="cork-edit-open">Open scene →</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="card-popout-overlay">
+  <div class="modal card-popout-modal">
+    <div class="popout-header">
+      <h3 id="popout-title">Synopsis</h3>
+      <button class="icon-btn" id="popout-close" data-tip="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <textarea id="popout-body" placeholder="What happens in this scene…"></textarea>
+  </div>
+</div>
+
+<!-- Scene Builder: plan the next scene before drafting it (renderer/scenebuilder.js) -->
+<div class="overlay" id="scene-builder-modal">
+  <div class="modal scene-builder" role="dialog" aria-modal="true" aria-labelledby="sb-heading">
+    <div class="sb-head">
+      <h3 id="sb-heading">Build the next scene</h3>
+      <button type="button" class="sb-close" id="sb-close" title="Close" aria-label="Close">×</button>
+    </div>
+    <div class="sb-main">
+      <nav class="sb-rail" id="sb-rail" aria-label="Scene planning steps"></nav>
+      <div class="sb-body" id="sb-body"></div>
+    </div>
+    <div class="modal-btns">
+      <span class="builder-save-status scene-builder-save-status" id="sb-save-status" role="status"></span>
+      <button type="button" class="btn" id="sb-back">Back</button>
+      <button type="button" class="btn primary" id="sb-next">Next</button>
+      <button type="button" class="btn primary" id="sb-finish" style="display:none">Create &amp; open scene</button>
+    </div>
+  </div>
+</div>
+
+<!-- Case Builder: a novel's investigations, one item per screen (renderer/casebuilder.js) -->
+<div class="overlay" id="case-builder-modal">
+  <div class="modal scene-builder structure-builder case-builder" role="dialog" aria-modal="true" aria-labelledby="cb-heading">
+    <div class="sb-head">
+      <h3 id="cb-heading">Case</h3>
+      <span class="stb-head-actions">
+        <button type="button" class="stb-mode" id="cb-mode">All on one page</button>
+        <button type="button" class="sb-close" id="cb-close" title="Close" aria-label="Close">×</button>
+      </span>
+    </div>
+    <div class="sb-main">
+      <nav class="sb-rail stb-rail" id="cb-rail" aria-label="Case planning steps"></nav>
+      <div class="sb-body" id="cb-body"></div>
+    </div>
+    <div class="case-character-notice" id="case-character-notice" role="status" hidden></div>
+    <div class="modal-btns">
+      <span class="builder-save-status" id="cb-save-status" role="status"></span>
+      <button type="button" class="btn" id="cb-back">Back</button>
+      <button type="button" class="btn primary" id="cb-next">Next</button>
+      <button type="button" class="btn" id="cb-done">Save &amp; close</button>
+    </div>
+  </div>
+</div>
+<datalist id="cb-characters"></datalist>
+
+<!-- Structure Builder: the novel's structure, question by question (renderer/structurebuilder.js) -->
+<div class="overlay" id="structure-builder-modal">
+  <div class="modal scene-builder structure-builder" role="dialog" aria-labelledby="stb-heading">
+    <div class="sb-head">
+      <h3 id="stb-heading">Structure</h3>
+      <span class="stb-head-actions">
+        <button type="button" class="stb-mode" id="stb-mode">All on one page</button>
+        <button type="button" class="sb-close" id="stb-close" title="Close" aria-label="Close">×</button>
+      </span>
+    </div>
+    <div class="sb-main">
+      <nav class="sb-rail stb-rail" id="stb-rail"></nav>
+      <div class="sb-body" id="stb-body"></div>
+    </div>
+    <div class="modal-btns">
+      <span class="builder-save-status" id="stb-save-status" role="status"></span>
+      <button type="button" class="btn" id="stb-back">Back</button>
+      <button type="button" class="btn primary" id="stb-next">Next</button>
+      <button type="button" class="btn" id="stb-done">Save &amp; close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="grammar-modal">
+  <div class="modal grammar-modal">
+    <div class="grammar-header">
+      <h3>Grammar &amp; Style <span class="grammar-engine" id="grammar-engine">Offline · Harper</span></h3>
+      <div class="grammar-header-right">
+        <label class="grammar-inline-toggle" title="Show underlines in editor">
+          <input type="checkbox" id="grammar-inline-cb"> Inline
+        </label>
+        <span id="grammar-progress" class="grammar-progress"></span>
+      </div>
+    </div>
+    <div id="grammar-sentence" class="grammar-sentence"></div>
+    <div id="grammar-message" class="grammar-message"></div>
+    <div id="grammar-suggestion" class="grammar-suggestion"></div>
+    <div class="modal-btns">
+      <button class="btn" id="grammar-close">Close</button>
+      <button class="btn" id="grammar-skip">Skip</button>
+      <button class="btn" id="grammar-dismiss" title="Never show this suggestion in this context again">Dismiss</button>
+      <button class="btn primary" id="grammar-accept">Accept</button>
+    </div>
+  </div>
+</div>
+
+<script src="quill-web.js"></script>
+<script src="escape.js"></script>
+<script src="toolbar.js"></script>
+<script src="dnd.js"></script>
+<script src="help.js"></script>
+<script src="recovery-diff.js"></script>
+<script src="settings.js"></script>
+<script src="ai.js"></script>
+<script src="models.js"></script>
+<script src="../aicontext.js"></script>
+<script src="context-drawer.js"></script>
+<script src="../words.js"></script>
+<script src="../revisions.js"></script>
+<script src="../structure.js"></script>
+<script src="../case.js"></script>
+<script src="../study.js"></script>
+<script src="sprint.js"></script>
+<script src="tree.js"></script>
+<script src="photo-crop.js"></script>
+<script src="story-date.js"></script>
+<script src="landing.js"></script>
+<script src="scenebuilder.js"></script>
+<script src="structurebuilder.js"></script>
+<script src="casebuilder.js"></script>
+<script src="editor.bundle.js"></script>
+<script src="editor.js"></script>
+<script src="revisions.js"></script>
+<script src="manuscript-docx.js"></script>
+<script src="read-draft.js"></script>
+<script src="chapter.js"></script>
+<script src="board.js"></script>
+<script src="scraps.js"></script>
+<script src="ideas.js"></script>
+<script src="stylelab.js"></script>
+<script src="stylelab-reader.js"></script>
+<script src="stylelab-study.js"></script>
+<script src="stylelab-whatif.js"></script>
+<script src="concept-art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
