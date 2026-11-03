@@ -2479,7 +2479,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       import_path_browserify = __toESM(require_path_browserify());
       DB_NAME = "quill-vfs";
       STORE = "nodes";
-      SAVED = ["/Quill", "/userData"];
+      SAVED = ["/Quill", "/userData", "/Quill Recovery Backups"];
       nodes = /* @__PURE__ */ new Map();
       children = /* @__PURE__ */ new Map();
       dirty = /* @__PURE__ */ new Set();
@@ -17296,11 +17296,26 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const empty = !list("/Quill").some((name) => !name.startsWith("."));
     setReady();
     loadThesaurus();
+    firstScreens(empty);
+  }
+  var onIPad = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  var fromHomeScreen = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  async function firstScreens(empty) {
+    if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
+    await new Promise((r) => setTimeout(r, 600));
+    if (onIPad && !fromHomeScreen) {
+      const { response } = await messageBox({
+        message: "Open Quill from your Home Screen",
+        detail: "Safari keeps a separate library from the Home Screen app, so work saved in this tab won\u2019t appear there.\n\nTap Share \u2192 Add to Home Screen, then open Quill from its icon and restore your backup there.",
+        buttons: ["Use in Safari Anyway", "OK"],
+        defaultId: 1,
+        cancelId: 1
+      });
+      if (response !== 0) return;
+    }
     if (empty) offerFirstRestore();
   }
   async function offerFirstRestore() {
-    if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
-    await new Promise((r) => setTimeout(r, 600));
     const { response } = await messageBox({
       message: "Bring your library over",
       detail: "Choose a Quill backup ZIP from iCloud Drive (desktop Quill saves one there every day), or start with an empty library.",
