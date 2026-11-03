@@ -19,6 +19,12 @@
 html.quill-web body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   height:100dvh;box-sizing:border-box;-webkit-text-size-adjust:100%}
 
+/* The Mac sizes the sidebar and main column at 100vh. Under the padding above that overflows
+   by the status bar and home-indicator insets and pushes their bottom bars off screen, so on the
+   web they fill the body instead. Dialogs keep clear of the same insets. */
+html.quill-web #sidebar,html.quill-web #main{height:auto;align-self:stretch;min-height:0}
+html.quill-web .settings-modal{height:min(560px,calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
+
 /* ── Mac-only settings ──────────────────────────────────────── */
 html.quill-web .settings-row:has(#settings-lt-install),
 html.quill-web .web-hidden{display:none !important}
@@ -34,10 +40,10 @@ html.quill-web .web-hidden{display:none !important}
 /* A wide, invisible hit area with a slim handle that fattens while in use. */
 .web-rail{position:fixed;z-index:20000;width:28px;touch-action:none;-webkit-user-select:none;user-select:none}
 .web-rail[hidden]{display:none}
-.web-rail-thumb{position:absolute;top:0;right:5px;width:6px;border-radius:var(--r-pill);background:var(--muted);
-  opacity:.28;transition:opacity .25s ease,width .15s ease,right .15s ease;touch-action:none}
-.web-rail.awake .web-rail-thumb{opacity:.55}
-.web-rail.dragging .web-rail-thumb{opacity:.8;width:10px;right:3px}
+.web-rail-thumb{position:absolute;top:0;right:5px;width:8px;border-radius:var(--r-pill);background:var(--muted);
+  opacity:.5;transition:opacity .25s ease,width .15s ease,right .15s ease;touch-action:none}
+.web-rail.awake .web-rail-thumb{opacity:.7}
+.web-rail.dragging .web-rail-thumb{opacity:.9;width:12px;right:3px}
 .web-rail-thumb::before{content:'';position:absolute;inset:0 -12px 0 -10px}
 
 /* ── Fingertip-sized buttons in the sidebar footer (Recovery, Trash, Settings) ─ */

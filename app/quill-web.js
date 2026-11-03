@@ -17478,6 +17478,10 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     if (!node2 || node2.dir) port.postMessage({ ok: false });
     else port.postMessage({ ok: true, data: node2.data, type: mimeFor(event2.data.path) });
   });
+  document.addEventListener("DOMContentLoaded", () => {
+    const label = document.getElementById("web-version");
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-03T23:21:51.697Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+  });
   document.addEventListener("click", (event2) => {
     if (event2.target.closest?.("#web-restore-zip")) document.getElementById("recovery-archive-btn")?.click();
   });
