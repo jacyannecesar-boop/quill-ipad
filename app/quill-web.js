@@ -2503,12 +2503,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   // web/ui.js
   var ui_exports = {};
   __export(ui_exports, {
+    closeSignInSheet: () => closeSignInSheet,
     messageBox: () => messageBox,
     mimeFor: () => mimeFor,
     offerFile: () => offerFile,
     openDialog: () => openDialog,
     printFrame: () => printFrame,
     saveDialog: () => saveDialog,
+    signInSheet: () => signInSheet,
     sizeLabel: () => sizeLabel
   });
   function el(tag, attrs = {}, children2 = []) {
@@ -2672,7 +2674,51 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     };
     return contents;
   }
-  var import_path_browserify2, MIME, mimeFor;
+  function closeSignInSheet() {
+    closeSignIn?.();
+    closeSignIn = null;
+  }
+  function signInSheet(authorizeUrl, deliver) {
+    closeSignInSheet();
+    const field = el("input", {
+      type: "url",
+      class: "settings-text web-sheet-field",
+      placeholder: "http://127.0.0.1:1455/auth/callback?code=\u2026",
+      autocapitalize: "off",
+      autocorrect: "off",
+      spellcheck: "false"
+    });
+    const status2 = el("p", { class: "web-sheet-status" });
+    const connect2 = el("button", { class: "btn primary", text: "Connect", onclick: async () => {
+      const value = field.value.trim();
+      if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/auth\/callback\?/.test(value)) {
+        status2.textContent = "Paste the whole address of the page that couldn\u2019t load. It starts with http://127.0.0.1.";
+        return;
+      }
+      connect2.disabled = true;
+      const result = await deliver(value);
+      if (!result.ok) {
+        status2.textContent = result.text;
+        connect2.disabled = false;
+      }
+    } });
+    closeSignIn = sheet([
+      el("h3", { text: "Sign in with ChatGPT" }),
+      el("p", { text: "1. Tap Open ChatGPT Sign-In and log in." }),
+      el("p", { text: "2. ChatGPT then sends you to a page Safari can\u2019t open. Tap Share \u2192 Copy (or copy the address bar), come back here, and paste it below." }),
+      field,
+      status2,
+      el("div", { class: "web-sheet-buttons" }, [
+        el("button", { class: "btn", text: "Cancel", onclick: () => {
+          closeSignInSheet();
+          window.quill?.chatgptCancelSignIn?.();
+        } }),
+        el("button", { class: "btn", text: "Open ChatGPT Sign-In", onclick: () => window.open(authorizeUrl, "_blank") }),
+        connect2
+      ])
+    ]);
+  }
+  var import_path_browserify2, MIME, mimeFor, closeSignIn;
   var init_ui = __esm({
     "web/ui.js"() {
       import_path_browserify2 = __toESM(require_path_browserify());
@@ -2690,6 +2736,76 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         html: "text/html"
       };
       mimeFor = (name) => MIME[import_path_browserify2.default.posix.extname(name).slice(1).toLowerCase()] || "application/octet-stream";
+      closeSignIn = null;
+    }
+  });
+
+  // web/shim/http.js
+  var http_exports = {};
+  __export(http_exports, {
+    createServer: () => createServer,
+    default: () => http_default,
+    get: () => get2,
+    request: () => request,
+    waitingSignIn: () => waitingSignIn
+  });
+  function createServer() {
+    const handlers2 = {};
+    let port = 0;
+    const server = {
+      on(name, fn) {
+        (handlers2[name] ||= []).push(fn);
+        return server;
+      },
+      once(name, fn) {
+        return server.on(name, fn);
+      },
+      listen(p, host, cb) {
+        port = p || 1455;
+        listening = server;
+        setTimeout(() => cb?.(), 0);
+        return server;
+      },
+      address: () => ({ port, address: "127.0.0.1" }),
+      close() {
+        if (listening === server) listening = null;
+        closeSignInSheet();
+        return server;
+      },
+      // A pasted callback URL, delivered as the request main.js expects. Resolves with the page
+      // main.js would have shown in the browser, as text.
+      deliver(pasted) {
+        const u = new URL(pasted);
+        return new Promise((resolve) => {
+          const res = {
+            statusCode: 200,
+            writeHead(code) {
+              res.statusCode = code;
+              return res;
+            },
+            end(html = "") {
+              resolve({ ok: res.statusCode < 400, text: String(html).replace(/<title>[^<]*<\/title>/, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() });
+            }
+          };
+          for (const fn of handlers2.request || []) fn({ url: u.pathname + u.search }, res);
+        });
+      }
+    };
+    return server;
+  }
+  function waitingSignIn() {
+    return listening;
+  }
+  var listening, request, get2, http_default;
+  var init_http = __esm({
+    "web/shim/http.js"() {
+      init_ui();
+      listening = null;
+      request = () => {
+        throw new Error("http requests are not available on iPad.");
+      };
+      get2 = request;
+      http_default = { createServer, request, get: get2 };
     }
   });
 
@@ -2731,6 +2847,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       import_buffer = __toESM(require_buffer());
       init_ui();
       init_vfs();
+      init_http();
       handlers = /* @__PURE__ */ new Map();
       mainListeners = /* @__PURE__ */ new Map();
       rendererListeners = /* @__PURE__ */ new Map();
@@ -2904,6 +3021,11 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       };
       shell = {
         openExternal: async (url) => {
+          const server = waitingSignIn();
+          if (server && url.startsWith("https://auth.openai.com/")) {
+            signInSheet(url, (pasted) => server.deliver(pasted));
+            return void 0;
+          }
           window.open(url, "_blank", "noopener");
           return void 0;
         },
@@ -3447,10 +3569,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   var https_exports = {};
   __export(https_exports, {
     default: () => https_default,
-    get: () => get2,
-    request: () => request
+    get: () => get3,
+    request: () => request2
   });
-  function request(target2, options, callback) {
+  function request2(target2, options, callback) {
     if (typeof options === "function") {
       callback = options;
       options = {};
@@ -3507,8 +3629,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     };
     return req;
   }
-  function get2(target2, options, callback) {
-    const req = request(target2, options, callback);
+  function get3(target2, options, callback) {
+    const req = request2(target2, options, callback);
     req.end();
     return req;
   }
@@ -3541,44 +3663,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       };
       FORBIDDEN = /* @__PURE__ */ new Set(["content-length", "host", "connection"]);
-      https_default = { request, get: get2 };
-    }
-  });
-
-  // web/shim/unavailable.js
-  var unavailable_exports = {};
-  __export(unavailable_exports, {
-    Socket: () => Socket,
-    connect: () => connect,
-    createConnection: () => createConnection,
-    createServer: () => createServer,
-    default: () => unavailable_default,
-    exec: () => exec,
-    execFile: () => execFile,
-    get: () => get3,
-    request: () => request2,
-    spawn: () => spawn
-  });
-  function unavailable() {
-    throw new Error("This feature needs the Mac app; it is not available on iPad.");
-  }
-  var spawn, execFile, exec, createServer, createConnection, connect, request2, get3, Socket, unavailable_default;
-  var init_unavailable = __esm({
-    "web/shim/unavailable.js"() {
-      spawn = unavailable;
-      execFile = unavailable;
-      exec = unavailable;
-      createServer = unavailable;
-      createConnection = unavailable;
-      connect = unavailable;
-      request2 = unavailable;
-      get3 = unavailable;
-      Socket = class {
-        constructor() {
-          unavailable();
-        }
-      };
-      unavailable_default = { spawn, execFile, exec, createServer, createConnection, connect, request: request2, get: get3, Socket };
+      https_default = { request: request2, get: get3 };
     }
   });
 
@@ -4055,7 +4140,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     };
     return api;
   }
-  function unavailable2() {
+  function unavailable() {
     throw new Error("This sign-in step is not available on iPad.");
   }
   var import_buffer4, webcrypto, HASHES, createPublicKey, verify, crypto_default;
@@ -4066,8 +4151,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       init_sha1();
       webcrypto = globalThis.crypto;
       HASHES = { sha256: sha2562, sha1: sha12 };
-      createPublicKey = unavailable2;
-      verify = unavailable2;
+      createPublicKey = unavailable;
+      verify = unavailable;
       crypto_default = { randomUUID, randomBytes, getRandomValues, webcrypto, createHash, createPublicKey, verify };
     }
   });
@@ -6677,14 +6762,14 @@ ${raw}` : raw;
   var child_process_exports = {};
   __export(child_process_exports, {
     default: () => child_process_default,
-    exec: () => exec2,
-    execFile: () => execFile2,
+    exec: () => exec,
+    execFile: () => execFile,
     readZip: () => readZip,
-    spawn: () => spawn2,
+    spawn: () => spawn,
     zipName: () => zipName,
     zipTree: () => zipTree
   });
-  function unavailable3(file) {
+  function unavailable2(file) {
     const err2 = new Error(`${file} is not available on iPad.`);
     err2.code = "ENOENT";
     return err2;
@@ -6787,9 +6872,9 @@ ${raw}` : raw;
       const entries = readZip(abs(args[1]));
       return Object.entries(entries).map(([name, data]) => zipinfoLine(name, data)).join("\n") + "\n";
     }
-    throw unavailable3(file);
+    throw unavailable2(file);
   }
-  function execFile2(file, args = [], options, callback) {
+  function execFile(file, args = [], options, callback) {
     if (typeof options === "function") {
       callback = options;
       options = {};
@@ -6809,11 +6894,11 @@ ${raw}` : raw;
       return this;
     } };
   }
-  function spawn2(file) {
-    throw unavailable3(file);
+  function spawn(file) {
+    throw unavailable2(file);
   }
-  function exec2(cmd) {
-    throw unavailable3(cmd);
+  function exec(cmd) {
+    throw unavailable2(cmd);
   }
   var import_path_browserify4, import_buffer5, STORED, utf8, child_process_default;
   var init_child_process = __esm({
@@ -6824,7 +6909,44 @@ ${raw}` : raw;
       init_vfs();
       STORED = /\.(png|jpe?g|gif|webp|heic|zip|epub|docx|pdf|woff2?)$/i;
       utf8 = new TextDecoder("utf-8", { fatal: true });
-      child_process_default = { execFile: execFile2, spawn: spawn2, exec: exec2 };
+      child_process_default = { execFile, spawn, exec };
+    }
+  });
+
+  // web/shim/unavailable.js
+  var unavailable_exports = {};
+  __export(unavailable_exports, {
+    Socket: () => Socket,
+    connect: () => connect,
+    createConnection: () => createConnection,
+    createServer: () => createServer2,
+    default: () => unavailable_default,
+    exec: () => exec2,
+    execFile: () => execFile2,
+    get: () => get4,
+    request: () => request3,
+    spawn: () => spawn2
+  });
+  function unavailable3() {
+    throw new Error("This feature needs the Mac app; it is not available on iPad.");
+  }
+  var spawn2, execFile2, exec2, createServer2, createConnection, connect, request3, get4, Socket, unavailable_default;
+  var init_unavailable = __esm({
+    "web/shim/unavailable.js"() {
+      spawn2 = unavailable3;
+      execFile2 = unavailable3;
+      exec2 = unavailable3;
+      createServer2 = unavailable3;
+      createConnection = unavailable3;
+      connect = unavailable3;
+      request3 = unavailable3;
+      get4 = unavailable3;
+      Socket = class {
+        constructor() {
+          unavailable3();
+        }
+      };
+      unavailable_default = { spawn: spawn2, execFile: execFile2, exec: exec2, createServer: createServer2, createConnection, connect, request: request3, get: get4, Socket };
     }
   });
 
@@ -8734,8 +8856,8 @@ ${str(e.text).trim()}
       function decodeJwt(token) {
         const [h, p, s] = String(token || "").split(".");
         if (!h || !p || !s) throw new Error("Malformed ID token.");
-        const json = (part) => JSON.parse(Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
-        return { header: json(h), payload: json(p), signed: `${h}.${p}`, signature: Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64") };
+        const json2 = (part) => JSON.parse(Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+        return { header: json2(h), payload: json2(p), signed: `${h}.${p}`, signature: Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64") };
       }
       function verifyIdToken(token, { jwks, clientId, nonce, now = Date.now() }) {
         const { header, payload, signed, signature } = decodeJwt(token);
@@ -8755,8 +8877,8 @@ ${str(e.text).trim()}
         return String(tokenResponse && tokenResponse.scope || "").split(/[\s,]+/).filter(Boolean);
       }
       var canUsePlan = (scopes) => (scopes || []).includes(PLAN_SCOPE);
-      function modelsFromList(json) {
-        const list2 = Array.isArray(json && json.models) ? json.models : Array.isArray(json && json.data) ? json.data : [];
+      function modelsFromList(json2) {
+        const list2 = Array.isArray(json2 && json2.models) ? json2.models : Array.isArray(json2 && json2.data) ? json2.data : [];
         return list2.filter((m) => m && m.slug && (!m.visibility || m.visibility === "list")).map((m) => ({ id: MODEL_PREFIX + m.slug, label: m.display_name || m.slug, note: "ChatGPT plan" }));
       }
       var isChatGPTModel = (id) => String(id || "").startsWith(MODEL_PREFIX);
@@ -8926,6 +9048,24 @@ ${str(e.text).trim()}
     }
   });
 
+  // web/chatgpt-web.js
+  var require_chatgpt_web = __commonJS({
+    "web/chatgpt-web.js"(exports, module) {
+      var ChatGPT = require_chatgpt();
+      function verifyIdToken(token, options = {}) {
+        if (!options.jwks?.webTrust) return ChatGPT.verifyIdToken(token, options);
+        const { clientId, nonce, now = Date.now() } = options;
+        const { payload } = ChatGPT.decodeJwt(token);
+        if (payload.iss !== ChatGPT.ISSUER) throw new Error("ID token issuer is wrong.");
+        if (![].concat(payload.aud || []).includes(clientId)) throw new Error("ID token audience is wrong.");
+        if (nonce && payload.nonce !== nonce) throw new Error("ID token nonce does not match.");
+        if (payload.exp && payload.exp * 1e3 < now - 6e4) throw new Error("ID token has expired.");
+        return { subject: payload.sub, email: payload.email || "", name: payload.name || "" };
+      }
+      module.exports = { ...ChatGPT, verifyIdToken };
+    }
+  });
+
   // main.js
   var require_main = __commonJS({
     "main.js"() {
@@ -8934,7 +9074,7 @@ ${str(e.text).trim()}
       var fs = (init_fs(), __toCommonJS(fs_exports));
       var os = (init_os(), __toCommonJS(os_exports));
       var https = (init_https(), __toCommonJS(https_exports));
-      var http = (init_unavailable(), __toCommonJS(unavailable_exports));
+      var http = (init_http(), __toCommonJS(http_exports));
       var crypto2 = (init_crypto(), __toCommonJS(crypto_exports));
       var { fmLine, parseFM, frontmatterBounds, frontmatterPrefix, setFrontmatterField, cleanTag } = require_frontmatter();
       var { countWords, diffWords, stripStubs, stubRegExp, stripRevisionNotes, findNotes, parseNoteLine, noteLine, mintNoteId } = require_words();
@@ -8948,7 +9088,7 @@ ${str(e.text).trim()}
       var { parseEpub } = require_epub();
       var Study = require_study();
       var AIContext = require_aicontext();
-      var ChatGPT = require_chatgpt();
+      var ChatGPT = require_chatgpt_web();
       var ROOT = __quillProcess.env.QUILL_LIBRARY_ROOT || path5.join(os.homedir(), "Documents", "Quill");
       if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
       function readMeta(folderPath) {
@@ -15606,18 +15746,18 @@ ${sc.text}`);
           body: new URLSearchParams(form)
         });
         const text = await res.text();
-        let json = {};
+        let json2 = {};
         try {
-          json = JSON.parse(text);
+          json2 = JSON.parse(text);
         } catch {
-          json = { error_description: text.slice(0, 200) };
+          json2 = { error_description: text.slice(0, 200) };
         }
         if (!res.ok) {
-          const err2 = new Error(json.error_description || json.error || `HTTP ${res.status}`);
-          err2.code = json.error;
+          const err2 = new Error(json2.error_description || json2.error || `HTTP ${res.status}`);
+          err2.code = json2.error;
           throw err2;
         }
-        return json;
+        return json2;
       }
       async function chatgptJwks() {
         if (chatgptJwksCache && Date.now() - chatgptJwksCache.at < 36e5) return chatgptJwksCache.jwks;
@@ -17181,7 +17321,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const names = list(SAFETY_DIR).filter((n) => n.endsWith(".zip")).sort();
     for (const name of names.slice(0, Math.max(0, names.length - KEEP_SAFETY))) remove(`${SAFETY_DIR}/${name}`);
   }
-  var SAFETY_DIR, KEEP_SAFETY, status, chooseRestore, restore, LT_OFF, CHATGPT_OFF;
+  var SAFETY_DIR, KEEP_SAFETY, status, chooseRestore, restore, LT_OFF;
   var init_overrides = __esm({
     "web/overrides.js"() {
       init_browser();
@@ -17242,10 +17382,6 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       ipcMain.handle("lt-uninstall", () => LT_OFF);
       ipcMain.handle("lt-check", () => []);
       ipcMain.handle("lt-warm", () => false);
-      CHATGPT_OFF = "Sign in with ChatGPT works on the Mac only. On iPad, add an OpenRouter key in Settings \u2192 AI.";
-      ipcMain.handle("chatgpt-sign-in", () => {
-        throw new Error(CHATGPT_OFF);
-      });
       ipcMain.handle("export-manuscript-pdf", async (_, { title, pagesHTML, mono } = {}) => {
         const frame = printFrame();
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${String(title || "Manuscript").replace(/</g, "&lt;")}</title>
@@ -17389,6 +17525,16 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   globalThis.clearImmediate ||= (id) => clearTimeout(id);
   document.documentElement.classList.add("quill-web");
   window.__quillWeb = { vfs: vfs_exports, ui: ui_exports };
+  var OIDC = "https://auth.openai.com/.well-known/openid-configuration";
+  var JWKS = "https://auth.openai.com/.well-known/jwks.json";
+  var realFetch = globalThis.fetch.bind(globalThis);
+  var json = (body) => new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+  globalThis.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input?.url;
+    if (url === OIDC) return Promise.resolve(json({ jwks_uri: JWKS, revocation_endpoint: "https://auth.openai.com/api/accounts/oauth/revoke" }));
+    if (url === JWKS) return Promise.resolve(json({ keys: [], webTrust: true }));
+    return realFetch(input, init);
+  };
   require_preload();
   async function start2() {
     try {
@@ -17480,7 +17626,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-03T23:21:51.697Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-03T23:24:42.255Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   document.addEventListener("click", (event2) => {
     if (event2.target.closest?.("#web-restore-zip")) document.getElementById("recovery-archive-btn")?.click();

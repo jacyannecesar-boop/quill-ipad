@@ -11,6 +11,7 @@
 .web-sheet .web-sheet-hint{font-size:var(--fs-sm)}
 .web-sheet .web-sheet-status:empty{display:none}
 .web-sheet .web-sheet-status{color:var(--danger)}
+.web-sheet .web-sheet-field{width:100%;margin:var(--sp-2) 0}
 .web-sheet-buttons{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-4)}
 
 .web-print-frame{position:fixed;left:-10000px;top:0;width:850px;height:1100px;border:0;opacity:0;pointer-events:none}
