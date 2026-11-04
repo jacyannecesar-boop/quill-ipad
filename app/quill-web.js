@@ -1936,7 +1936,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
             return ".";
           }
         },
-        normalize: function normalize(path5) {
+        normalize: function normalize2(path5) {
           assertPath(path5);
           if (path5.length === 0) return ".";
           var isAbsolute = path5.charCodeAt(0) === 47;
@@ -2594,7 +2594,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     return new Promise((resolve) => {
       let close;
       const status2 = el("p", { class: "web-sheet-status" });
-      const save = async () => {
+      const save2 = async () => {
         try {
           if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file] });
           else download(file);
@@ -2615,7 +2615,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
             close();
             resolve(false);
           } }),
-          el("button", { class: "btn primary", text: "Save to Files\u2026", onclick: save })
+          el("button", { class: "btn primary", text: "Save to Files\u2026", onclick: save2 })
         ])
       ]);
     });
@@ -5639,7 +5639,7 @@ ${raw}` : raw;
         function blankCase(title = "") {
           return { id: uid(), title, revealSceneId: "", revealLeadId: "", truth: [], clues: [], suspects: [], leads: [], rules: [], board: {} };
         }
-        function normalize(c) {
+        function normalize2(c) {
           for (const k of ["truth", "clues", "suspects", "leads", "rules"]) if (!Array.isArray(c[k])) c[k] = [];
           if (typeof c.revealLeadId !== "string") c.revealLeadId = "";
           if (!c.board || typeof c.board !== "object" || Array.isArray(c.board)) c.board = {};
@@ -5908,7 +5908,7 @@ ${raw}` : raw;
           if (d.case_layers.length < 2) d.case_layers = [];
           return d;
         }
-        return { KINDS, JOBS, METHODS, STEPS, blankCase, normalize, leadName, positions, boardLayout, boardStrings, fairPlay, notes, pacing, toMarkdown, caseDigest, label };
+        return { KINDS, JOBS, METHODS, STEPS, blankCase, normalize: normalize2, leadName, positions, boardLayout, boardStrings, fairPlay, notes, pacing, toMarkdown, caseDigest, label };
       });
     }
   });
@@ -7320,7 +7320,7 @@ wait $child
             }, 3e3);
           });
         }
-        async function check(text, language = "en-US") {
+        async function check2(text, language = "en-US") {
           if (typeof text !== "string") throw new TypeError("Text to check must be a string.");
           if (!ENGLISH_LANGUAGES.has(language)) throw new TypeError("Unsupported LanguageTool dialect.");
           if (text.length > MAX_TEXT) throw new Error("This document is too long to check in one pass.");
@@ -7354,10 +7354,10 @@ wait $child
         }
         async function warm() {
           if (!isInstalled() || _installing) return false;
-          await check("She walked to the door and opened it. He was waiting there, just like he said he would be. They were tired, but neither of them wanted to leave. \u201CAre you coming?\u201D she asked. Its too late now.");
+          await check2("She walked to the door and opened it. He was waiting there, just like he said he would be. They were tired, but neither of them wanted to leave. \u201CAre you coming?\u201D she asked. Its too late now.");
           return true;
         }
-        return { status: status2, install, uninstall, check, warm, stop };
+        return { status: status2, install, uninstall, check: check2, warm, stop };
       }
       function run2(cmd, args) {
         return new Promise((resolve, reject) => {
@@ -14919,7 +14919,7 @@ ${sc.text}`);
         }
         const timeline = timelinePayload(dir);
         const states = /* @__PURE__ */ new Map();
-        const normalize = (value) => String(value || "").trim().toLocaleLowerCase();
+        const normalize2 = (value) => String(value || "").trim().toLocaleLowerCase();
         for (const [eventIndex, event2] of timeline.events.entries()) {
           const eventTarget = { kind: "timeline", eventId: event2.id, label: event2.title };
           if (event2.missing_scene) {
@@ -14938,9 +14938,9 @@ ${sc.text}`);
             const before = String(fact.before || "").trim();
             const after = String(fact.after || "").trim();
             if (!subject || !name || !before && !after) continue;
-            const key = `${normalize(subject)}\0${normalize(name)}`;
+            const key = `${normalize2(subject)}\0${normalize2(name)}`;
             const previous = states.get(key);
-            if (before && previous && normalize(before) !== normalize(previous.value)) {
+            if (before && previous && normalize2(before) !== normalize2(previous.value)) {
               add(
                 "continuity-conflict",
                 "Continuity",
@@ -18254,6 +18254,87 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
 
   // web/boot.js
   init_signin();
+
+  // web/relay.js
+  init_vfs();
+  var FILE = "/userData/chatgpt-relay.json";
+  var OPENAI = "https://api.openai.com/v1/";
+  function address() {
+    try {
+      return JSON.parse(new TextDecoder().decode(get(FILE).data)).url || "";
+    } catch {
+      return "";
+    }
+  }
+  function save(url) {
+    mkdir("/userData", true);
+    write(FILE, new TextEncoder().encode(JSON.stringify({ url })));
+    return flush().catch(() => {
+    });
+  }
+  function normalize(input) {
+    let text = String(input || "").trim();
+    if (!text) return "";
+    if (!/^https?:\/\//i.test(text)) text = `https://${text}`;
+    const url = new URL(text);
+    const local = ["127.0.0.1", "localhost"].includes(url.hostname);
+    if (url.protocol !== "https:" && !local) throw new Error("The relay address must start with https://.");
+    if (!local && !url.hostname.endsWith(".val.run")) throw new Error("Quill for iPad connects only to a Val Town relay: an address ending in .val.run.");
+    return url.origin + url.pathname.replace(/\/+$/, "");
+  }
+  function reroute(url) {
+    if (typeof url !== "string" || !url.startsWith(OPENAI)) return null;
+    const relay = address();
+    return relay ? relay + url.slice("https://api.openai.com".length) : null;
+  }
+  var missingMessage = "On the iPad, ChatGPT needs your relay. Add its address in Settings \u2192 AI \u2192 ChatGPT relay.";
+  async function check(url) {
+    const res = await fetch(`${url}/health`).catch(() => null);
+    const body = res?.ok ? await res.json().catch(() => null) : null;
+    if (!body?.quillRelay) return "Quill couldn\u2019t reach a relay at that address. Check it matches the val\u2019s address.";
+    if (!body.origin) return "The relay answered, but it doesn\u2019t accept this page. Check ORIGINS in the relay script.";
+    return "";
+  }
+  function bind() {
+    const input = document.getElementById("web-cg-relay");
+    const button = document.getElementById("web-cg-relay-save");
+    const status2 = document.getElementById("web-cg-relay-status");
+    if (!input || !button) return;
+    input.value = address();
+    const show = (text, error = false) => {
+      status2.textContent = text;
+      status2.classList.toggle("error", error);
+    };
+    if (address()) show("Saved. ChatGPT requests from this iPad go through it.");
+    button.addEventListener("click", async () => {
+      let url;
+      try {
+        url = normalize(input.value);
+      } catch (error) {
+        show(error.message, true);
+        return;
+      }
+      if (!url) {
+        await save("");
+        show("Cleared. ChatGPT models won\u2019t load on this iPad until a relay is added.");
+        return;
+      }
+      show("Checking the relay\u2026");
+      const problem = await check(url);
+      if (problem) {
+        show(problem, true);
+        return;
+      }
+      await save(url);
+      input.value = url;
+      show("Connected. ChatGPT requests from this iPad go through your relay.");
+      document.dispatchEvent(new CustomEvent("quill-models-changed"));
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+
+  // web/boot.js
   globalThis.Buffer = import_buffer7.Buffer;
   globalThis.global = globalThis;
   globalThis.setImmediate ||= (fn, ...args) => setTimeout(fn, 0, ...args);
@@ -18268,6 +18349,11 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const url = typeof input === "string" ? input : input?.url;
     if (url === OIDC) return Promise.resolve(json({ jwks_uri: JWKS, revocation_endpoint: "https://auth.openai.com/api/accounts/oauth/revoke" }));
     if (url === JWKS) return Promise.resolve(json({ keys: [], webTrust: true }));
+    if (typeof url === "string" && url.startsWith("https://api.openai.com/v1/")) {
+      const routed = reroute(url);
+      if (!routed) return Promise.reject(new Error(missingMessage));
+      return realFetch(typeof input === "string" ? routed : new Request(routed, input), init);
+    }
     return realFetch(input, init);
   };
   require_preload();
@@ -18362,7 +18448,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T17:25:14.987Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T17:39:20.163Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
