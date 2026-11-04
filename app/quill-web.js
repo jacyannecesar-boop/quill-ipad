@@ -2678,8 +2678,19 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     closeSignIn?.();
     closeSignIn = null;
   }
-  function signInSheet(authorizeUrl, deliver) {
+  function signInSheet(authorizeUrl, deliver, onCancel) {
     closeSignInSheet();
+    const linkField = el("input", { type: "url", class: "settings-text web-sheet-field", value: authorizeUrl || "", readonly: "readonly" });
+    const copy = el("button", { class: "btn", text: "Copy Sign-In Link", onclick: async () => {
+      try {
+        await navigator.clipboard.writeText(authorizeUrl);
+        copy.textContent = "Copied";
+      } catch {
+        linkField.hidden = false;
+        linkField.select();
+      }
+    } });
+    linkField.hidden = true;
     const field = el("input", {
       type: "url",
       class: "settings-text web-sheet-field",
@@ -2689,32 +2700,36 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       spellcheck: "false"
     });
     const status2 = el("p", { class: "web-sheet-status" });
-    const connect2 = el("button", { class: "btn primary", text: "Connect", onclick: async () => {
+    const connect3 = el("button", { class: "btn primary", text: "Connect", onclick: async () => {
       const value = field.value.trim();
       if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/auth\/callback\?/.test(value)) {
         status2.textContent = "Paste the whole address of the page that couldn\u2019t load. It starts with http://127.0.0.1.";
         return;
       }
-      connect2.disabled = true;
+      connect3.disabled = true;
       const result = await deliver(value);
       if (!result.ok) {
         status2.textContent = result.text;
-        connect2.disabled = false;
+        connect3.disabled = false;
       }
     } });
+    const steps = authorizeUrl ? [
+      el("p", { text: "1. Tap Copy Sign-In Link. Open Safari, paste it into the address bar, and log in." }),
+      linkField,
+      el("p", { text: "2. ChatGPT then sends Safari to a page that can\u2019t open. Tap the address bar, copy the whole address, come back to Quill, and paste it below. If Quill restarted, it asks for it again." })
+    ] : [el("p", { text: "You started signing in before Quill closed. Paste the address of the page Safari couldn\u2019t open (it starts with http://127.0.0.1)." })];
     closeSignIn = sheet([
-      el("h3", { text: "Sign in with ChatGPT" }),
-      el("p", { text: "1. Tap Open ChatGPT Sign-In and log in." }),
-      el("p", { text: "2. ChatGPT then sends you to a page Safari can\u2019t open. Tap Share \u2192 Copy (or copy the address bar), come back here, and paste it below." }),
+      el("h3", { text: authorizeUrl ? "Sign in with ChatGPT" : "Finish signing in to ChatGPT" }),
+      ...steps,
       field,
       status2,
       el("div", { class: "web-sheet-buttons" }, [
         el("button", { class: "btn", text: "Cancel", onclick: () => {
           closeSignInSheet();
-          window.quill?.chatgptCancelSignIn?.();
+          onCancel?.();
         } }),
-        el("button", { class: "btn", text: "Open ChatGPT Sign-In", onclick: () => window.open(authorizeUrl, "_blank") }),
-        connect2
+        authorizeUrl ? copy : null,
+        connect3
       ])
     ]);
   }
@@ -2809,6 +2824,103 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     }
   });
 
+  // web/signin.js
+  var signin_exports = {};
+  __export(signin_exports, {
+    forget: () => forget,
+    offerFinish: () => offerFinish,
+    opened: () => opened,
+    pkce: () => pkce,
+    randomToken: () => randomToken
+  });
+  function kept() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY) || "[]").filter((r) => Date.now() - r.at < KEEP_MS);
+    } catch {
+      return [];
+    }
+  }
+  function keep(list2) {
+    try {
+      list2.length ? localStorage.setItem(KEY, JSON.stringify(list2.slice(-3))) : localStorage.removeItem(KEY);
+    } catch {
+    }
+  }
+  function pkce(make) {
+    if (replay) return replay.pkce;
+    fresh = { pkce: make(), tokens: [], at: Date.now() };
+    return fresh.pkce;
+  }
+  function randomToken(make) {
+    if (replay) return replay.tokens.shift();
+    const token = make();
+    fresh?.tokens.push(token);
+    return token;
+  }
+  function opened(url) {
+    const server = waitingSignIn();
+    if (!server || !url.startsWith("https://auth.openai.com/")) return false;
+    if (replay) {
+      const { pasted, delivered } = replay;
+      replay = null;
+      server.deliver(pasted).then(delivered);
+      return true;
+    }
+    if (fresh) {
+      keep([...kept(), fresh]);
+      liveState = fresh.tokens[0];
+      fresh = null;
+    }
+    signInSheet(url, connect, cancel);
+    return true;
+  }
+  function cancel() {
+    forget();
+    window.quill?.chatgptCancelSignIn?.();
+  }
+  async function connect(pasted) {
+    const state = new URL(pasted).searchParams.get("state");
+    const server = waitingSignIn();
+    if (server && state === liveState) {
+      const page2 = await server.deliver(pasted);
+      if (page2.ok) forget();
+      return page2;
+    }
+    const rec = kept().find((r) => r.tokens[0] === state);
+    if (!rec) return { ok: false, text: "This sign-in has expired. Cancel, then tap Continue with ChatGPT in Settings \u2192 AI to start again." };
+    let delivered;
+    const page = new Promise((resolve) => {
+      delivered = resolve;
+    });
+    replay = { pkce: rec.pkce, tokens: [...rec.tokens], pasted, delivered };
+    const result = window.quill.chatgptSignIn();
+    const first = await page;
+    if (first.ok) forget();
+    const res = await result;
+    closeSignInSheet();
+    if (document.getElementById("settings-modal")?.classList.contains("show")) window.QuillSettings?.open?.("ai");
+    await messageBox(res.ok ? { message: "ChatGPT is connected", detail: res.email ? `Signed in as ${res.email}.` : "", buttons: ["OK"] } : { message: "ChatGPT sign-in didn\u2019t finish", detail: first.ok ? res.error : first.text, buttons: ["OK"] });
+    return { ok: true, text: "" };
+  }
+  function offerFinish() {
+    if (!kept().length) return false;
+    signInSheet(null, connect, forget);
+    return true;
+  }
+  var KEY, KEEP_MS, fresh, liveState, replay, forget;
+  var init_signin = __esm({
+    "web/signin.js"() {
+      init_http();
+      init_ui();
+      KEY = "quill-chatgpt-sign-ins";
+      KEEP_MS = 15 * 6e4;
+      fresh = null;
+      liveState = null;
+      replay = null;
+      forget = () => keep([]);
+    }
+  });
+
   // web/shim/electron.js
   var electron_exports = {};
   __export(electron_exports, {
@@ -2847,7 +2959,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       import_buffer = __toESM(require_buffer());
       init_ui();
       init_vfs();
-      init_http();
+      init_signin();
       handlers = /* @__PURE__ */ new Map();
       mainListeners = /* @__PURE__ */ new Map();
       rendererListeners = /* @__PURE__ */ new Map();
@@ -3021,12 +3133,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       };
       shell = {
         openExternal: async (url) => {
-          const server = waitingSignIn();
-          if (server && url.startsWith("https://auth.openai.com/")) {
-            signInSheet(url, (pasted) => server.deliver(pasted));
-            return void 0;
-          }
-          window.open(url, "_blank", "noopener");
+          if (!opened(url)) window.open(url, "_blank", "noopener");
           return void 0;
         },
         openPath: async () => "Folders cannot be opened on iPad.",
@@ -4303,18 +4410,18 @@ ${raw}` : raw;
           }
           const midA = a.slice(start3, endA), midB = b.slice(start3, endB);
           const edits = editDistance(midA, midB, limit);
-          let kept;
-          if (edits !== null) kept = (midA.length + midB.length - edits) / 2;
+          let kept2;
+          if (edits !== null) kept2 = (midA.length + midB.length - edits) / 2;
           else {
             const counts = /* @__PURE__ */ new Map();
             for (const word of midA) counts.set(word, (counts.get(word) || 0) + 1);
-            kept = 0;
+            kept2 = 0;
             for (const word of midB) if (counts.get(word) > 0) {
               counts.set(word, counts.get(word) - 1);
-              kept++;
+              kept2++;
             }
           }
-          return { cut: midA.length - kept, written: midB.length - kept };
+          return { cut: midA.length - kept2, written: midB.length - kept2 };
         }
         function countPlain(text) {
           return countWords(stripStubs(stripRevisionNotes(text)));
@@ -6774,14 +6881,14 @@ ${raw}` : raw;
     err2.code = "ENOENT";
     return err2;
   }
-  function zipTree(cwd, names, keep = () => true) {
+  function zipTree(cwd, names, keep2 = () => true) {
     const entries = {};
     for (const name of names) {
       const root = norm(import_path_browserify4.default.posix.join(cwd, name));
       if (!get(root)) throw new Error(`zip: ${name} not found`);
       for (const p of walk(root)) {
         const rel = import_path_browserify4.default.posix.relative(norm(cwd), p);
-        if (!keep(rel)) continue;
+        if (!keep2(rel)) continue;
         const node2 = get(p);
         const mtime = new Date(Math.max(node2.mtimeMs, Date.UTC(1980, 0, 2)));
         if (node2.dir) entries[rel + "/"] = [new Uint8Array(0), { mtime, level: 0, os: 3, attrs: (16877 << 16 | 16) >>> 0 }];
@@ -6917,7 +7024,7 @@ ${raw}` : raw;
   var unavailable_exports = {};
   __export(unavailable_exports, {
     Socket: () => Socket,
-    connect: () => connect,
+    connect: () => connect2,
     createConnection: () => createConnection,
     createServer: () => createServer2,
     default: () => unavailable_default,
@@ -6930,7 +7037,7 @@ ${raw}` : raw;
   function unavailable3() {
     throw new Error("This feature needs the Mac app; it is not available on iPad.");
   }
-  var spawn2, execFile2, exec2, createServer2, createConnection, connect, request3, get4, Socket, unavailable_default;
+  var spawn2, execFile2, exec2, createServer2, createConnection, connect2, request3, get4, Socket, unavailable_default;
   var init_unavailable = __esm({
     "web/shim/unavailable.js"() {
       spawn2 = unavailable3;
@@ -6938,7 +7045,7 @@ ${raw}` : raw;
       exec2 = unavailable3;
       createServer2 = unavailable3;
       createConnection = unavailable3;
-      connect = unavailable3;
+      connect2 = unavailable3;
       request3 = unavailable3;
       get4 = unavailable3;
       Socket = class {
@@ -6946,7 +7053,7 @@ ${raw}` : raw;
           unavailable3();
         }
       };
-      unavailable_default = { spawn: spawn2, execFile: execFile2, exec: exec2, createServer: createServer2, createConnection, connect, request: request3, get: get4, Socket };
+      unavailable_default = { spawn: spawn2, execFile: execFile2, exec: exec2, createServer: createServer2, createConnection, connect: connect2, request: request3, get: get4, Socket };
     }
   });
 
@@ -8727,12 +8834,12 @@ ${str(e.text).trim()}
           let words = 0;
           for (let i2 = (scenes || []).length - 1; i2 >= 0 && words < targetWords; i2--) {
             const paras = str(scenes[i2].text).split(/\n+/).map((t) => t.trim()).filter(Boolean);
-            const keep = [];
+            const keep2 = [];
             for (let p = paras.length - 1; p >= 0 && words < targetWords; p--) {
-              keep.unshift(paras[p]);
+              keep2.unshift(paras[p]);
               words += paras[p].split(/\s+/).filter(Boolean).length;
             }
-            if (keep.length) picked.unshift({ title: scenes[i2].title, text: keep.join("\n\n") });
+            if (keep2.length) picked.unshift({ title: scenes[i2].title, text: keep2.join("\n\n") });
           }
           return picked;
         }
@@ -8827,12 +8934,12 @@ ${str(e.text).trim()}
       var MODEL_PREFIX = "chatgpt:";
       var USAGE_URL = "https://chatgpt.com/settings/usage";
       var b64url = (buf) => Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      function pkce() {
+      function pkce2() {
         const verifier = b64url(crypto2.randomBytes(32));
         const challenge = b64url(crypto2.createHash("sha256").update(verifier).digest());
         return { verifier, challenge };
       }
-      function randomToken() {
+      function randomToken2() {
         return b64url(crypto2.randomBytes(24));
       }
       function authorizeUrl({ clientId, hostId, redirectUri, state, nonce, challenge, idTokenHint, loginHint, appName = "Quill" }) {
@@ -9025,8 +9132,8 @@ ${str(e.text).trim()}
         MODEL_PREFIX,
         USAGE_URL,
         REFRESH_DEAD,
-        pkce,
-        randomToken,
+        pkce: pkce2,
+        randomToken: randomToken2,
         authorizeUrl,
         decodeJwt,
         verifyIdToken,
@@ -9052,6 +9159,7 @@ ${str(e.text).trim()}
   var require_chatgpt_web = __commonJS({
     "web/chatgpt-web.js"(exports, module) {
       var ChatGPT = require_chatgpt();
+      var signIn = (init_signin(), __toCommonJS(signin_exports));
       function verifyIdToken(token, options = {}) {
         if (!options.jwks?.webTrust) return ChatGPT.verifyIdToken(token, options);
         const { clientId, nonce, now = Date.now() } = options;
@@ -9062,7 +9170,9 @@ ${str(e.text).trim()}
         if (payload.exp && payload.exp * 1e3 < now - 6e4) throw new Error("ID token has expired.");
         return { subject: payload.sub, email: payload.email || "", name: payload.name || "" };
       }
-      module.exports = { ...ChatGPT, verifyIdToken };
+      var pkce2 = () => signIn.pkce(ChatGPT.pkce);
+      var randomToken2 = () => signIn.randomToken(ChatGPT.randomToken);
+      module.exports = { ...ChatGPT, verifyIdToken, pkce: pkce2, randomToken: randomToken2 };
     }
   });
 
@@ -11398,14 +11508,14 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const body = raw.slice(prefix.length).split("\n").map((line) => {
           const note = parseNoteLine(line);
           if (!note) return line;
-          const fresh = mintNoteId();
-          if (store) store.notes[fresh] = {
+          const fresh2 = mintNoteId();
+          if (store) store.notes[fresh2] = {
             home_scene_id: newSceneId,
             text: note.text,
             created: now,
             scope: store.notes[note.id]?.scope || Revisions.defaultScope({ sceneId: newSceneId })
           };
-          return noteLine(fresh, note.text);
+          return noteLine(fresh2, note.text);
         }).join("\n");
         if (store && novel) writeRevisions(novel, store);
         return prefix + body;
@@ -11425,21 +11535,21 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const now = (/* @__PURE__ */ new Date()).toISOString();
         const { changed, duplicates } = Revisions.reconcile(store, found, { now, labelForScene });
         for (const dup of duplicates) {
-          const fresh = mintNoteId();
+          const fresh2 = mintNoteId();
           const original = store.notes[dup.id];
           rewriteSceneBody(dup.scene.full, (body) => {
             const lines = body.split("\n");
             const parsed = parseNoteLine(lines[dup.line]);
-            if (parsed && parsed.id === dup.id) lines[dup.line] = noteLine(fresh, parsed.text);
+            if (parsed && parsed.id === dup.id) lines[dup.line] = noteLine(fresh2, parsed.text);
             return lines.join("\n");
           });
-          store.notes[fresh] = {
+          store.notes[fresh2] = {
             home_scene_id: dup.scene_id,
             text: dup.text,
             created: now,
             scope: original ? original.scope : Revisions.defaultScope({ chapterId: dup.chapter_id, sceneId: dup.scene_id })
           };
-          dup.id = fresh;
+          dup.id = fresh2;
         }
         if (changed || duplicates.length) writeRevisions(dir, store);
         const firstScene = scenes[0]?.scene_id || "";
@@ -12249,9 +12359,9 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           if ((Number(stats.featureUse[name]) || 0) >= cap) return;
           catchUpAchievements(stats);
           stats.featureUse[name] = (Number(stats.featureUse[name]) || 0) + 1;
-          const fresh = refreshAchievements(stats);
+          const fresh2 = refreshAchievements(stats);
           atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
-          if (fresh.length) win2?.webContents.send("achievements-earned", fresh);
+          if (fresh2.length) win2?.webContents.send("achievements-earned", fresh2);
         } catch {
         }
       }
@@ -12447,10 +12557,10 @@ ${tags}`);
           return { ok: false, error: error.message };
         }
         catchUpAchievements(stats);
-        const fresh = refreshAchievements(stats);
+        const fresh2 = refreshAchievements(stats);
         atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
         const ctx = Achievements.context(stats, Object.values(stats.projectProgress || {}), localDateKey());
-        return { ok: true, categories: Achievements.CATEGORIES, badges: Achievements.describe(stats.achievements, ctx), fresh };
+        return { ok: true, categories: Achievements.CATEGORIES, badges: Achievements.describe(stats.achievements, ctx), fresh: fresh2 };
       });
       ipcMain2.handle("ack-achievements", (_, { ids } = {}) => {
         const stats = readStats();
@@ -17519,6 +17629,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   }
 
   // web/boot.js
+  init_signin();
   globalThis.Buffer = import_buffer7.Buffer;
   globalThis.global = globalThis;
   globalThis.setImmediate ||= (fn, ...args) => setTimeout(fn, 0, ...args);
@@ -17571,6 +17682,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       });
       if (response !== 0) return;
     }
+    if (offerFinish()) return;
     if (empty) offerFirstRestore();
   }
   async function offerFirstRestore() {
@@ -17626,7 +17738,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-03T23:24:42.255Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T00:31:07.330Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   document.addEventListener("click", (event2) => {
     if (event2.target.closest?.("#web-restore-zip")) document.getElementById("recovery-archive-btn")?.click();
