@@ -18,6 +18,7 @@ const ReadDraft = (() => {
   const TEXT_H = PAGE_H - MARGIN * 2         // 864px = 27 lines exactly
   const GUTTER_W = 280
   const MODE_KEY = 'quill_read_mode'
+  const SVG = 'http://www.w3.org/2000/svg'
 
   const TYPES = {
     revisit:  { label:'Revisit',  color:'#f59e0b' },
@@ -127,6 +128,10 @@ const ReadDraft = (() => {
     const text = document.createElement('div')
     text.className = 'ms-text'
     page.appendChild(text)
+    const ink = document.createElementNS(SVG, 'svg')
+    ink.setAttribute('class', 'ms-ink')
+    ink.setAttribute('aria-hidden', 'true')
+    page.appendChild(ink)
     const gutter = document.createElement('div')
     gutter.className = 'ms-gutter'
     row.append(page, gutter)
@@ -355,6 +360,7 @@ const ReadDraft = (() => {
   }
 
   function unpaint(state, cid) {
+    state.column.querySelectorAll(`.ms-ink path[data-cid="${cid}"]`).forEach(path => path.remove())
     state.column.querySelectorAll(`mark.ms-mark[data-cid="${cid}"]`).forEach(mark => {
       const parent = mark.parentNode
       mark.replaceWith(...mark.childNodes)
@@ -378,6 +384,7 @@ const ReadDraft = (() => {
         if (!hit) continue
         c.anchor = hit; c.orphaned = false
         paint(state, path, c)
+        drawInk(state, c)
       }
     })
     renderAllCards(state)
@@ -404,6 +411,128 @@ const ReadDraft = (() => {
     const state = _states.get(container)
     if (!state) return
     await Promise.all([...state.saveTimers.keys()].map(scene => saveScene(state, scene)))
+  }
+
+  // ── Editor mode: Pencil ink ─────────────────────────────────────────────
+  // A Pencil stroke on a page (circle, underline, strike) marks the passage it covers. Saved on
+  // the comment as `ink.d`, an SVG path relative to the top-left of the comment's first
+  // highlight, so the mark follows the passage when the pages reflow.
+
+  // Where `el` sits inside its page, in page pixels (layout offsets, unaffected by zoom).
+  function pageOffset(el, page) {
+    let x = 0, y = 0
+    for (let n = el; n && n !== page; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop }
+    return { x, y }
+  }
+
+  function pagePoint(page, event) {
+    const rect = page.getBoundingClientRect()
+    const k = rect.width / page.offsetWidth || 1
+    return [(event.clientX - rect.left) / k - page.clientLeft, (event.clientY - rect.top) / k - page.clientTop]
+  }
+
+  const pathData = (points, dx = 0, dy = 0) =>
+    points.map(([x, y], i) => `${i ? 'L' : 'M'}${Math.round((x - dx) * 10) / 10} ${Math.round((y - dy) * 10) / 10}`).join('')
+
+  function inkPath(d, type) {
+    const path = document.createElementNS(SVG, 'path')
+    path.setAttribute('d', d)
+    if (type) path.dataset.type = type
+    return path
+  }
+
+  function drawInk(state, c) {
+    if (!c.ink?.d) return
+    const mark = state.column.querySelector(`mark.ms-mark[data-cid="${c.id}"]`)
+    const page = mark?.closest('.ms-page')
+    if (!page) return
+    const at = pageOffset(mark, page)
+    const path = inkPath(c.ink.d, TYPES[c.type] ? c.type : 'note')
+    path.dataset.cid = c.id
+    path.setAttribute('transform', `translate(${at.x} ${at.y})`)
+    page.querySelector('.ms-ink').appendChild(path)
+  }
+
+  function clearStroke(state) {
+    state.stroke?.path.remove()
+    state.stroke = null
+  }
+
+  // The text a stroke covers: characters whose centres fall inside its box. A flat stroke
+  // (underline, strike-through) reaches up to the line it sits under.
+  function strokeRange(page, box) {
+    const k = page.getBoundingClientRect().width / page.offsetWidth || 1
+    const line = LINE * k
+    let { left, right, top, bottom } = box
+    if (bottom - top < line) { top -= line * 0.6; bottom += line * 0.3 }
+    const inside = r => {
+      const x = r.left + r.width / 2, y = r.top + r.height / 2
+      return x >= left && x <= right && y >= top && y <= bottom
+    }
+    let first = null, last = null
+    const probe = document.createRange()
+    for (const block of page.querySelectorAll('[data-b]')) {
+      const br = block.getBoundingClientRect()
+      if (br.bottom < top || br.top > bottom) continue
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT)
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        for (let i = 0; i < n.data.length; i++) {
+          if (/\s/.test(n.data[i])) continue
+          probe.setStart(n, i); probe.setEnd(n, i + 1)
+          const r = probe.getClientRects()[0]
+          if (!r || !inside(r)) continue
+          if (!first) first = { n, i }
+          last = { n, i }
+        }
+      }
+    }
+    if (!first) return null
+    const range = document.createRange()
+    range.setStart(first.n, first.i)
+    range.setEnd(last.n, last.i + 1)
+    return range
+  }
+
+  function startStroke(state, event) {
+    const page = event.target.closest?.('.ms-page')
+    if (!page || !state.root.classList.contains('ms-editing') || event.pointerType !== 'pen') return
+    event.preventDefault()
+    clearStroke(state)
+    state.bar.style.display = 'none'
+    window.getSelection()?.removeAllRanges()
+    try { page.setPointerCapture(event.pointerId) } catch {}
+    const path = inkPath('', '')
+    path.classList.add('live')
+    page.querySelector('.ms-ink').appendChild(path)
+    state.stroke = { page, path, points: [pagePoint(page, event)], drawing: true,
+      box: { left: event.clientX, right: event.clientX, top: event.clientY, bottom: event.clientY } }
+  }
+
+  function moveStroke(state, event) {
+    const stroke = state.stroke
+    if (!stroke?.drawing) return
+    event.preventDefault()
+    const coalesced = event.getCoalescedEvents?.()
+    for (const e of coalesced?.length ? coalesced : [event]) {
+      stroke.points.push(pagePoint(stroke.page, e))
+      const b = stroke.box
+      b.left = Math.min(b.left, e.clientX); b.right = Math.max(b.right, e.clientX)
+      b.top = Math.min(b.top, e.clientY); b.bottom = Math.max(b.bottom, e.clientY)
+    }
+    stroke.path.setAttribute('d', pathData(stroke.points))
+  }
+
+  function endStroke(state) {
+    const stroke = state.stroke
+    if (!stroke?.drawing) return
+    stroke.drawing = false
+    const range = stroke.points.length > 2 && strokeRange(stroke.page, stroke.box)
+    const target = range && rangeTarget(state, range)
+    if (!target) { clearStroke(state); return }
+    const { left, right, top, bottom } = stroke.box
+    target.rect = { left, top, bottom, width: right - left }
+    target.stroke = stroke
+    showBar(state, target)
   }
 
   // ── Editor mode: margin cards ───────────────────────────────────────────
@@ -485,7 +614,10 @@ const ReadDraft = (() => {
   function selectionTarget(state) {
     const sel = window.getSelection()
     if (!sel || sel.isCollapsed || !sel.rangeCount) return null
-    const range = sel.getRangeAt(0)
+    return rangeTarget(state, sel.getRangeAt(0))
+  }
+
+  function rangeTarget(state, range) {
     const block = node => (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)?.closest('[data-b]')
     const a = block(range.startContainer), b = block(range.endContainer)
     if (!a || !b || !state.column.contains(a)) return null
@@ -514,7 +646,7 @@ const ReadDraft = (() => {
     bar.style.left = left + 'px'
     bar.style.top = top + 'px'
     bar.querySelectorAll('button').forEach(btn => {
-      btn.onmousedown = e => e.preventDefault()
+      btn.onmousedown = btn.onpointerdown = e => e.preventDefault()
       btn.onclick = () => addComment(state, target, btn.dataset.type)
     })
   }
@@ -531,6 +663,13 @@ const ReadDraft = (() => {
     state.bar.style.display = 'none'
     paint(state, target.scene, c)
     const mark = state.column.querySelector(`mark.ms-mark[data-cid="${c.id}"]`)
+    const page = mark?.closest('.ms-page')
+    if (target.stroke && page) {
+      const at = pageOffset(mark, page)
+      c.ink = { d: pathData(target.stroke.points, at.x, at.y) }
+      drawInk(state, c)
+    }
+    clearStroke(state)
     const card = mark && addCard(state, target.scene, c, mark)
     if (mark) layoutGutter(state, pageOf(mark))
     saveScene(state, target.scene)
@@ -548,6 +687,7 @@ const ReadDraft = (() => {
     state.root.classList.toggle('ms-editing', mode === 'edit')
     state.toolbar.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode))
     state.bar.style.display = 'none'
+    clearStroke(state)
     applyScale(state)
     if (mode === 'edit') await loadComments(state)
   }
@@ -558,7 +698,7 @@ const ReadDraft = (() => {
   // A manuscript that goes out should not carry the writer's notes to self.
   function printablePages(state) {
     const clone = state.column.cloneNode(true)
-    clone.querySelectorAll('.ms-gutter, .ms-card').forEach(el => el.remove())
+    clone.querySelectorAll('.ms-gutter, .ms-card, .ms-ink').forEach(el => el.remove())
     clone.querySelectorAll('mark.ms-mark').forEach(mark => mark.replaceWith(...mark.childNodes))
     clone.removeAttribute('style')
     return clone.outerHTML
@@ -646,7 +786,7 @@ const ReadDraft = (() => {
         <button data-mode="read">Read</button>
         <button data-mode="edit">Editor</button>
       </div>
-      <span class="ms-edit-hint">Select text to leave a note. The prose can’t be changed here.</span>
+      <span class="ms-edit-hint">Select text, or circle it with Apple Pencil, to leave a note. The prose can’t be changed here.</span>
       ${sections.some(s => s.type === 'scene' && /quill:revise/.test(s.body || ''))
         ? `<button type="button" class="ms-notes-toggle${notesShown() ? ' active' : ''}" title="Show or hide 💡 revision notes. They are never exported.">💡 Notes</button>`
         : ''}
@@ -684,10 +824,32 @@ const ReadDraft = (() => {
 
     const onResize = () => applyScale(state)
     const onUp = () => setTimeout(() => {
-      if (container.classList.contains('ms-editing')) showBar(state, selectionTarget(state))
+      if (container.classList.contains('ms-editing') && !state.stroke) showBar(state, selectionTarget(state))
     }, 0)
-    const onDown = e => { if (!bar.contains(e.target)) bar.style.display = 'none' }
-    const onScroll = () => { bar.style.display = 'none' }
+    // A touch selection on iPad is adjusted with its handles, with no mouseup after.
+    let selTimer = null
+    const onSelection = () => {
+      clearTimeout(selTimer)
+      selTimer = setTimeout(() => {
+        const sel = window.getSelection()
+        if (state.stroke || !sel?.rangeCount || !column.contains(sel.anchorNode)) return
+        onUp()
+      }, 300)
+    }
+    const onDown = e => {
+      if (bar.contains(e.target) || state.stroke?.drawing) return
+      bar.style.display = 'none'
+      clearStroke(state)
+    }
+    const onScroll = () => { if (state.stroke?.drawing) return; bar.style.display = 'none'; clearStroke(state) }
+    // Pencil on a page draws instead of scrolling or selecting; fingers still do both.
+    const onTouch = e => {
+      if (container.classList.contains('ms-editing') && [...e.touches].some(t => t.touchType === 'stylus')
+        && e.target.closest?.('.ms-page')) e.preventDefault()
+    }
+    const onPenDown = e => startStroke(state, e)
+    const onPenMove = e => moveStroke(state, e)
+    const onPenUp = () => endStroke(state)
     const onMarkClick = e => {
       const mark = e.target.closest('mark.ms-mark')
       if (!mark || !container.classList.contains('ms-editing') || !window.getSelection()?.isCollapsed) return
@@ -696,14 +858,23 @@ const ReadDraft = (() => {
     }
     const ro = new ResizeObserver(onResize)
     ro.observe(desk)
-    desk.addEventListener('mouseup', onUp)
-    document.addEventListener('mousedown', onDown)
+    desk.addEventListener('pointerup', onUp)
+    document.addEventListener('selectionchange', onSelection)
+    document.addEventListener('pointerdown', onDown)
+    column.addEventListener('pointerdown', onPenDown)
+    column.addEventListener('pointermove', onPenMove)
+    column.addEventListener('pointerup', onPenUp)
+    column.addEventListener('pointercancel', () => clearStroke(state))
+    column.addEventListener('touchstart', onTouch, { passive: false })
+    column.addEventListener('touchmove', onTouch, { passive: false })
     // whichever ancestor scrolls (toolbar view or landing pane), the bar would drift
     document.addEventListener('scroll', onScroll, { capture: true, passive: true })
     column.addEventListener('click', onMarkClick)
     state.dispose = () => {
       ro.disconnect()
-      document.removeEventListener('mousedown', onDown)
+      clearTimeout(selTimer)
+      document.removeEventListener('selectionchange', onSelection)
+      document.removeEventListener('pointerdown', onDown)
       document.removeEventListener('scroll', onScroll, { capture: true })
       bar.remove()
       for (const scene of state.saveTimers.keys()) saveScene(state, scene)

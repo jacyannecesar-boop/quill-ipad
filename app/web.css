@@ -65,3 +65,7 @@ html.quill-web .web-hidden{display:none !important}
 .web-changes li{display:flex;flex-direction:column;padding:3px 0;font-size:var(--fs-md)}
 .web-changes-where{font-size:var(--fs-sm);color:var(--muted)}
 .settings-backup-changes{margin-top:var(--sp-2)}
+
+/* Settings → Backups: whether iPadOS keeps the library (web/storage.js) */
+#web-storage:empty{display:none}
+#web-storage.web-storage-warn{color:var(--danger)}

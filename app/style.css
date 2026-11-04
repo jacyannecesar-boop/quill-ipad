@@ -2706,6 +2706,15 @@ body.project-workspace #toolbar[data-view="landing"] #read-btn{display:none!impo
 .ms-editing mark.ms-mark[data-type=cut]      { --c:var(--c-cut); background:color-mix(in srgb, var(--c) 10%, transparent);
   text-decoration:line-through var(--c); text-decoration-thickness:2px; }
 .ms-editing mark.ms-mark.active { background:color-mix(in srgb, var(--c) 34%, transparent); }
+/* Pencil marks (read-draft.js ink): above the text, never in the way of a tap */
+.ms-ink { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; display:none; }
+.ms-editing .ms-ink { display:block; }
+.ms-ink path { --c:var(--c-note); fill:none; stroke:var(--c); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; opacity:.75; }
+.ms-ink path.live { --c:var(--muted); opacity:.6; }
+.ms-ink path[data-type=revisit]  { --c:var(--c-revisit); }
+.ms-ink path[data-type=rewrite]  { --c:var(--c-rewrite); }
+.ms-ink path[data-type=research] { --c:var(--c-research); }
+.ms-ink path[data-type=cut]      { --c:var(--c-cut); }
 .ms-card {
   position:absolute; left:14px; right:0;
   background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--c);
