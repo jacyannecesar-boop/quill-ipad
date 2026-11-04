@@ -1254,12 +1254,15 @@
       <select id="archive-restore-project"></select>
       <div id="archive-restore-details" class="archive-restore-details"></div>
       <div class="archive-restore-warning">Before changing anything, Quill creates and verifies a safety ZIP of your current library in Documents/Quill Recovery Backups.</div>
+      <p class="archive-restore-choice" id="archive-restore-choice" hidden><b>Bring In Changes</b> adds what changed on your other device and keeps both versions of anything edited on both, so nothing here is overwritten. <b>Replace Library</b> makes this library match the backup exactly.</p>
     </div>
     <div id="archive-restore-status" class="archive-restore-status" aria-live="polite"></div>
+    <ul id="archive-restore-copies" class="archive-restore-copies" hidden></ul>
     <div class="modal-btns archive-restore-actions">
       <button class="btn" id="archive-restore-close">Cancel</button>
       <button class="btn" id="archive-restore-project-btn" hidden>Restore project</button>
-      <button class="btn primary danger" id="archive-restore-library-btn" hidden>Restore complete library</button>
+      <button class="btn danger" id="archive-restore-library-btn" hidden>Replace Library</button>
+      <button class="btn primary" id="archive-merge-btn" hidden>Bring In Changes</button>
     </div>
   </div>
 </div>
@@ -1470,9 +1473,9 @@
       <section class="settings-pane" data-pane="backups" hidden>
         <div class="settings-section">Backups</div>
         <div class="settings-backup-intro">
-          Your library lives on this iPad. <b>Back Up Now</b> makes a complete ZIP of it; save that to iCloud Drive.
-          To bring work over from the Mac, use <b>Restore ZIP…</b> on one of the Mac's iCloud backups.
-          Desktop Quill can restore the iPad's ZIPs the same way.
+          Your library lives on this iPad. When you finish here, tap <b>Back Up Now</b> and save the ZIP to iCloud Drive.
+          When you start here, tap <b>Bring In Changes…</b> and pick the Mac's newest backup: what changed on the Mac
+          comes in, and anything edited on both is kept twice instead of overwritten. On the Mac, bring in the iPad's ZIP the same way.
         </div>
         <div class="settings-row web-hidden">
           <div><span class="settings-label">Backup folder</span><span class="settings-hint" id="settings-cloud-folder"></span></div>
@@ -1482,7 +1485,7 @@
           <select id="settings-cloud-retention"><option value="10">10</option></select></div>
         <div class="settings-backup-actions">
           <button class="btn sm web-hidden" id="settings-cloud-open">Open Folder</button>
-          <button class="btn sm" id="web-restore-zip">Restore ZIP…</button>
+          <button class="btn sm" id="web-restore-zip">Bring In Changes…</button>
           <button class="btn primary" id="settings-cloud-now">Back Up Now</button>
         </div>
         <div class="settings-backup-status" id="settings-cloud-status"></div>

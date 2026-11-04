@@ -18,6 +18,8 @@ const Tree = (() => {
   // than at each render site. Enter opens, ↑/↓ move, →/← open and close folders,
   // Shift+F10 or the context-menu key opens the row's menu.
   const ROW = '.folder-row, .file-row'
+  // A scene kept twice by merging a backup from the other device (backup-merge.js copyName).
+  const SYNC_COPY = /\((?:Mac|iPad) copy(?: \d+)?\)\.md$/
 
   function initKeyboardRows() {
     const sidebar = document.getElementById('sidebar')
@@ -815,7 +817,7 @@ const Tree = (() => {
       const wc = file.word_count > 0 ? file.word_count.toLocaleString() + ' w' : ''
       fileRow.innerHTML = `
         <span class="file-drag" title="Drag to reorder or move">⠿</span>
-        <span class="file-title">${esc(file.title || 'Untitled')}</span>
+        <span class="file-title">${esc(file.title || 'Untitled')}</span>${SYNC_COPY.test(file.path || '') ? '<span class="file-sync-copy" title="Kept twice when merging a backup: this is the other device’s version. Keep the one you want and delete the other.">2 versions</span>' : ''}
         <span class="file-actions">
           <button class="f-btn rename-btn" title="Rename">
             <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>

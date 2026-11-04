@@ -16,6 +16,7 @@ const App = (() => {
   let _backupChoiceBusy = false
   let _archiveRestore = null
   let _archiveRestoreBusy = false
+  let _archiveMerged = false
   let _trackedProjectPath = ''
   let _projectTimeLastTick = Date.now()
   let _projectTimeLastActivity = Date.now()
@@ -125,6 +126,7 @@ const App = (() => {
     document.getElementById('archive-restore-project')?.addEventListener('change', renderArchiveRestoreProject)
     document.getElementById('archive-restore-project-btn')?.addEventListener('click', () => restoreInspectedArchive('project'))
     document.getElementById('archive-restore-library-btn')?.addEventListener('click', () => restoreInspectedArchive('library'))
+    document.getElementById('archive-merge-btn')?.addEventListener('click', mergeInspectedArchive)
     document.getElementById('archive-restore-modal')?.addEventListener('click', event => {
       if (event.target.id === 'archive-restore-modal') closeArchiveRestore()
     })
@@ -1406,6 +1408,12 @@ const App = (() => {
     content.hidden = !result?.ok
     document.getElementById('archive-restore-project-btn').hidden = !result?.ok
     document.getElementById('archive-restore-library-btn').hidden = !result?.ok || result.type !== 'library'
+    document.getElementById('archive-merge-btn').hidden = !result?.ok || result.type !== 'library'
+    document.getElementById('archive-merge-btn').disabled = false
+    ;['archive-restore-project-btn', 'archive-restore-library-btn', 'archive-merge-btn'].forEach(id => { document.getElementById(id).style.display = '' })
+    document.getElementById('archive-restore-choice').hidden = !result?.ok || result.type !== 'library'
+    document.getElementById('archive-restore-copies').hidden = true
+    document.getElementById('archive-restore-close').textContent = 'Cancel'
     document.getElementById('archive-restore-close').disabled = false
     if (!result?.ok) {
       document.getElementById('archive-restore-summary').textContent = 'Quill could not verify that ZIP as a safe backup.'
@@ -1431,6 +1439,7 @@ const App = (() => {
 
   function closeArchiveRestore() {
     if (_archiveRestoreBusy) return
+    if (_archiveMerged) { window.location.reload(); return }
     document.getElementById('archive-restore-modal')?.classList.remove('show')
     _archiveRestore = null
   }
@@ -1462,6 +1471,46 @@ const App = (() => {
     }
     status.textContent = `${scope === 'library' ? 'Library' : `“${result.project}”`} restored. Safety backup: ${result.safetyArchive}. Reloading Quill…`
     setTimeout(() => window.location.reload(), 1400)
+  }
+
+  // Bring In Changes: merge a library backup from the other device (main.js merge-backup-archive).
+  async function mergeInspectedArchive() {
+    if (!_archiveRestore || _archiveRestoreBusy) return
+    _archiveRestoreBusy = true
+    const status = document.getElementById('archive-restore-status')
+    const buttons = ['archive-restore-close', 'archive-restore-project-btn', 'archive-restore-library-btn', 'archive-merge-btn']
+    status.classList.remove('error')
+    status.textContent = 'Comparing the backup with this library…'
+    buttons.forEach(id => { document.getElementById(id).disabled = true })
+    const result = await window.quill.mergeBackupArchive({ token:_archiveRestore.token }).catch(error => ({ ok:false, error:error.message }))
+    _archiveRestoreBusy = false
+    if (!result?.ok) {
+      status.classList.add('error')
+      status.textContent = result?.error || 'The merge failed. Nothing in your library was changed.'
+      buttons.forEach(id => { document.getElementById(id).disabled = false })
+      return
+    }
+    const s = result.summary
+    const n = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`
+    const from = result.remoteName || 'the other device'
+    const parts = [
+      s.taken.length + s.restored.length ? `${n(s.taken.length + s.restored.length, 'file')} brought in from the ${from}` : '',
+      s.combined.length ? `${n(s.combined.length, 'settings file')} combined` : '',
+      s.trashed.length ? `${n(s.trashed.length, 'file')} deleted there moved to Trash` : '',
+    ].filter(Boolean)
+    status.textContent = parts.length || s.copies.length
+      ? `${parts.join(' · ') || 'Merged'}.${s.copies.length ? ` ${n(s.copies.length, 'scene was', 'scenes were')} edited on both, so both versions are kept:` : ''}`
+      : `Already up to date: nothing on the ${from} is newer than this library.`
+    const copies = document.getElementById('archive-restore-copies')
+    copies.innerHTML = s.copies.map(c => `<li>${esc(c.rel.replace(/\.md$/, ''))} <span class="muted">and</span> ${esc(c.as.split('/').pop().replace(/\.md$/, ''))}</li>`).join('')
+    copies.hidden = !s.copies.length
+    document.getElementById('archive-restore-content').hidden = true
+    // .btn sets display, which beats the hidden attribute.
+    ;['archive-restore-project-btn', 'archive-restore-library-btn', 'archive-merge-btn'].forEach(id => { document.getElementById(id).style.display = 'none' })
+    const close = document.getElementById('archive-restore-close')
+    close.textContent = 'Done'
+    close.disabled = false
+    _archiveMerged = (s.taken.length + s.restored.length + s.combined.length + s.trashed.length + s.copies.length) > 0
   }
 
   // ── Recovery Center ───────────────────────────────────────

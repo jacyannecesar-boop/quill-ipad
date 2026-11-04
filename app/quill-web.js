@@ -3276,6 +3276,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         openCloudBackupFolder: () => ipcRenderer2.invoke("open-cloud-backup-folder"),
         chooseRestoreArchive: () => ipcRenderer2.invoke("choose-restore-archive"),
         restoreBackupArchive: (args) => ipcRenderer2.invoke("restore-backup-archive", args),
+        mergeBackupArchive: (args) => ipcRenderer2.invoke("merge-backup-archive", args),
         assembleNovel: (rel) => ipcRenderer2.invoke("assemble-novel", rel),
         exportNovelMd: (args) => ipcRenderer2.invoke("export-novel-md", args),
         exportManuscriptPdf: (args) => ipcRenderer2.invoke("export-manuscript-pdf", args),
@@ -6881,8 +6882,10 @@ ${raw}` : raw;
     err2.code = "ENOENT";
     return err2;
   }
-  function zipTree(cwd, names, keep2 = () => true) {
+  function zipTree(cwd, names, keep2 = () => true, extra = {}) {
     const entries = {};
+    const now = /* @__PURE__ */ new Date();
+    for (const [rel, data] of Object.entries(extra)) entries[rel] = [data, { mtime: now, level: 6, os: 3, attrs: 33188 << 16 >>> 0 }];
     for (const name of names) {
       const root = norm(import_path_browserify4.default.posix.join(cwd, name));
       if (!get(root)) throw new Error(`zip: ${name} not found`);
@@ -9176,6 +9179,136 @@ ${str(e.text).trim()}
     }
   });
 
+  // backup-merge.js
+  var require_backup_merge = __commonJS({
+    "backup-merge.js"(exports, module) {
+      var crypto2 = (init_crypto(), __toCommonJS(crypto_exports));
+      var MANIFEST = ".quill-sync.json";
+      var SLACK_MS = 2 * 6e4;
+      var IGNORED = (rel) => rel === MANIFEST || rel.includes(".quill-tmp-") || /(^|\/)\.DS_Store$/.test(rel);
+      var isData = (rel) => /\.json$/.test(rel) || /(^|\/)\.quill_meta$/.test(rel) || rel.endsWith(".trashmeta");
+      var sha2563 = (data) => crypto2.createHash("sha256").update(data).digest("hex");
+      function copyName(rel, deviceName, taken = /* @__PURE__ */ new Set()) {
+        const slash = rel.lastIndexOf("/");
+        const dir = rel.slice(0, slash + 1), file = rel.slice(slash + 1);
+        const dot = file.lastIndexOf(".");
+        const stem = dot > 0 ? file.slice(0, dot) : file, ext = dot > 0 ? file.slice(dot) : "";
+        for (let n = 1; ; n++) {
+          const name = `${dir}${stem} (${deviceName} copy${n > 1 ? ` ${n}` : ""})${ext}`;
+          if (!taken.has(name)) return name;
+        }
+      }
+      function planMerge({ local, remote, base = null, since = null, localName = "this device", remoteName = "other device" }) {
+        const actions = [];
+        const summary = { taken: [], kept: [], trashed: [], copies: [], combined: [], restored: [] };
+        const changedAfter = (entry) => since != null && entry.m > since + SLACK_MS;
+        const taken = /* @__PURE__ */ new Set([...Object.keys(local), ...Object.keys(remote)]);
+        const paths = [...taken].filter((rel) => !IGNORED(rel)).sort();
+        for (const rel of paths) {
+          const l = local[rel], r = remote[rel];
+          const b = base ? base[rel] : void 0;
+          if (l && r && l.h === r.h) continue;
+          if (!l) {
+            if (base && b !== void 0 && b === r.h) continue;
+            actions.push({ op: "take", rel });
+            (base && b !== void 0 ? summary.restored : summary.taken).push(rel);
+            continue;
+          }
+          if (!r) {
+            if (base && b !== void 0 && b === l.h) {
+              actions.push({ op: "trash", rel });
+              summary.trashed.push(rel);
+            } else summary.kept.push(rel);
+            continue;
+          }
+          let localChanged, remoteChanged;
+          if (base && b !== void 0) {
+            localChanged = l.h !== b;
+            remoteChanged = r.h !== b;
+          } else if (base) {
+            localChanged = remoteChanged = true;
+          } else if (since != null) {
+            localChanged = changedAfter(l);
+            remoteChanged = changedAfter(r);
+          } else {
+            localChanged = remoteChanged = true;
+          }
+          if (remoteChanged && !localChanged) {
+            actions.push({ op: "take", rel });
+            summary.taken.push(rel);
+            continue;
+          }
+          if (localChanged && !remoteChanged) {
+            summary.kept.push(rel);
+            continue;
+          }
+          const echo = copyName(rel, localName);
+          if (remote[echo] && remote[echo].h === l.h && !local[echo]) {
+            actions.push({ op: "take", rel });
+            summary.taken.push(rel);
+            continue;
+          }
+          if (isData(rel)) {
+            actions.push({ op: "combine", rel, newer: r.m > l.m ? "remote" : "local" });
+            summary.combined.push(rel);
+            continue;
+          }
+          const as = copyName(rel, remoteName, taken);
+          taken.add(as);
+          actions.push({ op: "copy", rel, as });
+          summary.copies.push({ rel, as });
+        }
+        const order = { take: 0, combine: 1, copy: 2, trash: 3 };
+        actions.sort((a, b) => order[a.op] - order[b.op]);
+        return { actions, summary };
+      }
+      var isPlain = (v) => v && typeof v === "object" && !Array.isArray(v);
+      var keyed = (list2) => list2.length > 0 && list2.every((item) => isPlain(item) && (typeof item.id === "string" || typeof item.id === "number"));
+      function combineJson(newer, older) {
+        if (Array.isArray(newer) && Array.isArray(older)) {
+          if (keyed(newer) && keyed(older)) {
+            const ids = new Set(newer.map((item) => item.id));
+            return [...newer, ...older.filter((item) => !ids.has(item.id))];
+          }
+          if (newer.every((v) => typeof v !== "object") && older.every((v) => typeof v !== "object")) {
+            const seen = new Set(newer);
+            return [...newer, ...older.filter((v) => !seen.has(v))];
+          }
+          return newer;
+        }
+        if (isPlain(newer) && isPlain(older)) {
+          const out = { ...older };
+          for (const [k, v] of Object.entries(newer)) out[k] = k in older ? combineJson(v, older[k]) : v;
+          return out;
+        }
+        return newer;
+      }
+      function retitleScene(text, deviceName) {
+        const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        if (!fm) return text;
+        let body = fm[1];
+        const label = ` (${deviceName} copy)`;
+        body = /^title:.*$/m.test(body) ? body.replace(/^title:[ \t]*(.*)$/m, (_, t) => `title: ${t.trim()}${label}`) : `${body}
+title: ${label.trim()}`;
+        body = body.replace(/^scene_id:.*$/m, `scene_id: ${crypto2.randomUUID()}`);
+        return text.slice(0, fm.index) + `---
+${body}
+---` + text.slice(fm.index + fm[0].length);
+      }
+      function orderWithCopies(order, copies, present) {
+        const out = [];
+        for (const name of order || []) {
+          if (!present.has(name)) continue;
+          out.push(name);
+          for (const c of copies) if (c.of === name && !out.includes(c.name)) out.push(c.name);
+        }
+        for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
+        return out;
+      }
+      module.exports = { MANIFEST, IGNORED, isData, sha256: sha2563, copyName, planMerge, combineJson, retitleScene, orderWithCopies };
+    }
+  });
+
   // main.js
   var require_main = __commonJS({
     "main.js"() {
@@ -9199,6 +9332,7 @@ ${str(e.text).trim()}
       var Study = require_study();
       var AIContext = require_aicontext();
       var ChatGPT = require_chatgpt_web();
+      var BackupMerge = require_backup_merge();
       var ROOT = __quillProcess.env.QUILL_LIBRARY_ROOT || path5.join(os.homedir(), "Documents", "Quill");
       if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
       function readMeta(folderPath) {
@@ -10189,7 +10323,8 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
       function ensureTrash() {
         if (!fs.existsSync(TRASH_DIR)) fs.mkdirSync(TRASH_DIR, { recursive: true });
       }
-      ipcMain2.handle("delete", (_, rel) => {
+      ipcMain2.handle("delete", (_, rel) => trashLibraryPath(rel));
+      function trashLibraryPath(rel) {
         ensureTrash();
         const full = inRoot(rel);
         if (full === path5.resolve(ROOT)) throw new Error("Cannot delete the library root.");
@@ -10208,7 +10343,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const meta2 = { originalRel: rel, trashedAt: (/* @__PURE__ */ new Date()).toISOString(), isDir: fs.statSync(trashDest).isDirectory() };
         atomicWriteFileSync(trashDest + ".trashmeta", JSON.stringify(meta2), "utf8");
         return { ok: true };
-      });
+      }
       ipcMain2.handle("get-trash", () => {
         ensureTrash();
         const entries = fs.readdirSync(TRASH_DIR).filter((f) => f.endsWith(".trashmeta"));
@@ -15238,6 +15373,7 @@ ${sc.text}`);
           const partial = path5.join(config.folder, `.${filename}.partial-${__quillProcess.pid}`);
           try {
             copyTreeForArchive(ROOT, stagedLibrary);
+            fs.writeFileSync(path5.join(stagedLibrary, BackupMerge.MANIFEST), JSON.stringify(syncManifest()), "utf8");
             await execFilePromise("zip", ["-r", "-q", localArchive, path5.basename(stagedLibrary)], { cwd: tempRoot });
             await execFilePromise("unzip", ["-tqq", localArchive]);
             fs.copyFileSync(localArchive, partial);
@@ -15608,15 +15744,34 @@ ${sc.text}`);
           }
         }
       }
+      function inspectedArchive(token) {
+        const inspection = inspectedRestoreArchives.get(String(token || ""));
+        if (!inspection) return { error: "Choose and inspect the backup again." };
+        const stat = safeChildStat(inspection.filePath);
+        if (!stat?.isFile() || stat.size !== inspection.archiveBytes || stat.mtimeMs !== inspection.archiveMtimeMs) {
+          return { error: "The selected backup changed after it was inspected. Choose it again." };
+        }
+        return { inspection };
+      }
+      async function extractInspectedArchive(inspection, tempRoot) {
+        const privateArchive = path5.join(tempRoot, "selected-backup.zip");
+        fs.copyFileSync(inspection.filePath, privateArchive);
+        const privateStat = fs.statSync(privateArchive);
+        const privateHash = await restoreArchiveHash(privateArchive);
+        if (privateStat.size !== inspection.archiveBytes || privateHash !== inspection.archiveHash) {
+          throw new Error("The selected backup changed after it was inspected. Choose it again.");
+        }
+        await execFilePromise("unzip", ["-q", privateArchive, "-d", tempRoot]);
+        const extractedRoot = path5.join(tempRoot, inspection.rootName);
+        if (!safeChildStat(extractedRoot)?.isDirectory()) throw new Error("The backup root is missing.");
+        validateExtractedTree(extractedRoot);
+        return extractedRoot;
+      }
       ipcMain2.handle("restore-backup-archive", async (_, { token, scope, projectId } = {}) => {
         if (_restoreBackupPromise) return { ok: false, error: "Another backup restore is already running." };
         _restoreBackupPromise = (async () => {
-          const inspection = inspectedRestoreArchives.get(String(token || ""));
-          if (!inspection) return { ok: false, error: "Choose and inspect the backup again." };
-          const stat = safeChildStat(inspection.filePath);
-          if (!stat?.isFile() || stat.size !== inspection.archiveBytes || stat.mtimeMs !== inspection.archiveMtimeMs) {
-            return { ok: false, error: "The selected backup changed after it was inspected. Choose it again." };
-          }
+          const { inspection, error } = inspectedArchive(token);
+          if (error) return { ok: false, error };
           if (scope !== "project" && scope !== "library") return { ok: false, error: "Choose what to restore." };
           if (scope === "library" && inspection.type !== "library") {
             return { ok: false, error: "A single-project ZIP cannot replace the complete library." };
@@ -15625,26 +15780,186 @@ ${sc.text}`);
           if (scope === "project" && !project) return { ok: false, error: "Choose a project from this backup." };
           const tempRoot = fs.mkdtempSync(path5.join(os.tmpdir(), "quill-archive-restore-"));
           try {
-            const privateArchive = path5.join(tempRoot, "selected-backup.zip");
-            fs.copyFileSync(inspection.filePath, privateArchive);
-            const privateStat = fs.statSync(privateArchive);
-            const privateHash = await restoreArchiveHash(privateArchive);
-            if (privateStat.size !== inspection.archiveBytes || privateHash !== inspection.archiveHash) {
-              throw new Error("The selected backup changed after it was inspected. Choose it again.");
-            }
-            await execFilePromise("unzip", ["-q", privateArchive, "-d", tempRoot]);
-            const extractedRoot = path5.join(tempRoot, inspection.rootName);
-            if (!safeChildStat(extractedRoot)?.isDirectory()) throw new Error("The backup root is missing.");
-            validateExtractedTree(extractedRoot);
+            const extractedRoot = await extractInspectedArchive(inspection, tempRoot);
             const source = scope === "library" ? extractedRoot : path5.join(tempRoot, project.archivePrefix);
             if (!safeChildStat(source)?.isDirectory()) throw new Error("The selected project is missing from the backup.");
+            const manifest = scope === "library" ? takeSyncManifest(extractedRoot) : null;
             const safetyArchive = await createPreRestoreSafetyArchive();
             if (scope === "library") swapRestoredDirectory(source, ROOT, "library");
             else swapRestoredDirectory(source, path5.join(ROOT, segment(project.name)), "project");
+            if (scope === "library") recordLibraryRestore(manifest);
             inspectedRestoreArchives.delete(token);
             return { ok: true, scope, project: project?.name || "", safetyArchive };
-          } catch (error) {
-            return { ok: false, error: error.message || "The backup could not be restored." };
+          } catch (error2) {
+            return { ok: false, error: error2.message || "The backup could not be restored." };
+          } finally {
+            fs.rmSync(tempRoot, { recursive: true, force: true });
+          }
+        })();
+        try {
+          return await _restoreBackupPromise;
+        } finally {
+          _restoreBackupPromise = null;
+        }
+      });
+      var DEVICE_NAME = __quillProcess.platform === "ios" ? "iPad" : "Mac";
+      var syncStateFile = () => path5.join(app2.getPath("userData"), "sync-state.json");
+      function readSyncState() {
+        let state = {};
+        try {
+          state = JSON.parse(fs.readFileSync(syncStateFile(), "utf8")) || {};
+        } catch {
+        }
+        state.bases = state.bases && typeof state.bases === "object" ? state.bases : {};
+        if (!state.deviceId) {
+          state.deviceId = crypto2.randomUUID();
+          writeSyncState(state);
+        }
+        return state;
+      }
+      function writeSyncState(state) {
+        fs.mkdirSync(path5.dirname(syncStateFile()), { recursive: true });
+        atomicWriteFileSync(syncStateFile(), JSON.stringify(state), "utf8");
+      }
+      function hashTree(dir) {
+        const out = {};
+        const walk2 = (current, prefix) => {
+          for (const name of fs.readdirSync(current)) {
+            const rel = prefix ? `${prefix}/${name}` : name;
+            if (BackupMerge.IGNORED(rel)) continue;
+            const full = path5.join(current, name);
+            const stat = safeChildStat(full);
+            if (!stat) continue;
+            if (stat.isDirectory()) walk2(full, rel);
+            else if (stat.isFile()) out[rel] = { h: BackupMerge.sha256(fs.readFileSync(full)), m: stat.mtimeMs };
+          }
+        };
+        walk2(dir, "");
+        return out;
+      }
+      var hashesOf = (files) => Object.fromEntries(Object.entries(files).map(([rel, entry]) => [rel, entry.h]));
+      function syncManifest() {
+        const state = readSyncState();
+        return {
+          version: 1,
+          deviceId: state.deviceId,
+          deviceName: DEVICE_NAME,
+          createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+          // When this library last matched another device's: its last full restore from one.
+          restoredAt: state.restoredFrom && state.restoredFrom !== state.deviceId ? state.restoredAt ?? null : null,
+          files: hashTree(ROOT),
+          bases: Object.fromEntries(Object.entries(state.bases).map(([id, base]) => [id, base.files]))
+        };
+      }
+      ipcMain2.handle("sync-manifest", () => syncManifest());
+      function takeSyncManifest(extractedRoot) {
+        const file = path5.join(extractedRoot, BackupMerge.MANIFEST);
+        let manifest = null;
+        try {
+          manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+        } catch {
+        }
+        try {
+          fs.rmSync(file, { force: true });
+        } catch {
+        }
+        return manifest && typeof manifest === "object" ? manifest : null;
+      }
+      function recordLibraryRestore(manifest) {
+        const state = readSyncState();
+        const peer = manifest?.deviceId || "legacy";
+        state.restoredAt = Date.now();
+        state.restoredFrom = peer;
+        if (peer !== state.deviceId) state.bases[peer] = { files: hashesOf(hashTree(ROOT)), at: (/* @__PURE__ */ new Date()).toISOString(), name: manifest?.deviceName || "" };
+        writeSyncState(state);
+      }
+      function applyMergeActions(actions, sourceRoot, remoteName, remotePaths) {
+        const copies = /* @__PURE__ */ new Map();
+        const trashed = [];
+        for (const action of actions) {
+          const target2 = path5.join(ROOT, action.rel);
+          const source = path5.join(sourceRoot, action.rel);
+          if (action.op === "take") {
+            fs.mkdirSync(path5.dirname(target2), { recursive: true });
+            atomicWriteFileSync(target2, fs.readFileSync(source), null);
+          } else if (action.op === "combine") {
+            let combined = null;
+            try {
+              const mine = JSON.parse(fs.readFileSync(target2, "utf8")), theirs = JSON.parse(fs.readFileSync(source, "utf8"));
+              combined = action.newer === "remote" ? BackupMerge.combineJson(theirs, mine) : BackupMerge.combineJson(mine, theirs);
+            } catch {
+            }
+            if (combined) atomicWriteFileSync(target2, JSON.stringify(combined), "utf8");
+            else atomicWriteFileSync(BackupMerge.copyName(target2, remoteName), fs.readFileSync(source), null);
+          } else if (action.op === "copy") {
+            let data = fs.readFileSync(source);
+            if (/\.md$/i.test(action.rel)) data = BackupMerge.retitleScene(data.toString("utf8"), remoteName);
+            atomicWriteFileSync(path5.join(ROOT, action.as), data, typeof data === "string" ? "utf8" : null);
+            const folder = path5.posix.dirname(action.rel);
+            if (!copies.has(folder)) copies.set(folder, []);
+            copies.get(folder).push({ of: path5.posix.basename(action.rel), name: path5.posix.basename(action.as) });
+          } else if (action.op === "trash") {
+            if (action.rel.startsWith(".trash/")) fs.rmSync(target2, { force: true });
+            else if (safeChildStat(target2)) trashLibraryPath(action.rel);
+            trashed.push(action.rel);
+          }
+        }
+        for (const [folder, list2] of copies) {
+          const dir = folder === "." ? ROOT : path5.join(ROOT, folder);
+          const meta2 = readMeta(dir);
+          if (!Array.isArray(meta2.file_order)) continue;
+          const present = new Set(fs.readdirSync(dir));
+          writeMeta(dir, { file_order: BackupMerge.orderWithCopies(meta2.file_order, list2, present) });
+        }
+        const remoteDirs = /* @__PURE__ */ new Set();
+        for (const rel of remotePaths) {
+          for (let d = path5.posix.dirname(rel); d !== "."; d = path5.posix.dirname(d)) remoteDirs.add(d);
+        }
+        for (const rel of trashed) {
+          for (let d = path5.posix.dirname(rel); d !== "."; d = path5.posix.dirname(d)) {
+            const dir = path5.join(ROOT, d);
+            if (remoteDirs.has(d) || !safeChildStat(dir)?.isDirectory()) break;
+            if (fs.readdirSync(dir).some((name) => name !== ".DS_Store")) break;
+            fs.rmSync(dir, { recursive: true, force: true });
+          }
+        }
+      }
+      ipcMain2.handle("merge-backup-archive", async (_, { token } = {}) => {
+        if (_restoreBackupPromise) return { ok: false, error: "Another backup restore is already running." };
+        _restoreBackupPromise = (async () => {
+          const { inspection, error } = inspectedArchive(token);
+          if (error) return { ok: false, error };
+          if (inspection.type !== "library") return { ok: false, error: "Only a complete library backup can be merged." };
+          const tempRoot = fs.mkdtempSync(path5.join(os.tmpdir(), "quill-archive-merge-"));
+          try {
+            const extractedRoot = await extractInspectedArchive(inspection, tempRoot);
+            const manifest = takeSyncManifest(extractedRoot);
+            const state = readSyncState();
+            if (manifest?.deviceId === state.deviceId) {
+              return { ok: false, error: `This backup was made on this ${DEVICE_NAME}, so there is nothing to bring in. To go back to it, use Replace instead.` };
+            }
+            const remote = hashTree(extractedRoot);
+            for (const [rel, entry] of Object.entries(manifest?.files || {})) if (remote[rel] && remote[rel].h === entry.h) remote[rel].m = entry.m;
+            const peer = manifest?.deviceId || "legacy";
+            const base = state.bases[peer]?.files || manifest?.bases?.[state.deviceId] || state.bases.legacy?.files || null;
+            const since = base ? null : manifest?.restoredAt ?? (state.restoredFrom && state.restoredFrom !== state.deviceId ? state.restoredAt ?? null : null);
+            const remoteName = manifest?.deviceName || (DEVICE_NAME === "Mac" ? "iPad" : "Mac");
+            const { actions, summary } = BackupMerge.planMerge({
+              local: hashTree(ROOT),
+              remote,
+              base,
+              since,
+              localName: DEVICE_NAME,
+              remoteName
+            });
+            const safetyArchive = actions.length ? await createPreRestoreSafetyArchive() : "";
+            applyMergeActions(actions, extractedRoot, remoteName, Object.keys(remote));
+            state.bases[peer] = { files: hashesOf(remote), at: (/* @__PURE__ */ new Date()).toISOString(), name: remoteName };
+            writeSyncState(state);
+            inspectedRestoreArchives.delete(token);
+            return { ok: true, remoteName, firstMerge: !base, summary, safetyArchive };
+          } catch (error2) {
+            return { ok: false, error: error2.message || "The backup could not be merged." };
           } finally {
             fs.rmSync(tempRoot, { recursive: true, force: true });
           }
@@ -17402,8 +17717,14 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const pad = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
   }
-  function libraryZip() {
-    const data = zipTree("/", ["Quill"], (rel) => !rel.includes(".quill-tmp-"));
+  async function libraryZip() {
+    const manifest = await handlerFor("sync-manifest")({});
+    const data = zipTree(
+      "/",
+      ["Quill"],
+      (rel) => !rel.includes(".quill-tmp-"),
+      { "Quill/.quill-sync.json": new TextEncoder().encode(JSON.stringify(manifest)) }
+    );
     if (Object.keys(unzipSync(data)).length < 2) throw new Error("The library ZIP came out empty.");
     return data;
   }
@@ -17412,13 +17733,13 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const file = `Quill-iPad-${stamp()}.zip`;
     let data;
     try {
-      data = libraryZip();
+      data = await libraryZip();
     } catch (error) {
       return backupStatus({ ok: false, error: error.message, lastError: error.message });
     }
     const saved = await offerFile(file, data, {
       message: "Library backup ready",
-      detail: "Tap Save to Files, then pick iCloud Drive (a \u201CQuill Backups\u201D folder works well). Desktop Quill can restore this ZIP with Restore ZIP\u2026."
+      detail: "Tap Save to Files, then pick iCloud Drive (a \u201CQuill Backups\u201D folder works well). On the Mac, bring this ZIP in with Restore ZIP\u2026 \u2192 Bring In Changes."
     });
     if (!saved) return backupStatus({ ok: false, error: "The backup was not saved.", canceled: true });
     localMeta("lastExport", { at: (/* @__PURE__ */ new Date()).toISOString(), file, bytes: data.byteLength });
@@ -17431,7 +17752,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const names = list(SAFETY_DIR).filter((n) => n.endsWith(".zip")).sort();
     for (const name of names.slice(0, Math.max(0, names.length - KEEP_SAFETY))) remove(`${SAFETY_DIR}/${name}`);
   }
-  var SAFETY_DIR, KEEP_SAFETY, status, chooseRestore, restore, LT_OFF;
+  var SAFETY_DIR, KEEP_SAFETY, status, restore, merge, LT_OFF;
   var init_overrides = __esm({
     "web/overrides.js"() {
       init_browser();
@@ -17449,28 +17770,24 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       ipcMain.handle("choose-cloud-backup-folder", () => backupStatus({ ok: true }));
       ipcMain.handle("open-cloud-backup-folder", () => ({ ok: false, error: "Backups are in the Files app, wherever you saved them." }));
       ipcMain.handle("backup-cloud-library", exportLibrary);
-      chooseRestore = handlerFor("choose-restore-archive");
-      ipcMain.handle("choose-restore-archive", async (...args) => {
+      restore = handlerFor("restore-backup-archive");
+      ipcMain.handle("restore-backup-archive", async (event2, args = {}) => {
         const changes = changesSinceLastExport();
-        if (changes > 0) {
+        if (args.scope === "library" && changes > 0) {
           const { response } = await messageBox({
             message: `${changes} change${changes === 1 ? "" : "s"} on this iPad ${changes === 1 ? "hasn\u2019t" : "haven\u2019t"} been backed up.`,
-            detail: "Restoring a ZIP replaces that work. Quill keeps a safety copy on this iPad either way, but a backup in iCloud Drive is safer.",
-            buttons: ["Back Up First", "Choose ZIP Anyway", "Cancel"],
+            detail: "Replacing the library discards that work. Bring In Changes keeps it. Quill keeps a safety copy on this iPad either way, but a backup in iCloud Drive is safer.",
+            buttons: ["Back Up First", "Replace Anyway", "Cancel"],
             defaultId: 0,
             cancelId: 2
           });
-          if (response === 2) return { ok: false, canceled: true };
+          if (response === 2) return { ok: false, error: "Nothing was replaced." };
           if (response === 0) {
-            const result = await exportLibrary();
-            if (!result.ok) return { ok: false, canceled: true };
+            const result2 = await exportLibrary();
+            if (!result2.ok) return { ok: false, error: "Nothing was replaced." };
           }
         }
-        return chooseRestore(...args);
-      });
-      restore = handlerFor("restore-backup-archive");
-      ipcMain.handle("restore-backup-archive", async (...args) => {
-        const result = await restore(...args);
+        const result = await restore(event2, args);
         if (result?.ok) {
           if (result.scope === "library") markExported();
           pruneSafetyArchives();
@@ -17478,6 +17795,28 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         }
         return result;
       });
+      merge = handlerFor("merge-backup-archive");
+      ipcMain.handle("merge-backup-archive", async (...args) => {
+        const result = await merge(...args);
+        if (result?.ok) {
+          pruneSafetyArchives();
+          await flush();
+        }
+        return result;
+      });
+      (function estimateLastRestore() {
+        if (get("/userData/sync-state.json") || !get("/Quill")) return;
+        const times = [];
+        for (const p of walk("/Quill")) {
+          const node2 = get(p);
+          if (node2 && !node2.dir) times.push(node2.mtimeMs);
+        }
+        if (times.length < 2) return;
+        times.sort((a, b) => a - b);
+        const restoredAt = times.filter((t) => t <= times[0] + 5 * 6e4).pop();
+        mkdir("/userData", true);
+        write("/userData/sync-state.json", new TextEncoder().encode(JSON.stringify({ restoredAt, restoredFrom: "legacy", bases: {} })));
+      })();
       LT_OFF = {
         installed: false,
         installing: false,
@@ -17738,7 +18077,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T00:31:07.330Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T01:21:08.589Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   document.addEventListener("click", (event2) => {
     if (event2.target.closest?.("#web-restore-zip")) document.getElementById("recovery-archive-btn")?.click();

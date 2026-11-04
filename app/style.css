@@ -247,6 +247,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .archive-restore-status{min-height:18px;margin-top:11px;color:var(--accent);font:11px/1.45 var(--ui);word-break:break-word}
 .archive-restore-status.error{color:var(--danger)}
 .archive-restore-actions{align-items:center}
+.archive-restore-choice{margin:10px 0 0;color:var(--muted);font:var(--fs-sm)/1.5 var(--ui)}
+.archive-restore-copies{margin:6px 0 0 18px;padding:0;color:var(--text);font:var(--fs-sm)/1.5 var(--ui)}
+.file-sync-copy{flex:none;margin-left:6px;padding:0 6px;border-radius:var(--r-pill,999px);background:var(--adim);color:var(--accent);font:var(--fs-xs)/1.5 var(--ui);white-space:nowrap}
 .recovery-modal{width:min(980px,94vw);height:min(680px,88vh);display:flex;flex-direction:column;padding:22px 24px}
 .recovery-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
 .recovery-head h3{margin:0 0 3px}.recovery-head p{margin:0}
