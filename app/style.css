@@ -89,6 +89,8 @@ body{font-family:var(--ui);background:var(--bg);color:var(--text);
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);
   backdrop-filter:blur(4px);z-index:300;align-items:center;justify-content:center}
 .overlay.show{display:flex}
+/* Settings opens dialogs of its own (Bring In Changes, Restore ZIP), which must land on top of it */
+#settings-modal{z-index:295}
 .modal{background:var(--surface);border-radius:var(--r-lg);padding:var(--sp-5) var(--sp-6);width:360px;
   box-shadow:var(--shadow-3);animation:pop 160ms ease}
 @keyframes pop{from{transform:scale(.96) translateY(6px);opacity:0}to{transform:scale(1);opacity:1}}
