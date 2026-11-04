@@ -2788,6 +2788,42 @@ body.project-workspace #toolbar[data-view="landing"] #read-btn{display:none!impo
   border:1px solid var(--border);
 }
 .bs-typing { letter-spacing:.2em; color:var(--muted); }
+/* Markdown in messages (chat-markdown.js) */
+.bs-message > :first-child { margin-top:0; }
+.bs-message > :last-child { margin-bottom:0; }
+.bs-message p { margin:0 0 .7em; }
+.bs-message h1, .bs-message h2, .bs-message h3,
+.bs-message h4, .bs-message h5, .bs-message h6 {
+  font-family:var(--ui); font-weight:600; line-height:1.3; margin:1.1em 0 .4em;
+}
+.bs-message h1 { font-size:1.3em; }
+.bs-message h2 { font-size:1.18em; }
+.bs-message h3 { font-size:1.06em; }
+.bs-message h4, .bs-message h5, .bs-message h6 { font-size:1em; }
+.bs-message ul, .bs-message ol { margin:0 0 .7em; padding-left:1.4em; }
+.bs-message li { margin:.15em 0; }
+.bs-message li > ul, .bs-message li > ol { margin:.15em 0 0; }
+.bs-message blockquote {
+  margin:0 0 .7em; padding:.1em 0 .1em .9em;
+  border-left:3px solid var(--border); color:var(--muted);
+}
+.bs-message hr { border:none; border-top:1px solid var(--border); margin:1em 0; }
+.bs-message code {
+  font-family:var(--mono); font-size:.88em;
+  padding:.1em .35em; border-radius:var(--r-sm); background:var(--bg);
+}
+.bs-message pre {
+  margin:0 0 .7em; padding:10px 12px; border-radius:var(--r);
+  background:var(--bg); border:1px solid var(--border); overflow-x:auto;
+}
+.bs-message pre code { padding:0; background:none; font-size:.85em; white-space:pre; }
+.bs-message .cmd-table { overflow-x:auto; margin:0 0 .7em; }
+.bs-message table { border-collapse:collapse; font-size:.92em; }
+.bs-message th, .bs-message td { border:1px solid var(--border); padding:4px 8px; text-align:left; vertical-align:top; }
+.bs-message th { font-family:var(--ui); font-weight:600; }
+.bs-message .cmd-link { text-decoration:underline; text-underline-offset:2px; }
+.bs-user code, .bs-user pre { background:color-mix(in srgb, var(--on-accent) 15%, transparent); border-color:transparent; }
+.bs-user blockquote { color:inherit; border-left-color:currentColor; }
 .bs-system-note {
   align-self:center; font-family:var(--ui); font-size:11px;
   color:var(--muted); letter-spacing:.03em;
