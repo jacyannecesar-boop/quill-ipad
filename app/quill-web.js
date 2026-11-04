@@ -9012,6 +9012,10 @@ ${str(e.text).trim()}
         if (instructions) body.instructions = instructions;
         return body;
       }
+      var CONTINUE = "Your last reply was cut off. Continue it from exactly where it stopped, mid-sentence or mid-word if need be. Do not repeat anything or add a preface.";
+      function continuationBody(body, partial) {
+        return { ...body, input: [...body.input, { role: "assistant", content: partial }, { role: "user", content: CONTINUE }] };
+      }
       var ERRORS = {
         subscription_sharing_user_not_eligible: "ChatGPT plan usage isn't available for this account or workspace.",
         subscription_sharing_usage_limit_exceeded: `You've reached a ChatGPT usage limit for Quill. Check it at ${USAGE_URL}.`,
@@ -9091,7 +9095,7 @@ ${str(e.text).trim()}
           },
           end() {
             if (buf.trim()) handle(buf.split(/\r?\n/).filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("\n"));
-            end(onError, "ChatGPT ended the reply before it finished.");
+            end(onError, "ChatGPT ended the reply before it finished.", "stream_cut");
           }
         };
       }
@@ -9152,6 +9156,7 @@ ${str(e.text).trim()}
         modelsFromList,
         isChatGPTModel,
         toResponsesBody,
+        continuationBody,
         errorCode,
         errorMessage,
         responsesStream,
@@ -16680,15 +16685,17 @@ ${sc.text}`);
         };
         const controller = new AbortController();
         aiRequests.set(id, { destroy: () => controller.abort() });
+        const requestBody = ChatGPT.toResponsesBody(chat);
+        const requestChars = (requestBody.instructions || "").length + requestBody.input.reduce((n, m) => n + m.content.length, 0);
+        const open = async (body) => fetch(`${ChatGPT.RESOURCE}/responses`, {
+          method: "POST",
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${await chatgptAccessToken()}`, "Content-Type": "application/json", Accept: "text/event-stream" },
+          body: JSON.stringify(body)
+        });
         let res;
         try {
-          const token = await chatgptAccessToken();
-          res = await fetch(`${ChatGPT.RESOURCE}/responses`, {
-            method: "POST",
-            signal: controller.signal,
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "text/event-stream" },
-            body: JSON.stringify(ChatGPT.toResponsesBody(chat))
-          });
+          res = await open(requestBody);
         } catch (err2) {
           if (err2.name === "AbortError") {
             aiRequests.delete(id);
@@ -16696,8 +16703,6 @@ ${sc.text}`);
           }
           return fail(401, err2.message);
         }
-        const requestBody = ChatGPT.toResponsesBody(chat);
-        const requestChars = (requestBody.instructions || "").length + requestBody.input.reduce((n, m) => n + m.content.length, 0);
         if (!res.ok) {
           const errBody = await res.text().catch(() => "");
           logChatGPTUsage({ model: requestBody.model, error: ChatGPT.errorCode(errBody) || `http_${res.status}` });
@@ -16709,38 +16714,70 @@ ${sc.text}`);
         const headReady = new Promise((r) => {
           head = r;
         });
-        const parser = ChatGPT.responsesStream({
-          onText: (delta) => {
-            text += delta;
-            if (streaming) chunk(ChatGPT.chatChunk(delta));
-          },
-          onDone: (response) => {
-            logChatGPTUsage({ model: requestBody.model, response, requestChars, replyChars: text.length });
-            if (streaming) {
-              chunk(ChatGPT.chatDone);
-              send({ type: "end" });
-            } else {
-              head({ status: 200, statusText: "OK", contentType: "application/json" });
-              setImmediate(() => {
-                chunk(ChatGPT.chatJson(text));
-                send({ type: "end" });
-              });
-            }
-          },
-          onError: (message, code) => {
-            logChatGPTUsage({ model: requestBody.model, error: code || "stream_failed" });
-            if (streaming) send({ type: "error", message });
-            else head(fail(502, message));
-          }
-        });
+        const finishError = (message) => {
+          if (streaming) send({ type: "error", message });
+          else head(fail(502, message));
+        };
         if (streaming) head({ status: 200, statusText: "OK", contentType: "text/event-stream" });
+        const RESUMES = 3;
         (async () => {
-          const decoder = new TextDecoder();
           try {
-            for await (const part of res.body) parser.push(decoder.decode(part, { stream: true }));
-            parser.end();
-          } catch (err2) {
-            if (err2.name !== "AbortError") parser.end();
+            for (let attempt = 0; ; attempt++) {
+              let outcome = null;
+              const parser = ChatGPT.responsesStream({
+                onText: (delta) => {
+                  text += delta;
+                  if (streaming) chunk(ChatGPT.chatChunk(delta));
+                },
+                onDone: (response) => {
+                  outcome = { done: response };
+                },
+                onError: (message, code) => {
+                  outcome = { message, code };
+                }
+              });
+              let dropped = "";
+              const decoder = new TextDecoder();
+              try {
+                for await (const part of res.body) parser.push(decoder.decode(part, { stream: true }));
+              } catch (err2) {
+                if (err2.name === "AbortError") return;
+                dropped = err2.message || String(err2);
+              }
+              parser.end();
+              if (outcome.done) {
+                logChatGPTUsage({ model: requestBody.model, response: outcome.done, requestChars, replyChars: text.length });
+                if (streaming) {
+                  chunk(ChatGPT.chatDone);
+                  send({ type: "end" });
+                } else {
+                  head({ status: 200, statusText: "OK", contentType: "application/json" });
+                  setImmediate(() => {
+                    chunk(ChatGPT.chatJson(text));
+                    send({ type: "end" });
+                  });
+                }
+                return;
+              }
+              const cut = outcome.code === "stream_cut";
+              if (!cut || !text || attempt >= RESUMES) {
+                logChatGPTUsage({ model: requestBody.model, error: outcome.code || "stream_failed" });
+                finishError(cut && dropped ? `ChatGPT's reply was cut off (${dropped}).` : outcome.message);
+                return;
+              }
+              try {
+                res = await open(ChatGPT.continuationBody(requestBody, text));
+              } catch (err2) {
+                if (err2.name === "AbortError") return;
+                finishError(`ChatGPT's reply was cut off, and picking it up again failed (${err2.message}).`);
+                return;
+              }
+              if (!res.ok) {
+                const errBody = await res.text().catch(() => "");
+                finishError(ChatGPT.errorMessage({ status: res.status, body: errBody }));
+                return;
+              }
+            }
           } finally {
             aiRequests.delete(id);
           }
@@ -18462,7 +18499,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T17:52:55.423Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T19:54:40.304Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
