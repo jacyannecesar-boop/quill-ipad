@@ -3238,6 +3238,9 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         onAchievementsEarned: (callback) => ipcRenderer2.on("achievements-earned", (_, badges) => callback(badges)),
         trackWords: (args) => ipcRenderer2.invoke("update-word-snapshot", args),
         trackProjectTime: (args) => ipcRenderer2.invoke("track-project-time", args),
+        getSceneSeconds: () => ipcRenderer2.invoke("get-scene-seconds"),
+        addSceneSeconds: (args) => ipcRenderer2.invoke("add-scene-seconds", args),
+        importLegacySceneSeconds: (args) => ipcRenderer2.invoke("import-legacy-scene-seconds", args),
         censusWords: () => ipcRenderer2.invoke("census-words"),
         censusManuscripts: () => ipcRenderer2.invoke("census-manuscripts"),
         projectLoosePages: (projectPath) => ipcRenderer2.invoke("project-loose-pages", projectPath),
@@ -3277,6 +3280,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         chooseRestoreArchive: () => ipcRenderer2.invoke("choose-restore-archive"),
         restoreBackupArchive: (args) => ipcRenderer2.invoke("restore-backup-archive", args),
         mergeBackupArchive: (args) => ipcRenderer2.invoke("merge-backup-archive", args),
+        previewMergeArchive: (args) => ipcRenderer2.invoke("preview-merge-archive", args),
+        mergePreviewDiff: (args) => ipcRenderer2.invoke("merge-preview-diff", args),
+        discardMergePreview: (args) => ipcRenderer2.invoke("discard-merge-preview", args),
+        applyMergePreview: (args) => ipcRenderer2.invoke("apply-merge-preview", args),
         assembleNovel: (rel) => ipcRenderer2.invoke("assemble-novel", rel),
         exportNovelMd: (args) => ipcRenderer2.invoke("export-novel-md", args),
         exportManuscriptPdf: (args) => ipcRenderer2.invoke("export-manuscript-pdf", args),
@@ -9262,6 +9269,43 @@ ${str(e.text).trim()}
         actions.sort((a, b) => order[a.op] - order[b.op]);
         return { actions, summary };
       }
+      function planItems(actions, { local, restored = [], ownerOf = () => null }) {
+        const items = /* @__PURE__ */ new Map();
+        const restoredSet = new Set(restored);
+        const groupOf = (action) => {
+          if (isData(action.rel) || action.rel.startsWith(".trash/")) return "settings";
+          if (action.op === "copy") return "both";
+          if (action.op === "trash") return "deleted";
+          if (local[action.rel]) return "edited";
+          return restoredSet.has(action.rel) ? "restored" : "new";
+        };
+        const planned = new Set(actions.map((a) => a.rel));
+        const companions = [];
+        for (const action of actions) {
+          const owner = ownerOf(action.rel);
+          if (owner && planned.has(owner)) {
+            companions.push({ owner, action });
+            continue;
+          }
+          items.set(action.rel, { id: action.rel, rel: action.rel, group: groupOf(action), op: action.op, as: action.as, actions: [action], companions: 0 });
+        }
+        for (const { owner, action } of companions) {
+          const item = items.get(owner);
+          item.actions.push(action);
+          item.companions++;
+        }
+        return [...items.values()];
+      }
+      function nextBase(remote, oldBase, local, skipped) {
+        const out = Object.fromEntries(Object.entries(remote).map(([rel, entry]) => [rel, entry.h]));
+        for (const action of skipped) {
+          const prev = oldBase ? oldBase[action.rel] : void 0;
+          const keep2 = prev !== void 0 ? prev : action.op === "take" || action.op === "trash" ? local[action.rel]?.h : void 0;
+          if (keep2 === void 0) delete out[action.rel];
+          else out[action.rel] = keep2;
+        }
+        return out;
+      }
       var isPlain = (v) => v && typeof v === "object" && !Array.isArray(v);
       var keyed = (list2) => list2.length > 0 && list2.every((item) => isPlain(item) && (typeof item.id === "string" || typeof item.id === "number"));
       function combineJson(newer, older) {
@@ -9305,7 +9349,7 @@ ${body}
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
       }
-      module.exports = { MANIFEST, IGNORED, isData, sha256: sha2563, copyName, planMerge, combineJson, retitleScene, orderWithCopies };
+      module.exports = { MANIFEST, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, retitleScene, orderWithCopies };
     }
   });
 
@@ -9565,7 +9609,9 @@ ${body}
             backgroundThrottling: !hidden
           }
         });
-        win2.webContents.on("will-navigate", (event2) => event2.preventDefault());
+        win2.webContents.on("will-navigate", (event2) => {
+          if (event2.url !== win2.webContents.getURL()) event2.preventDefault();
+        });
         win2.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
         const windowRef = win2;
         win2.loadFile(path5.join("/app", "renderer", "index.html"));
@@ -10944,6 +10990,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         replaceOrderEntry(path5.dirname(full), "file_order", path5.basename(full));
         replaceOrderEntry(destDir, "file_order", "", path5.basename(dest));
         const newRel = (destFolder ? `${destFolder}/` : "") + path5.basename(dest);
+        remapRenamedPaths([{ from: rel, to: newRel }]);
         return { path: newRel };
       });
       ipcMain2.handle("move-scene-between-chapters", (_, { rel, destFolder, destIndex } = {}) => {
@@ -11020,6 +11067,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           reorderLinkedBoardCards(sourceDir, sourceOrder);
           reorderLinkedBoardCards(destinationDir, destinationOrder);
           noteFeature("sceneMove");
+          remapRenamedPaths([{ from: path5.relative(ROOT, source).replace(/\\/g, "/"), to: path5.relative(ROOT, destination).replace(/\\/g, "/") }]);
           return {
             ok: true,
             path: path5.relative(ROOT, destination).replace(/\\/g, "/"),
@@ -11072,7 +11120,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         try {
           const stats = readJsonForUpdate(STATS_FILE);
           let statsChanged = false;
-          for (const key of ["sceneWordCounts", "sceneEvents", "pendingCuts"]) {
+          for (const key of ["sceneWordCounts", "sceneEvents", "pendingCuts", "sceneSeconds"]) {
             const remapped = remapPathKeysAll(stats[key], pairs);
             if (remapped) {
               stats[key] = remapped;
@@ -11167,7 +11215,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           );
           if (draftKeys) atomicWriteFileSync(draftsPath, JSON.stringify({ ...drafts, drafts: draftKeys }), "utf8");
           let statsChanged = false;
-          for (const key of ["sceneWordCounts", "sceneEvents", "pendingCuts"]) {
+          for (const key of ["sceneWordCounts", "sceneEvents", "pendingCuts", "sceneSeconds"]) {
             const remapped = remapPathKeys(stats[key], oldRel, newRel);
             if (remapped) {
               stats[key] = remapped;
@@ -11545,10 +11593,10 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const meta2 = readMeta(dir);
         return meta2.folder_title || path5.basename(dir);
       }
-      function revisionLabel(chapterTitle, sceneTitle) {
-        return [chapterTitle, sceneTitle].filter(Boolean).join(" \xB7 ");
+      function revisionLabel(chapterTitle, sceneTitle2) {
+        return [chapterTitle, sceneTitle2].filter(Boolean).join(" \xB7 ");
       }
-      function syncRevisionsOnSave(full, beforeBody, afterBody, sceneIdValue, sceneTitle) {
+      function syncRevisionsOnSave(full, beforeBody, afterBody, sceneIdValue, sceneTitle2) {
         if (!/quill:revise/.test(beforeBody || "") && !/quill:revise/.test(afterBody || "")) return;
         try {
           const novel = novelDirForScene(full);
@@ -11560,7 +11608,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
             chapterId: chapterIdForDir(dir),
             before: findNotes(beforeBody),
             after: findNotes(afterBody),
-            homeLabel: revisionLabel(chapterTitleForDir(dir), sceneTitle),
+            homeLabel: revisionLabel(chapterTitleForDir(dir), sceneTitle2),
             now: (/* @__PURE__ */ new Date()).toISOString()
           });
           if (changed) writeRevisions(novel, store);
@@ -12728,6 +12776,75 @@ ${tags}`);
         const achievements = refreshAchievements(stats);
         atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
         return { ok: true, achievements };
+      });
+      var SCENE_SECONDS_CAP = 12 * 3600;
+      ipcMain2.handle("get-scene-seconds", () => {
+        try {
+          return readStats().sceneSeconds || {};
+        } catch {
+          return {};
+        }
+      });
+      ipcMain2.handle("add-scene-seconds", (_, { rel, seconds } = {}) => {
+        rel = String(rel || "");
+        const increment = Math.max(0, Math.min(SCENE_SECONDS_CAP, Math.floor(Number(seconds) || 0)));
+        if (!rel.endsWith(".md") || !increment) return { ok: false };
+        try {
+          inRoot(rel);
+        } catch {
+          return { ok: false };
+        }
+        const stats = readStats();
+        stats.sceneSeconds = stats.sceneSeconds || {};
+        stats.sceneSeconds[rel] = Math.max(0, Number(stats.sceneSeconds[rel]) || 0) + increment;
+        atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
+        return { ok: true, seconds: stats.sceneSeconds[rel] };
+      });
+      function legacyTimeKey(rel) {
+        return "quill_time_" + rel.replace(/[^a-z0-9]/gi, "_");
+      }
+      ipcMain2.handle("import-legacy-scene-seconds", (_, { entries } = {}) => {
+        const files = [];
+        const walk2 = (dir, prefix) => {
+          let names = [];
+          try {
+            names = fs.readdirSync(dir);
+          } catch {
+            return;
+          }
+          for (const name of names) {
+            if (name.startsWith(".")) continue;
+            const rel = prefix ? `${prefix}/${name}` : name;
+            const stat = safeChildStat(path5.join(dir, name));
+            if (stat?.isDirectory()) walk2(path5.join(dir, name), rel);
+            else if (stat?.isFile() && name.endsWith(".md")) files.push(rel);
+          }
+        };
+        walk2(ROOT, "");
+        const byKey = new Map(files.map((rel) => [legacyTimeKey(rel), rel]));
+        const placed = {};
+        const add = (rel, key, secs) => {
+          placed[key] = rel;
+          stats.sceneSeconds[rel] = (Number(stats.sceneSeconds[rel]) || 0) + secs;
+        };
+        const stats = readStats();
+        stats.sceneSeconds = stats.sceneSeconds || {};
+        const orphans = [];
+        for (const [key, value] of Object.entries(entries || {})) {
+          const secs = Math.max(0, Math.floor(Number(value) || 0));
+          if (!secs || !key.startsWith("quill_time_")) continue;
+          if (byKey.has(key)) add(byKey.get(key), key, secs);
+          else orphans.push([key, secs]);
+        }
+        for (const [key, secs] of orphans) {
+          const matches = files.filter((rel) => {
+            const project = legacyTimeKey(rel.split("/")[0]);
+            return key.startsWith(project + "_") && key.endsWith("_" + path5.posix.basename(rel).replace(/[^a-z0-9]/gi, "_"));
+          });
+          if (matches.length === 1) add(matches[0], key, secs);
+        }
+        if (Object.keys(placed).length) atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
+        return { ok: true, placed, sceneSeconds: stats.sceneSeconds };
       });
       ipcMain2.handle("track-project-time", (_, { projectPath, seconds } = {}) => {
         const dir = timelineProjectDir(projectPath);
@@ -14312,7 +14429,7 @@ ${body.trim()}`;
         for (const { full } of allFiles) {
           try {
             const { meta: meta2, body } = parseFM(fs.readFileSync(full, "utf8"));
-            const text = body.trim();
+            const text = stripRevisionNotes(body).trim();
             if (text.length < 80) continue;
             const paras = text.split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 60);
             if (!paras.length) continue;
@@ -15924,44 +16041,210 @@ ${sc.text}`);
           }
         }
       }
+      function sceneOwnerOf(rel) {
+        const dir = path5.posix.dirname(rel), name = path5.posix.basename(rel);
+        const prefix = dir === "." ? "" : `${dir}/`;
+        const suffix = SCENE_COMPANION_SUFFIXES.find((s) => name.endsWith(s) && name.length > s.length);
+        if (suffix) return `${prefix}${name.slice(0, -suffix.length)}.md`;
+        const snap = path5.posix.basename(dir).match(/^\.(.+)\.snapshots$/);
+        if (snap) {
+          const parent = path5.posix.dirname(dir);
+          return `${parent === "." ? "" : `${parent}/`}${snap[1]}.md`;
+        }
+        return null;
+      }
+      var mergePreviews = /* @__PURE__ */ new Map();
+      function discardMergePreview(token) {
+        const preview = mergePreviews.get(token);
+        if (!preview) return;
+        mergePreviews.delete(token);
+        try {
+          fs.rmSync(preview.tempRoot, { recursive: true, force: true });
+        } catch {
+        }
+      }
+      app2.on?.("will-quit", () => {
+        for (const token of [...mergePreviews.keys()]) discardMergePreview(token);
+      });
+      function planMergeFor(preview) {
+        const local = hashTree(ROOT);
+        const { actions, summary } = BackupMerge.planMerge({
+          local,
+          remote: preview.remote,
+          base: preview.base,
+          since: preview.since,
+          localName: DEVICE_NAME,
+          remoteName: preview.remoteName
+        });
+        return { local, actions, summary };
+      }
+      async function compareArchive(token) {
+        const { inspection, error } = inspectedArchive(token);
+        if (error) return { error };
+        if (inspection.type !== "library") return { error: "Only a complete library backup can be merged." };
+        const tempRoot = fs.mkdtempSync(path5.join(os.tmpdir(), "quill-archive-merge-"));
+        try {
+          const extractedRoot = await extractInspectedArchive(inspection, tempRoot);
+          const manifest = takeSyncManifest(extractedRoot);
+          const state = readSyncState();
+          if (manifest?.deviceId === state.deviceId) {
+            fs.rmSync(tempRoot, { recursive: true, force: true });
+            return { error: `This backup was made on this ${DEVICE_NAME}, so there is nothing to bring in. To go back to it, use Replace instead.` };
+          }
+          const remote = hashTree(extractedRoot);
+          for (const [rel, entry] of Object.entries(manifest?.files || {})) if (remote[rel] && remote[rel].h === entry.h) remote[rel].m = entry.m;
+          const peer = manifest?.deviceId || "legacy";
+          const base = state.bases[peer]?.files || manifest?.bases?.[state.deviceId] || state.bases.legacy?.files || null;
+          const since = base ? null : manifest?.restoredAt ?? (state.restoredFrom && state.restoredFrom !== state.deviceId ? state.restoredAt ?? null : null);
+          const remoteName = manifest?.deviceName || (DEVICE_NAME === "Mac" ? "iPad" : "Mac");
+          const preview = { token, tempRoot, extractedRoot, inspection, manifest, remote, peer, base, since, remoteName };
+          Object.assign(preview, planMergeFor(preview));
+          return { preview };
+        } catch (error2) {
+          fs.rmSync(tempRoot, { recursive: true, force: true });
+          return { error: error2.message || "The backup could not be compared." };
+        }
+      }
+      function sceneTitle(full) {
+        try {
+          return parseFM(fs.readFileSync(full, "utf8")).meta.title || "";
+        } catch {
+          return "";
+        }
+      }
+      function fileWords(full) {
+        try {
+          return wordCount(parseFM(fs.readFileSync(full, "utf8")).body);
+        } catch {
+          return null;
+        }
+      }
+      function describeMergeItems(preview) {
+        return BackupMerge.planItems(preview.actions, { local: preview.local, restored: preview.summary.restored, ownerOf: sceneOwnerOf }).map((item) => {
+          const here = path5.join(ROOT, item.rel), there = path5.join(preview.extractedRoot, item.rel);
+          const scene = /\.md$/i.test(item.rel);
+          const parts = item.rel.split("/");
+          return {
+            id: item.id,
+            rel: item.rel,
+            group: item.group,
+            op: item.op,
+            as: item.as || "",
+            companions: item.companions,
+            name: scene ? sceneTitle(preview.local[item.rel] ? here : there) || parts.at(-1).replace(/\.md$/i, "") : parts.at(-1),
+            where: parts.slice(0, -1).join(" \u203A "),
+            scene,
+            words: scene ? { here: preview.local[item.rel] ? fileWords(here) : null, there: preview.remote[item.rel] ? fileWords(there) : null } : null
+          };
+        });
+      }
+      function mergeReview(preview) {
+        return {
+          ok: true,
+          token: preview.token,
+          remoteName: preview.remoteName,
+          firstMerge: !preview.base,
+          archiveName: preview.inspection.archiveName || "",
+          createdAt: preview.manifest?.createdAt || "",
+          items: describeMergeItems(preview),
+          keptHere: preview.summary.kept.length
+        };
+      }
+      ipcMain2.handle("preview-merge-archive", async (_, { token } = {}) => {
+        if (_restoreBackupPromise) return { ok: false, error: "Another backup restore is already running." };
+        discardMergePreview(token);
+        const { preview, error } = await compareArchive(token);
+        if (error) return { ok: false, error };
+        mergePreviews.set(token, preview);
+        return mergeReview(preview);
+      });
+      ipcMain2.handle("merge-preview-diff", (_, { token, id } = {}) => {
+        const preview = mergePreviews.get(token);
+        if (!preview || !preview.actions.some((a) => a.rel === id)) return { ok: false, error: "That comparison has closed." };
+        const read = (full) => {
+          try {
+            return parseFM(fs.readFileSync(full, "utf8")).body.slice(0, 4e5);
+          } catch {
+            return null;
+          }
+        };
+        return {
+          ok: true,
+          here: preview.local[id] ? read(path5.join(ROOT, id)) : null,
+          there: preview.remote[id] ? read(path5.join(preview.extractedRoot, id)) : null
+        };
+      });
+      ipcMain2.handle("discard-merge-preview", (_, { token } = {}) => {
+        discardMergePreview(token);
+        return { ok: true };
+      });
+      async function applyMergePreview(preview, skipIds) {
+        const fresh2 = planMergeFor(preview);
+        if (JSON.stringify(fresh2.actions) !== JSON.stringify(preview.actions)) {
+          Object.assign(preview, fresh2);
+          return { ok: false, stale: true, error: "This library changed since the comparison. Check the list again.", review: mergeReview(preview) };
+        }
+        const skip = new Set(skipIds || []);
+        const items = BackupMerge.planItems(preview.actions, { local: preview.local, restored: preview.summary.restored, ownerOf: sceneOwnerOf });
+        const chosen = [], skipped = [];
+        for (const item of items) (skip.has(item.id) ? skipped : chosen).push(...item.actions);
+        const safetyArchive = chosen.length ? await createPreRestoreSafetyArchive() : "";
+        applyMergeActions(chosen, preview.extractedRoot, preview.remoteName, Object.keys(preview.remote));
+        const state = readSyncState();
+        state.bases[preview.peer] = {
+          files: BackupMerge.nextBase(preview.remote, preview.base, preview.local, skipped),
+          at: (/* @__PURE__ */ new Date()).toISOString(),
+          name: preview.remoteName
+        };
+        writeSyncState(state);
+        const ops = new Set(chosen.map((a) => a.rel));
+        const s = preview.summary;
+        const summary = {
+          taken: s.taken.filter((r) => ops.has(r)),
+          restored: s.restored.filter((r) => ops.has(r)),
+          trashed: s.trashed.filter((r) => ops.has(r)),
+          combined: s.combined.filter((r) => ops.has(r)),
+          copies: s.copies.filter((c) => ops.has(c.rel)),
+          kept: s.kept
+        };
+        return { ok: true, remoteName: preview.remoteName, firstMerge: !preview.base, summary, skipped: skip.size, safetyArchive };
+      }
+      ipcMain2.handle("apply-merge-preview", async (_, { token, skip = [] } = {}) => {
+        if (_restoreBackupPromise) return { ok: false, error: "Another backup restore is already running." };
+        const preview = mergePreviews.get(token);
+        if (!preview) return { ok: false, error: "That comparison has closed. Choose the backup again." };
+        _restoreBackupPromise = (async () => {
+          try {
+            const result = await applyMergePreview(preview, skip);
+            if (result.ok) {
+              discardMergePreview(token);
+              inspectedRestoreArchives.delete(token);
+            }
+            return result;
+          } catch (error) {
+            return { ok: false, error: error.message || "The backup could not be merged." };
+          }
+        })();
+        try {
+          return await _restoreBackupPromise;
+        } finally {
+          _restoreBackupPromise = null;
+        }
+      });
       ipcMain2.handle("merge-backup-archive", async (_, { token } = {}) => {
         if (_restoreBackupPromise) return { ok: false, error: "Another backup restore is already running." };
+        discardMergePreview(token);
+        const { preview, error } = await compareArchive(token);
+        if (error) return { ok: false, error };
+        mergePreviews.set(token, preview);
         _restoreBackupPromise = (async () => {
-          const { inspection, error } = inspectedArchive(token);
-          if (error) return { ok: false, error };
-          if (inspection.type !== "library") return { ok: false, error: "Only a complete library backup can be merged." };
-          const tempRoot = fs.mkdtempSync(path5.join(os.tmpdir(), "quill-archive-merge-"));
           try {
-            const extractedRoot = await extractInspectedArchive(inspection, tempRoot);
-            const manifest = takeSyncManifest(extractedRoot);
-            const state = readSyncState();
-            if (manifest?.deviceId === state.deviceId) {
-              return { ok: false, error: `This backup was made on this ${DEVICE_NAME}, so there is nothing to bring in. To go back to it, use Replace instead.` };
-            }
-            const remote = hashTree(extractedRoot);
-            for (const [rel, entry] of Object.entries(manifest?.files || {})) if (remote[rel] && remote[rel].h === entry.h) remote[rel].m = entry.m;
-            const peer = manifest?.deviceId || "legacy";
-            const base = state.bases[peer]?.files || manifest?.bases?.[state.deviceId] || state.bases.legacy?.files || null;
-            const since = base ? null : manifest?.restoredAt ?? (state.restoredFrom && state.restoredFrom !== state.deviceId ? state.restoredAt ?? null : null);
-            const remoteName = manifest?.deviceName || (DEVICE_NAME === "Mac" ? "iPad" : "Mac");
-            const { actions, summary } = BackupMerge.planMerge({
-              local: hashTree(ROOT),
-              remote,
-              base,
-              since,
-              localName: DEVICE_NAME,
-              remoteName
-            });
-            const safetyArchive = actions.length ? await createPreRestoreSafetyArchive() : "";
-            applyMergeActions(actions, extractedRoot, remoteName, Object.keys(remote));
-            state.bases[peer] = { files: hashesOf(remote), at: (/* @__PURE__ */ new Date()).toISOString(), name: remoteName };
-            writeSyncState(state);
-            inspectedRestoreArchives.delete(token);
-            return { ok: true, remoteName, firstMerge: !base, summary, safetyArchive };
+            return await applyMergePreview(preview, []);
           } catch (error2) {
             return { ok: false, error: error2.message || "The backup could not be merged." };
           } finally {
-            fs.rmSync(tempRoot, { recursive: true, force: true });
+            discardMergePreview(token);
+            inspectedRestoreArchives.delete(token);
           }
         })();
         try {
@@ -17739,7 +18022,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     }
     const saved = await offerFile(file, data, {
       message: "Library backup ready",
-      detail: "Tap Save to Files, then pick iCloud Drive (a \u201CQuill Backups\u201D folder works well). On the Mac, bring this ZIP in with Restore ZIP\u2026 \u2192 Bring In Changes."
+      detail: "Tap Save to Files, then pick iCloud Drive (a \u201CQuill Backups\u201D folder works well). On the Mac, bring this ZIP in with Settings \u2192 Backups \u2192 Bring In Changes\u2026."
     });
     if (!saved) return backupStatus({ ok: false, error: "The backup was not saved.", canceled: true });
     localMeta("lastExport", { at: (/* @__PURE__ */ new Date()).toISOString(), file, bytes: data.byteLength });
@@ -17752,7 +18035,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const names = list(SAFETY_DIR).filter((n) => n.endsWith(".zip")).sort();
     for (const name of names.slice(0, Math.max(0, names.length - KEEP_SAFETY))) remove(`${SAFETY_DIR}/${name}`);
   }
-  var SAFETY_DIR, KEEP_SAFETY, status, restore, merge, LT_OFF;
+  var SAFETY_DIR, KEEP_SAFETY, status, restore, LT_OFF;
   var init_overrides = __esm({
     "web/overrides.js"() {
       init_browser();
@@ -17795,15 +18078,17 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         }
         return result;
       });
-      merge = handlerFor("merge-backup-archive");
-      ipcMain.handle("merge-backup-archive", async (...args) => {
-        const result = await merge(...args);
-        if (result?.ok) {
-          pruneSafetyArchives();
-          await flush();
-        }
-        return result;
-      });
+      for (const channel of ["merge-backup-archive", "apply-merge-preview"]) {
+        const merge = handlerFor(channel);
+        ipcMain.handle(channel, async (...args) => {
+          const result = await merge(...args);
+          if (result?.ok) {
+            pruneSafetyArchives();
+            await flush();
+          }
+          return result;
+        });
+      }
       (function estimateLastRestore() {
         if (get("/userData/sync-state.json") || !get("/Quill")) return;
         const times = [];
@@ -18077,10 +18362,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T01:21:08.589Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
-  });
-  document.addEventListener("click", (event2) => {
-    if (event2.target.closest?.("#web-restore-zip")) document.getElementById("recovery-archive-btn")?.click();
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T17:25:14.987Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

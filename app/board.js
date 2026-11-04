@@ -540,12 +540,14 @@ const Board = (() => {
     if (linked) {
       const result = await window.quill.moveSceneBetweenChapters({ rel: linked.path, destFolder: destCh.path, destIndex: insertAt })
       if (result?.ok === false) { alert(result.error); return }
+      Editor.followTime?.(linked.path, result.path)
       Tree.refresh()
       await rerender()
       const movedRel = `${destCh.path}/${linked.path.split('/').pop()}`
       Dnd.undoToast(`Moved “${card.title || linked.title}” to ${destCh.folderTitle || destCh.name}.`, async () => {
         const back = await window.quill.moveSceneBetweenChapters({ rel: movedRel, destFolder: srcCh.path, destIndex: from })
         if (back?.ok === false) { alert(back.error); return }
+        Editor.followTime?.(movedRel, back.path)
         Tree.refresh(); rerender()
       })
       return

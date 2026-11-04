@@ -16,7 +16,6 @@ const App = (() => {
   let _backupChoiceBusy = false
   let _archiveRestore = null
   let _archiveRestoreBusy = false
-  let _archiveMerged = false
   let _trackedProjectPath = ''
   let _projectTimeLastTick = Date.now()
   let _projectTimeLastActivity = Date.now()
@@ -1412,7 +1411,6 @@ const App = (() => {
     document.getElementById('archive-merge-btn').disabled = false
     ;['archive-restore-project-btn', 'archive-restore-library-btn', 'archive-merge-btn'].forEach(id => { document.getElementById(id).style.display = '' })
     document.getElementById('archive-restore-choice').hidden = !result?.ok || result.type !== 'library'
-    document.getElementById('archive-restore-copies').hidden = true
     document.getElementById('archive-restore-close').textContent = 'Cancel'
     document.getElementById('archive-restore-close').disabled = false
     if (!result?.ok) {
@@ -1439,7 +1437,6 @@ const App = (() => {
 
   function closeArchiveRestore() {
     if (_archiveRestoreBusy) return
-    if (_archiveMerged) { window.location.reload(); return }
     document.getElementById('archive-restore-modal')?.classList.remove('show')
     _archiveRestore = null
   }
@@ -1473,44 +1470,13 @@ const App = (() => {
     setTimeout(() => window.location.reload(), 1400)
   }
 
-  // Bring In Changes: merge a library backup from the other device (main.js merge-backup-archive).
+  // Bring In Changes from the restore window: hand the verified ZIP to the review (merge-review.js).
   async function mergeInspectedArchive() {
     if (!_archiveRestore || _archiveRestoreBusy) return
-    _archiveRestoreBusy = true
-    const status = document.getElementById('archive-restore-status')
-    const buttons = ['archive-restore-close', 'archive-restore-project-btn', 'archive-restore-library-btn', 'archive-merge-btn']
-    status.classList.remove('error')
-    status.textContent = 'Comparing the backup with this library…'
-    buttons.forEach(id => { document.getElementById(id).disabled = true })
-    const result = await window.quill.mergeBackupArchive({ token:_archiveRestore.token }).catch(error => ({ ok:false, error:error.message }))
-    _archiveRestoreBusy = false
-    if (!result?.ok) {
-      status.classList.add('error')
-      status.textContent = result?.error || 'The merge failed. Nothing in your library was changed.'
-      buttons.forEach(id => { document.getElementById(id).disabled = false })
-      return
-    }
-    const s = result.summary
-    const n = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`
-    const from = result.remoteName || 'the other device'
-    const parts = [
-      s.taken.length + s.restored.length ? `${n(s.taken.length + s.restored.length, 'file')} brought in from the ${from}` : '',
-      s.combined.length ? `${n(s.combined.length, 'settings file')} combined` : '',
-      s.trashed.length ? `${n(s.trashed.length, 'file')} deleted there moved to Trash` : '',
-    ].filter(Boolean)
-    status.textContent = parts.length || s.copies.length
-      ? `${parts.join(' · ') || 'Merged'}.${s.copies.length ? ` ${n(s.copies.length, 'scene was', 'scenes were')} edited on both, so both versions are kept:` : ''}`
-      : `Already up to date: nothing on the ${from} is newer than this library.`
-    const copies = document.getElementById('archive-restore-copies')
-    copies.innerHTML = s.copies.map(c => `<li>${esc(c.rel.replace(/\.md$/, ''))} <span class="muted">and</span> ${esc(c.as.split('/').pop().replace(/\.md$/, ''))}</li>`).join('')
-    copies.hidden = !s.copies.length
-    document.getElementById('archive-restore-content').hidden = true
-    // .btn sets display, which beats the hidden attribute.
-    ;['archive-restore-project-btn', 'archive-restore-library-btn', 'archive-merge-btn'].forEach(id => { document.getElementById(id).style.display = 'none' })
-    const close = document.getElementById('archive-restore-close')
-    close.textContent = 'Done'
-    close.disabled = false
-    _archiveMerged = (s.taken.length + s.restored.length + s.combined.length + s.trashed.length + s.copies.length) > 0
+    const { token, archiveName } = _archiveRestore
+    document.getElementById('archive-restore-modal')?.classList.remove('show')
+    _archiveRestore = null
+    MergeReview.review(token, archiveName)
   }
 
   // ── Recovery Center ───────────────────────────────────────

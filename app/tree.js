@@ -1006,11 +1006,13 @@ const Tree = (() => {
       _dragSrc = null
       const result = await window.quill.moveSceneBetweenChapters({ rel: srcPath, destFolder, destIndex: Number.isInteger(destIndex) ? destIndex : undefined })
       if (result?.ok === false) { alert(result.error); return }
+      Editor.followTime?.(srcPath, result.path)
       await afterSceneMoved(srcPath, destFolder)
       const movedPath = `${destFolder}/${srcPath.split('/').pop()}`
       Dnd.undoToast(`Moved “${fileName}” to ${destFolder.split('/').pop()}.`, async () => {
         const back = await window.quill.moveSceneBetweenChapters({ rel: movedPath, destFolder: srcFolder, destIndex: srcIndex >= 0 ? srcIndex : undefined })
         if (back?.ok === false) { alert(back.error); return }
+        Editor.followTime?.(movedPath, back.path)
         await afterSceneMoved(movedPath, srcFolder)
       })
       return
@@ -1038,7 +1040,8 @@ const Tree = (() => {
       }
     } catch {}
 
-    await window.quill.moveFile({ rel: srcPath, destFolder })
+    const moved = await window.quill.moveFile({ rel: srcPath, destFolder })
+    if (moved?.path) Editor.followTime?.(srcPath, moved.path)
     _dragSrc = null
     refresh()
   }
@@ -1284,6 +1287,7 @@ const Tree = (() => {
     const renamedProjectType = (_treeData?.children || []).find(child => child.path === _focusedProject)?.folder_type || 'general'
     if (renamedFocusedProject) _focusedProject = result.path
     if (_renamePath.type === 'folder') App.followRename(_renamePath.path, result.path)
+    else Editor.followTime?.(_renamePath.path, result.path)
     if (_renamePath.type === 'file') {
       try {
         const folder = _renamePath.path.includes('/')

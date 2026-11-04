@@ -1257,12 +1257,25 @@
       <p class="archive-restore-choice" id="archive-restore-choice" hidden><b>Bring In Changes</b> adds what changed on your other device and keeps both versions of anything edited on both, so nothing here is overwritten. <b>Replace Library</b> makes this library match the backup exactly.</p>
     </div>
     <div id="archive-restore-status" class="archive-restore-status" aria-live="polite"></div>
-    <ul id="archive-restore-copies" class="archive-restore-copies" hidden></ul>
     <div class="modal-btns archive-restore-actions">
       <button class="btn" id="archive-restore-close">Cancel</button>
       <button class="btn" id="archive-restore-project-btn" hidden>Restore project</button>
       <button class="btn danger" id="archive-restore-library-btn" hidden>Replace Library</button>
       <button class="btn primary" id="archive-merge-btn" hidden>Bring In Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- BRING IN CHANGES (merge-review.js) -->
+<div class="overlay" id="merge-review-modal">
+  <div class="modal merge-review-modal">
+    <h3 id="merge-review-title">Bring in changes</h3>
+    <p id="merge-review-summary" class="merge-review-summary"></p>
+    <div id="merge-review-list" class="merge-review-list"></div>
+    <div id="merge-review-status" class="archive-restore-status" aria-live="polite"></div>
+    <div class="modal-btns">
+      <button class="btn" id="merge-review-cancel">Cancel</button>
+      <button class="btn primary" id="merge-review-apply" disabled>Bring In Changes</button>
     </div>
   </div>
 </div>
@@ -1485,7 +1498,7 @@
           <select id="settings-cloud-retention"><option value="10">10</option></select></div>
         <div class="settings-backup-actions">
           <button class="btn sm web-hidden" id="settings-cloud-open">Open Folder</button>
-          <button class="btn sm" id="web-restore-zip">Bring In Changes…</button>
+          <button class="btn sm" id="settings-bring-in">Bring In Changes…</button>
           <button class="btn primary" id="settings-cloud-now">Back Up Now</button>
         </div>
         <div class="settings-backup-status" id="settings-cloud-status"></div>
@@ -1802,6 +1815,7 @@
 <script src="stylelab-study.js"></script>
 <script src="stylelab-whatif.js"></script>
 <script src="concept-art.js"></script>
+<script src="merge-review.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

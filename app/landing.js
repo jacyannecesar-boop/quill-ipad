@@ -1785,6 +1785,7 @@ const Landing = (() => {
           rel: source.path, destFolder: chapter.path, destIndex: targetIndex,
         })
         if (!result?.ok) { alert(result?.error || 'Could not move that scene.'); return }
+        Editor.followTime?.(source.path, result.path)
       }
       await Tree.refresh()
       await loadNovelOutliner(_path)

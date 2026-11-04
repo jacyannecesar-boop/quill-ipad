@@ -54,11 +54,36 @@ const Editor = (() => {
   let _timeLastActivity = 0    // last keypress, click, typing or scroll
   const TIME_IDLE_MS  = 2 * 60 * 1000  // same idle cutoff as project time in app.js
 
-  function _timeKey(path) { return 'quill_time_' + path.replace(/[^a-z0-9]/gi, '_') }
+  // Banked seconds per library path, kept in the library's stats by main (add-scene-seconds), so
+  // they follow the file when it is renamed or moved and travel in backups.
+  let _sceneSeconds = {}
 
   function _getStoredSeconds(path) {
-    return parseInt(localStorage.getItem(_timeKey(path)) || '0', 10)
+    return Math.max(0, Number(_sceneSeconds[path]) || 0)
   }
+
+  // Earlier builds kept the counts in localStorage, keyed by path; main places each one and the
+  // placed keys are removed. A key it can't place stays where it was.
+  async function _loadSceneSeconds() {
+    try { _sceneSeconds = { ..._sceneSeconds, ...(await window.quill.getSceneSeconds()) } } catch {}
+    const legacy = {}
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key?.startsWith('quill_time_')) legacy[key] = localStorage.getItem(key)
+      }
+    } catch { return }
+    if (!Object.keys(legacy).length) return
+    try {
+      const result = await window.quill.importLegacySceneSeconds({ entries:legacy })
+      if (!result?.ok) return
+      _sceneSeconds = result.sceneSeconds || _sceneSeconds
+      for (const key of Object.keys(result.placed || {})) localStorage.removeItem(key)
+      _updateTimeDisplay()
+    } catch {}
+  }
+
+  function sceneSeconds() { return { ..._sceneSeconds } }
 
   // Seconds since _timeStart, stopping two minutes after the last activity.
   function _activeSeconds() {
@@ -73,8 +98,11 @@ const Editor = (() => {
     // Past the idle cutoff, restart the clock so the idle stretch is never counted later.
     if (Date.now() - _timeLastActivity > TIME_IDLE_MS) _timeStart = Date.now()
     if (elapsed < 1) return
-    const stored = _getStoredSeconds(_timeFilePath)
-    localStorage.setItem(_timeKey(_timeFilePath), stored + elapsed)
+    const rel = _timeFilePath
+    _sceneSeconds[rel] = _getStoredSeconds(rel) + elapsed
+    // Main's total is the true one (it may hold time this cache hasn't loaded yet).
+    window.quill.addSceneSeconds({ rel, seconds:elapsed })
+      .then(result => { if (result?.ok) _sceneSeconds[rel] = result.seconds }).catch(() => {})
     _timeStart = Date.now()  // reset so next flush doesn't double-count
   }
 
@@ -113,6 +141,7 @@ const Editor = (() => {
   }
 
   function init() {
+    _loadSceneSeconds()
     // font family
     const fp = document.getElementById('font-picker')
     fp.value = localStorage.getItem('quill_font') || 'poppins'
@@ -1245,13 +1274,21 @@ const Editor = (() => {
   function followRename(from, to) {
     _path = rebasePath(_path, from, to)
     _notesFor = rebasePath(_notesFor, from, to)
-    _timeFilePath = rebasePath(_timeFilePath, from, to)
+    followTime(from, to)
     Comments.followRename(from, to)
+  }
+
+  // A scene renamed or moved: main has moved its banked time (remapRenamedPaths), so the clock
+  // and the cache follow, and the next flush lands on the new path.
+  function followTime(from, to) {
+    _timeFilePath = rebasePath(_timeFilePath, from, to)
+    _sceneSeconds = Object.fromEntries(Object.entries(_sceneSeconds).map(([p, secs]) => [rebasePath(p, from, to), secs]))
+    _flushTime()
   }
 
   return { init, openFile, save, scheduleSave, currentPath, followRename, reloadFromDisk, flushPending, cancelPendingOpen, freeze, unfreeze, syncSynopsisFromBoard, syncStatusFromOutliner,
            toggleInspector, toggleNotes: toggleInspector,
-           toggleTypewriter, toggleIndentMode, applyFontSize, exportDoc, toggleFind, closeFind, getTimeSpent, stopTimeTracking,
+           toggleTypewriter, toggleIndentMode, applyFontSize, exportDoc, toggleFind, closeFind, getTimeSpent, sceneSeconds, followTime, reloadSceneSeconds:_loadSceneSeconds, stopTimeTracking,
            handleEditorCommand }
 })()
 

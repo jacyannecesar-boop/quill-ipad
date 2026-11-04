@@ -196,30 +196,16 @@ const Sprint = (() => {
         : `${mins} min`
     }
 
-    // scene time breakdown — scan localStorage for quill_time_ keys
+    // Scene time breakdown, from the library's per-path counts (Editor.sceneSeconds).
     const sceneSection = document.getElementById('scene-times-section')
     const sceneList    = document.getElementById('scene-times-list')
     if (sceneSection && sceneList) {
       const entries = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (!key.startsWith('quill_time_')) continue
-        const secs = parseInt(localStorage.getItem(key) || '0', 10)
+      const seconds = typeof Editor !== 'undefined' ? (Editor.sceneSeconds?.() || {}) : {}
+      for (const [rel, value] of Object.entries(seconds)) {
+        const secs = Number(value) || 0
         if (secs < 60) continue
-        // key = 'quill_time_' + path.replace(/[^a-z0-9]/gi, '_')
-        // e.g. quill_time_The_Drowned_Gods_Act_1_Chapter_1_Scene_1_md
-        // strip prefix and trailing _md, then take last non-empty segment
-        const raw   = key.replace('quill_time_', '').replace(/_md$/i, '')
-        const parts = raw.split('_').filter(Boolean)
-        // scene name is the last segment(s) — join last 2-3 parts for readability
-        // but skip pure numeric segments (like date prefixes)
-        const nameParts = []
-        for (let j = parts.length - 1; j >= 0 && nameParts.length < 3; j--) {
-          if (/^\d{4,}$/.test(parts[j])) break // stop at date-like numbers
-          nameParts.unshift(parts[j])
-        }
-        const name = nameParts.join(' ') || raw
-        entries.push({ name, secs })
+        entries.push({ name: rel.split('/').pop().replace(/\.md$/i, ''), secs })
       }
       entries.sort((a, b) => b.secs - a.secs)
       if (entries.length) {
