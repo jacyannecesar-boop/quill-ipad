@@ -557,6 +557,8 @@ const Settings = (() => {
     $('settings-cloud-now').disabled = !available || _cloudBusy
     $('settings-cloud-choose').disabled = _cloudBusy
     $('settings-cloud-now').textContent = _cloudBusy ? 'Backing Up…' : 'Back Up Now'
+    const seeChanges = document.getElementById('web-see-changes')   // iPad only (build-web)
+    if (seeChanges) seeChanges.hidden = _cloudBusy || !current.changesSinceExport
     const message = $('settings-cloud-status')
     message.classList.toggle('error', Boolean(current.lastError))
     if (_cloudBusy) message.textContent = 'Saving current work and creating a verified library archive…'

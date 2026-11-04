@@ -56,3 +56,12 @@ html.quill-web .web-hidden{display:none !important}
 .web-relay-control{display:flex;gap:var(--sp-2);align-items:center}
 .web-relay-control .settings-text{width:min(260px,40vw)}
 #web-cg-relay-status:empty{display:none}
+
+/* What changed since the last backup (ui.js changesSheet) */
+.web-changes{max-height:min(50vh,420px);overflow-y:auto;margin:var(--sp-2) 0 0;border-top:1px solid var(--border)}
+.web-changes-group{padding:var(--sp-2) 0;border-bottom:1px solid var(--border)}
+.web-changes-label{font:500 var(--fs-xs)/1.4 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:var(--sp-1)}
+.web-changes ul{list-style:none;margin:0;padding:0}
+.web-changes li{display:flex;flex-direction:column;padding:3px 0;font-size:var(--fs-md)}
+.web-changes-where{font-size:var(--fs-sm);color:var(--muted)}
+.settings-backup-changes{margin-top:var(--sp-2)}

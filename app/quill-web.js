@@ -2229,8 +2229,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   // web/vfs.js
   var vfs_exports = {};
   __export(vfs_exports, {
+    changedSinceExportPaths: () => changedSinceExportPaths,
     changesSinceLastExport: () => changesSinceLastExport,
     flush: () => flush,
+    forgetChanges: () => forgetChanges,
     fsError: () => fsError,
     get: () => get,
     list: () => list,
@@ -2391,6 +2393,13 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     changedSinceExport.clear();
     localMeta("changedSinceExport", []);
   }
+  function changedSinceExportPaths() {
+    return [...changedSinceExport];
+  }
+  function forgetChanges(paths) {
+    for (const p of paths) changedSinceExport.delete(p);
+    localMeta("changedSinceExport", [...changedSinceExport]);
+  }
   function openDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, 1);
@@ -2503,6 +2512,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   // web/ui.js
   var ui_exports = {};
   __export(ui_exports, {
+    changesSheet: () => changesSheet,
     closeSignInSheet: () => closeSignInSheet,
     messageBox: () => messageBox,
     mimeFor: () => mimeFor,
@@ -2527,6 +2537,33 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     const backdrop = el("div", { class: "web-sheet-backdrop" }, [el("div", { class: "web-sheet", role: "dialog" }, content)]);
     document.body.append(backdrop);
     return () => backdrop.remove();
+  }
+  function changesSheet(items, { onBackUp } = {}) {
+    let close;
+    const groups = CHANGE_GROUPS.map(([group, label]) => {
+      const rows = items.filter((item) => item.group === group);
+      if (!rows.length) return null;
+      return el("div", { class: "web-changes-group" }, [
+        el("div", { class: "web-changes-label", text: `${label} \xB7 ${rows.length}` }),
+        el("ul", {}, rows.map((item) => el("li", {}, [
+          el("span", { class: "web-changes-name", text: item.name }),
+          item.where ? el("span", { class: "web-changes-where", text: item.where }) : null
+        ])))
+      ]);
+    });
+    const backUp = onBackUp ? el("button", { class: "btn primary", text: "Back Up Now", onclick: () => {
+      close();
+      onBackUp();
+    } }) : null;
+    close = sheet([
+      el("h3", { text: items.length ? `${items.length} change${items.length === 1 ? "" : "s"} since your last backup` : "Nothing changed since your last backup" }),
+      el("p", { class: "web-sheet-hint", text: "Made on this iPad and not yet in a backup or on the Mac. Files Bring In Changes brought over from the Mac aren\u2019t counted." }),
+      items.length ? el("div", { class: "web-changes" }, groups) : null,
+      el("div", { class: "web-sheet-buttons" }, [el("button", { class: "btn", text: "Close", onclick: () => close() }), backUp])
+    ]);
+    document.querySelector(".web-sheet-backdrop:last-child")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) close();
+    });
   }
   function messageBox({ message = "", detail = "", buttons = ["OK"], defaultId = 0, cancelId } = {}) {
     return new Promise((resolve) => {
@@ -2733,11 +2770,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       ])
     ]);
   }
-  var import_path_browserify2, MIME, mimeFor, closeSignIn;
+  var import_path_browserify2, CHANGE_GROUPS, MIME, mimeFor, closeSignIn;
   var init_ui = __esm({
     "web/ui.js"() {
       import_path_browserify2 = __toESM(require_path_browserify());
       init_vfs();
+      CHANGE_GROUPS = [["edited", "Edited"], ["new", "New"], ["deleted", "Deleted"], ["settings", "Quill data (notes, order, stats)"]];
       MIME = {
         zip: "application/zip",
         md: "text/markdown",
@@ -3280,6 +3318,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         chooseRestoreArchive: () => ipcRenderer2.invoke("choose-restore-archive"),
         restoreBackupArchive: (args) => ipcRenderer2.invoke("restore-backup-archive", args),
         mergeBackupArchive: (args) => ipcRenderer2.invoke("merge-backup-archive", args),
+        libraryChanges: () => ipcRenderer2.invoke("library-changes"),
         previewMergeArchive: (args) => ipcRenderer2.invoke("preview-merge-archive", args),
         mergePreviewDiff: (args) => ipcRenderer2.invoke("merge-preview-diff", args),
         discardMergePreview: (args) => ipcRenderer2.invoke("discard-merge-preview", args),
@@ -16143,6 +16182,51 @@ ${sc.text}`);
           };
         });
       }
+      var DATA_FILE_NAMES = {
+        ".quill_meta": "Folder order and settings",
+        ".quill_stats.json": "Writing stats",
+        ".quill_day_text.json": "Daily word history",
+        ".board.json": "Board",
+        ".timeline.json": "Timeline",
+        ".structure.json": "Structure",
+        ".scraps.json": "Scraps",
+        ".revisions.json": "Revision notes",
+        ".brainstorm-history.json": "Brainstorm conversations"
+      };
+      var dataFileName = (name) => DATA_FILE_NAMES[name] || name;
+      function describeLocalChanges(rels) {
+        const bases = Object.values(readSyncState().bases).map((base) => base.files || {});
+        const matched = [], items = /* @__PURE__ */ new Map();
+        for (const rel of [...new Set(rels)].filter((rel2) => typeof rel2 === "string" && !BackupMerge.IGNORED(rel2))) {
+          const full = path5.join(ROOT, rel);
+          let hash = null;
+          try {
+            hash = BackupMerge.sha256(fs.readFileSync(full));
+          } catch {
+          }
+          if (hash ? bases.some((files) => files[rel] === hash) : !bases.some((files) => files[rel])) {
+            matched.push(rel);
+            continue;
+          }
+          const owner = sceneOwnerOf(rel);
+          const id = owner || rel;
+          if (items.has(id)) continue;
+          const known = bases.some((files) => files[id]);
+          const exists = fs.existsSync(path5.join(ROOT, id));
+          const parts = id.split("/");
+          const scene = /\.md$/i.test(id);
+          items.set(id, {
+            rel: id,
+            scene,
+            group: BackupMerge.isData(id) || id.startsWith(".trash/") ? "settings" : !exists ? "deleted" : known ? "edited" : "new",
+            // A deleted scene's title is gone with it; its filename is the next best name.
+            name: scene ? exists && sceneTitle(path5.join(ROOT, id)) || parts.at(-1).replace(/\.md$/i, "").replace(/^\d{4}-\d{2}-\d{2}[_-]/, "").replace(/[-_]/g, " ") : dataFileName(parts.at(-1)),
+            where: parts.slice(0, -1).join(" \u203A ")
+          });
+        }
+        return { matched, items: [...items.values()].sort((a, b) => a.rel.localeCompare(b.rel)) };
+      }
+      ipcMain2.handle("describe-local-changes", (_, { rels } = {}) => describeLocalChanges(Array.isArray(rels) ? rels : []));
       function mergeReview(preview) {
         return {
           ok: true,
@@ -18008,9 +18092,15 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
 
   // web/overrides.js
   var overrides_exports = {};
-  function backupStatus(extra = {}) {
+  async function libraryChanges() {
+    const rels = changedSinceExportPaths().map((p) => p.slice("/Quill/".length));
+    const { matched, items } = await handlerFor("describe-local-changes")({}, { rels });
+    if (matched.length) forgetChanges(matched.map((rel) => `/Quill/${rel}`));
+    return items;
+  }
+  async function backupStatus(extra = {}) {
     const last = localMeta("lastExport") || {};
-    const changes = changesSinceLastExport();
+    const changes = await libraryChanges().then((items) => items.length, () => changesSinceLastExport());
     return {
       web: true,
       configured: true,
@@ -18055,7 +18145,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     try {
       data = await libraryZip();
     } catch (error) {
-      return backupStatus({ ok: false, error: error.message, lastError: error.message });
+      return await backupStatus({ ok: false, error: error.message, lastError: error.message });
     }
     const saved = await offerFile(file, data, {
       message: "Library backup ready",
@@ -18083,6 +18173,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       SAFETY_DIR = "/Quill Recovery Backups";
       KEEP_SAFETY = 2;
       status = () => backupStatus();
+      ipcMain.handle("library-changes", libraryChanges);
       ipcMain.handle("get-cloud-backup-settings", status);
       ipcMain.handle("check-cloud-backup-health", status);
       ipcMain.handle("run-cloud-backup-if-due", status);
@@ -18092,7 +18183,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       ipcMain.handle("backup-cloud-library", exportLibrary);
       restore = handlerFor("restore-backup-archive");
       ipcMain.handle("restore-backup-archive", async (event2, args = {}) => {
-        const changes = changesSinceLastExport();
+        const changes = (await libraryChanges().catch(() => null))?.length ?? changesSinceLastExport();
         if (args.scope === "library" && changes > 0) {
           const { response } = await messageBox({
             message: `${changes} change${changes === 1 ? "" : "s"} on this iPad ${changes === 1 ? "hasn\u2019t" : "haven\u2019t"} been backed up.`,
@@ -18372,6 +18463,11 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   else bind();
 
   // web/boot.js
+  document.addEventListener("click", async (event2) => {
+    if (!event2.target.closest?.("#web-see-changes")) return;
+    const items = await window.quill.libraryChanges().catch(() => []);
+    changesSheet(items, { onBackUp: () => document.getElementById("settings-cloud-now")?.click() });
+  });
   globalThis.Buffer = import_buffer7.Buffer;
   globalThis.global = globalThis;
   globalThis.setImmediate ||= (fn, ...args) => setTimeout(fn, 0, ...args);
@@ -18499,7 +18595,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T20:01:05.413Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T20:07:04.131Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
