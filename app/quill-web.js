@@ -18339,6 +18339,20 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   globalThis.global = globalThis;
   globalThis.setImmediate ||= (fn, ...args) => setTimeout(fn, 0, ...args);
   globalThis.clearImmediate ||= (id) => clearTimeout(id);
+  if (typeof ReadableStream !== "undefined" && !ReadableStream.prototype[Symbol.asyncIterator]) {
+    ReadableStream.prototype[Symbol.asyncIterator] = async function* () {
+      const reader = this.getReader();
+      try {
+        for (; ; ) {
+          const { done, value } = await reader.read();
+          if (done) return;
+          yield value;
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    };
+  }
   document.documentElement.classList.add("quill-web");
   window.__quillWeb = { vfs: vfs_exports, ui: ui_exports };
   var OIDC = "https://auth.openai.com/.well-known/openid-configuration";
@@ -18448,7 +18462,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T17:39:20.163Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-04T17:52:55.423Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
