@@ -299,7 +299,7 @@
             <span id="read-time"></span>
             <span id="time-spent" style="display:none"></span>
           </div>
-          <input type="text" id="entry-title" placeholder="Title" autocomplete="off" spellcheck="true">
+          <input type="text" id="entry-title" placeholder="Title" autocomplete="off" spellcheck="true" autocapitalize="off">
           <div id="meta-fields">
             <div class="meta-mood-wrap" id="meta-mood-wrap">
               <span class="meta-mood-label" id="meta-mood-label">Mood</span>
@@ -1456,6 +1456,10 @@
         <div class="settings-row">
           <div><span class="settings-label">Spellcheck</span><span class="settings-hint">Underline misspelled words in scenes and chapters.</span></div>
           <div class="settings-control"><input type="checkbox" id="settings-spellcheck"></div>
+        </div>
+        <div class="settings-row">
+          <div><span class="settings-label">Capitalize sentences</span><span class="settings-hint">When on, the iPad keyboard capitalizes the first word of each sentence in scenes, chapters and titles.</span></div>
+          <div class="settings-control"><input type="checkbox" id="settings-autocapitalize"></div>
         </div>
         <div class="settings-row">
           <div><span class="settings-label">English dialect</span><span class="settings-hint">Used by both offline grammar checkers.</span></div>

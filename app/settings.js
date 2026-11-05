@@ -30,7 +30,7 @@ const Settings = (() => {
     uiFont: 'poppins', headingFont: 'lora',
     palette: 'light', systemLight: 'light', systemDark: 'dark', accent: '', uiSize: 'default',
     zoom: 1, pageWidth: 820, margin: 60, lineHeight: 1.85,
-    spellcheck: true, languageTool: false, dialect: 'american',
+    spellcheck: true, autoCapitalize: false, languageTool: false, dialect: 'american',
   }
 
   // Bounds for numeric settings; out-of-range or garbage values fall back to the default.
@@ -62,6 +62,7 @@ const Settings = (() => {
     if (raw.uiFont in UI_FONTS) s.uiFont = raw.uiFont
     if (raw.headingFont in UI_FONTS) s.headingFont = raw.headingFont
     if (typeof raw.spellcheck === 'boolean') s.spellcheck = raw.spellcheck
+    if (typeof raw.autoCapitalize === 'boolean') s.autoCapitalize = raw.autoCapitalize
     if (typeof raw.languageTool === 'boolean') s.languageTool = raw.languageTool
     if (['american', 'british', 'canadian', 'australian', 'indian'].includes(raw.dialect)) s.dialect = raw.dialect
     for (const [k, [lo, hi]] of Object.entries(RANGES)) {
@@ -120,8 +121,10 @@ const Settings = (() => {
     _storageSet('quill_theme', base)
 
     const spell = _s.spellcheck ? 'true' : 'false'
+    // The iPad keyboard capitalizes each sentence unless told not to; desktops ignore this.
+    const caps = _s.autoCapitalize ? 'sentences' : 'off'
     document.querySelectorAll('#entry-body .ProseMirror, #entry-title, #chapter-body .ProseMirror')
-      .forEach(el => el.setAttribute('spellcheck', spell))
+      .forEach(el => { el.setAttribute('spellcheck', spell); el.setAttribute('autocapitalize', caps) })
   }
 
   function get(key) {
@@ -207,6 +210,7 @@ const Settings = (() => {
     $('settings-typewriter').checked = get('typewriter')
     $('settings-grammar').checked = get('grammarInline')
     $('settings-spellcheck').checked = _s.spellcheck
+    $('settings-autocapitalize').checked = _s.autoCapitalize
     $('settings-dialect').value = _s.dialect
     $('settings-ui-font').value = _s.uiFont
     $('settings-heading-font').value = _s.headingFont
@@ -508,6 +512,7 @@ const Settings = (() => {
       $(id).onchange = e => { set(key, e.target.checked); _applyLegacyToEditor([key]) }
     }
     $('settings-spellcheck').onchange = e => set('spellcheck', e.target.checked)
+    $('settings-autocapitalize').onchange = e => set('autoCapitalize', e.target.checked)
     $('settings-ui-font').onchange = e => set('uiFont', e.target.value)
     $('settings-heading-font').onchange = e => set('headingFont', e.target.value)
     $('settings-dialect').onchange = e => {

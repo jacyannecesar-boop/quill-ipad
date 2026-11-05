@@ -26328,6 +26328,7 @@ ${fromBody}`;
 
   // renderer/src/editor/editor-instance.js
   var spellcheckAttr = () => window.QuillSettings?.get("spellcheck") === false ? "false" : "true";
+  var autocapitalizeAttr = () => window.QuillSettings?.get("autoCapitalize") === true ? "sentences" : "off";
   var _editor = null;
   var _opts = null;
   var _grammarInline = false;
@@ -26337,7 +26338,7 @@ ${fromBody}`;
       extensions: buildExtensions({ placeholder: _opts.placeholder }),
       // The host div stops being the editable one; spellcheck has to live on the inner node
       // or Electron's native spell checker won't see the text.
-      editorProps: { attributes: { spellcheck: spellcheckAttr() } },
+      editorProps: { attributes: { spellcheck: spellcheckAttr(), autocapitalize: autocapitalizeAttr() } },
       content: content || void 0,
       onUpdate: () => {
         if (_opts.onUpdate) _opts.onUpdate();
@@ -26592,6 +26593,7 @@ ${fromBody}`;
 
   // renderer/src/editor/chapter-instance.js
   var spellcheckAttr2 = () => window.QuillSettings?.get("spellcheck") === false ? "false" : "true";
+  var autocapitalizeAttr2 = () => window.QuillSettings?.get("autoCapitalize") === true ? "sentences" : "off";
   var _editor2 = null;
   var _opts2 = null;
   var _order = [];
@@ -26603,7 +26605,7 @@ ${fromBody}`;
     _editor2 = new Editor({
       element: _opts2.element,
       extensions: buildChapterExtensions({ placeholder: "This chapter has no scenes yet." }),
-      editorProps: { attributes: { spellcheck: spellcheckAttr2() } },
+      editorProps: { attributes: { spellcheck: spellcheckAttr2(), autocapitalize: autocapitalizeAttr2() } },
       content,
       onUpdate: () => {
         if (_opts2.onUpdate) _opts2.onUpdate();
