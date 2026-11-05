@@ -19,9 +19,13 @@
 /* ── Home-screen app: the status bar and rounded corners ─────── */
 /* Settings → Interface text size zooms the whole page (web/shim/electron.js). A zoomed 100dvh is
    taller than the screen, which pushed the sidebar footer (Recovery, Trash, Settings) off the
-   bottom. Pinning the body to the screen edges instead fills the screen at any zoom. */
+   bottom. Pinning the body to the screen edges instead fills the screen at any zoom.
+   text-size-adjust is none, not 100%: iPad Safari sizes text from a percentage without the zoom,
+   so the zoom grew the spacing but left the text as it was. none also stops iPadOS enlarging
+   text on rotation, which is what 100% was there for. */
+html.quill-web,html.quill-web body{-webkit-text-size-adjust:none;text-size-adjust:none}
 html.quill-web body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  position:fixed;inset:0;height:auto;box-sizing:border-box;-webkit-text-size-adjust:100%}
+  position:fixed;inset:0;height:auto;box-sizing:border-box}
 
 /* The Mac sizes the sidebar and main column at 100vh. Under the padding above that overflows
    by the status bar and home-indicator insets and pushes their bottom bars off screen, so on the
