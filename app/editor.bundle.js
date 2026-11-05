@@ -21384,6 +21384,8 @@ ${prefix}
     const $from = state.doc.resolve(from2);
     return $from.parent.textBetween(Math.max(0, $from.parentOffset - count), $from.parentOffset, "", "");
   }
+  var DOUBLE_QUOTES = /* @__PURE__ */ new Set(['"', "\u201C", "\u201D"]);
+  var SINGLE_QUOTES = /* @__PURE__ */ new Set(["'", "\u2018", "\u2019"]);
   function handleTextInput(view, from2, to, text) {
     if (!smartTypographyOn() || text.length !== 1) return false;
     const before = textBefore(view.state, from2);
@@ -21395,11 +21397,11 @@ ${prefix}
     } else if (text === "." && before.endsWith("..")) {
       start = from2 - 2;
       replacement = "\u2026";
-    } else if (text === '"') {
+    } else if (DOUBLE_QUOTES.has(text)) {
       const paragraph = textBefore(view.state, from2, Infinity);
       const open = before === "" || /[\s([{]$/.test(before) || before.endsWith("\u2014") && paragraph.lastIndexOf("\u201C") <= paragraph.lastIndexOf("\u201D");
       replacement = open ? "\u201C" : "\u201D";
-    } else if (text === "'") {
+    } else if (SINGLE_QUOTES.has(text)) {
       const paragraph = textBefore(view.state, from2, Infinity);
       const lastOpen = paragraph.lastIndexOf("\u2018");
       const singleOpen = lastOpen >= 0 && !new RegExp("\u2019(?!\\p{L})", "u").test(paragraph.slice(lastOpen + 1));
