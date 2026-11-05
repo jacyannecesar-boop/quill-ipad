@@ -2991,7 +2991,16 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   function sendToRenderer(channel, ...args) {
     webContents.send(channel, ...args);
   }
-  var import_buffer, handlers, mainListeners, rendererListeners, markReady, ready, pendingFiles, clone, webContents, event, ipcMain, ipcRenderer, contextBridge, webFrame, webUtils, win, BrowserWindow, app, dialog, shell, Menu, MenuItem, safeStorage, session, electron_default;
+  function fitViewport() {
+    const meta2 = document.querySelector('meta[name="viewport"]');
+    if (!meta2) return;
+    const vv = window.visualViewport;
+    const windowWidth = vv ? vv.width * vv.scale : window.innerWidth;
+    const content = uiZoom === 1 ? "width=device-width,initial-scale=1,viewport-fit=cover" : `width=${Math.round(windowWidth / uiZoom)},initial-scale=${uiZoom},minimum-scale=${uiZoom},maximum-scale=${uiZoom},viewport-fit=cover`;
+    if (meta2.getAttribute("content") !== content) meta2.setAttribute("content", content);
+    document.documentElement.classList.toggle("web-viewport-zoom", uiZoom !== 1);
+  }
+  var import_buffer, handlers, mainListeners, rendererListeners, markReady, ready, pendingFiles, clone, webContents, event, ipcMain, ipcRenderer, contextBridge, onIPad, uiZoom, webFrame, webUtils, win, BrowserWindow, app, dialog, shell, Menu, MenuItem, safeStorage, session, electron_default;
   var init_electron = __esm({
     "web/shim/electron.js"() {
       import_buffer = __toESM(require_buffer());
@@ -3085,9 +3094,19 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           window[name] = api;
         }
       };
+      onIPad = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      uiZoom = 1;
+      if (onIPad) window.addEventListener("resize", () => {
+        if (uiZoom !== 1) fitViewport();
+      });
       webFrame = {
         setZoomFactor(factor) {
-          document.documentElement.style.zoom = String(factor);
+          if (!onIPad) {
+            document.documentElement.style.zoom = String(factor);
+            return;
+          }
+          uiZoom = factor;
+          fitViewport();
         }
       };
       webUtils = {
@@ -14473,9 +14492,9 @@ ${body.trim()}`;
         for (const { full } of allFiles) {
           try {
             const { meta: meta2, body } = parseFM(fs.readFileSync(full, "utf8"));
-            const text = stripRevisionNotes(body).trim();
+            const text = proseText(body).trim();
             if (text.length < 80) continue;
-            const paras = text.split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 60);
+            const paras = text.split(/\n+/).map((p) => p.replace(/[ \t]{2,}/g, " ").trim()).filter((p) => p.length > 60);
             if (!paras.length) continue;
             const para = paras[Math.floor(Math.random() * paras.length)];
             let excerpt = para;
@@ -18616,7 +18635,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     loadThesaurus();
     firstScreens(empty, stored);
   }
-  var onIPad = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  var onIPad2 = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
   var fromHomeScreen = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   async function firstScreens(empty, stored) {
     if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
@@ -18624,7 +18643,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     start2();
     show();
     await new Promise((r) => setTimeout(r, 600));
-    if (onIPad && !fromHomeScreen) {
+    if (onIPad2 && !fromHomeScreen) {
       const { response } = await messageBox({
         message: "Open Quill from your Home Screen",
         detail: "Safari keeps a separate library from the Home Screen app, so work saved in this tab won\u2019t appear there.\n\nTap Share \u2192 Add to Home Screen, then open Quill from its icon and restore your backup there.",
@@ -18692,7 +18711,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-05T04:30:26.753Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-05T04:35:03.220Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
