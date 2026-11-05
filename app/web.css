@@ -17,14 +17,20 @@
 .web-print-frame{position:fixed;left:-10000px;top:0;width:850px;height:1100px;border:0;opacity:0;pointer-events:none}
 
 /* ── Home-screen app: the status bar and rounded corners ─────── */
+/* Settings → Interface text size zooms the whole page (web/shim/electron.js). A zoomed 100dvh is
+   taller than the screen, which pushed the sidebar footer (Recovery, Trash, Settings) off the
+   bottom. Pinning the body to the screen edges instead fills the screen at any zoom. */
 html.quill-web body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  height:100dvh;box-sizing:border-box;-webkit-text-size-adjust:100%}
+  position:fixed;inset:0;height:auto;box-sizing:border-box;-webkit-text-size-adjust:100%}
 
 /* The Mac sizes the sidebar and main column at 100vh. Under the padding above that overflows
    by the status bar and home-indicator insets and pushes their bottom bars off screen, so on the
    web they fill the body instead. Dialogs keep clear of the same insets. */
 html.quill-web #sidebar,html.quill-web #main{height:auto;align-self:stretch;min-height:0}
 html.quill-web .settings-modal{height:min(560px,calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
+/* Dialogs are sized in vh, which the same zoom stretches past the screen; cap them to the
+   overlay, which is pinned to the screen edges and so is never taller than it. */
+html.quill-web .overlay>.modal{max-height:calc(100% - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
 
 /* ── Mac-only settings ──────────────────────────────────────── */
 html.quill-web .settings-row:has(#settings-lt-install),
