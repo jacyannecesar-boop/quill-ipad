@@ -30,13 +30,19 @@ html.quill-web body{padding:env(safe-area-inset-top) env(safe-area-inset-right) 
    web they fill the body instead. Dialogs keep clear of the same insets. */
 html.quill-web #sidebar,html.quill-web #main{height:auto;align-self:stretch;min-height:0}
 
-/* On the iPad, Interface text size scales the viewport rather than zooming (web/shim/electron.js),
-   which enlarges the manuscript too. Its font is shrunk by the same factor so it keeps its own
-   size, and the editor's zoom no longer divides the interface size back out. */
-html.web-viewport-zoom #editor-inner,
-html.web-viewport-zoom #chapter-scroll>#chapter-body{zoom:var(--editor-zoom,1)}
-html.web-viewport-zoom #entry-body>.ProseMirror,
-html.web-viewport-zoom #chapter-body .ProseMirror{font-size:calc(1em / var(--ui-scale,1))}
+/* The editor's page zoom on the iPad (web/editorzoom.js). CSS zoom there grows spacing but not
+   text, so the page is drawn scaled instead: laid out 1/scale as wide, then scaled from its top
+   centre so it fills the same column. The scale divides out the interface size (a viewport
+   scale on the iPad), so the manuscript keeps its own size. */
+html.web-ipad #editor-inner,
+html.web-ipad #chapter-scroll>#chapter-body{zoom:1}
+html.web-page-scaled #editor-inner{width:calc(100% / var(--web-page-scale));flex-shrink:0;
+  transform:scale(var(--web-page-scale));transform-origin:top center}
+html.web-page-scaled #chapter-scroll>#chapter-body{max-width:none;margin-right:0;
+  width:min(calc(100% / var(--web-page-scale)),var(--page-width,820px));
+  margin-left:calc((100% - min(calc(100% / var(--web-page-scale)),var(--page-width,820px))) / 2);
+  transform:scale(var(--web-page-scale));transform-origin:top center}
+@media print{html.web-page-scaled #editor-inner,html.web-page-scaled #chapter-scroll>#chapter-body{transform:none}}
 html.quill-web .settings-modal{height:min(560px,calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
 /* Dialogs are sized in vh, which the same zoom stretches past the screen; cap them to the
    overlay, which is pinned to the screen edges and so is never taller than it. */

@@ -110,10 +110,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       function tripletToBase64(num) {
         return lookup[num >> 18 & 63] + lookup[num >> 12 & 63] + lookup[num >> 6 & 63] + lookup[num & 63];
       }
-      function encodeChunk(uint8, start4, end) {
+      function encodeChunk(uint8, start5, end) {
         var tmp;
         var output = [];
-        for (var i3 = start4; i3 < end; i3 += 3) {
+        for (var i3 = start5; i3 < end; i3 += 3) {
           tmp = (uint8[i3] << 16 & 16711680) + (uint8[i3 + 1] << 8 & 65280) + (uint8[i3 + 2] & 255);
           output.push(tripletToBase64(tmp));
         }
@@ -568,12 +568,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       }
       Buffer9.byteLength = byteLength;
-      function slowToString(encoding, start4, end) {
+      function slowToString(encoding, start5, end) {
         let loweredCase = false;
-        if (start4 === void 0 || start4 < 0) {
-          start4 = 0;
+        if (start5 === void 0 || start5 < 0) {
+          start5 = 0;
         }
-        if (start4 > this.length) {
+        if (start5 > this.length) {
           return "";
         }
         if (end === void 0 || end > this.length) {
@@ -583,30 +583,30 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           return "";
         }
         end >>>= 0;
-        start4 >>>= 0;
-        if (end <= start4) {
+        start5 >>>= 0;
+        if (end <= start5) {
           return "";
         }
         if (!encoding) encoding = "utf8";
         while (true) {
           switch (encoding) {
             case "hex":
-              return hexSlice(this, start4, end);
+              return hexSlice(this, start5, end);
             case "utf8":
             case "utf-8":
-              return utf8Slice(this, start4, end);
+              return utf8Slice(this, start5, end);
             case "ascii":
-              return asciiSlice(this, start4, end);
+              return asciiSlice(this, start5, end);
             case "latin1":
             case "binary":
-              return latin1Slice(this, start4, end);
+              return latin1Slice(this, start5, end);
             case "base64":
-              return base64Slice(this, start4, end);
+              return base64Slice(this, start5, end);
             case "ucs2":
             case "ucs-2":
             case "utf16le":
             case "utf-16le":
-              return utf16leSlice(this, start4, end);
+              return utf16leSlice(this, start5, end);
             default:
               if (loweredCase) throw new TypeError("Unknown encoding: " + encoding);
               encoding = (encoding + "").toLowerCase();
@@ -676,7 +676,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       if (customInspectSymbol) {
         Buffer9.prototype[customInspectSymbol] = Buffer9.prototype.inspect;
       }
-      Buffer9.prototype.compare = function compare(target2, start4, end, thisStart, thisEnd) {
+      Buffer9.prototype.compare = function compare(target2, start5, end, thisStart, thisEnd) {
         if (isInstance(target2, Uint8Array)) {
           target2 = Buffer9.from(target2, target2.offset, target2.byteLength);
         }
@@ -685,8 +685,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
             'The "target" argument must be one of type Buffer or Uint8Array. Received type ' + typeof target2
           );
         }
-        if (start4 === void 0) {
-          start4 = 0;
+        if (start5 === void 0) {
+          start5 = 0;
         }
         if (end === void 0) {
           end = target2 ? target2.length : 0;
@@ -697,28 +697,28 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         if (thisEnd === void 0) {
           thisEnd = this.length;
         }
-        if (start4 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
+        if (start5 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
           throw new RangeError("out of range index");
         }
-        if (thisStart >= thisEnd && start4 >= end) {
+        if (thisStart >= thisEnd && start5 >= end) {
           return 0;
         }
         if (thisStart >= thisEnd) {
           return -1;
         }
-        if (start4 >= end) {
+        if (start5 >= end) {
           return 1;
         }
-        start4 >>>= 0;
+        start5 >>>= 0;
         end >>>= 0;
         thisStart >>>= 0;
         thisEnd >>>= 0;
         if (this === target2) return 0;
         let x2 = thisEnd - thisStart;
-        let y = end - start4;
+        let y = end - start5;
         const len = Math.min(x2, y);
         const thisCopy = this.slice(thisStart, thisEnd);
-        const targetCopy = target2.slice(start4, end);
+        const targetCopy = target2.slice(start5, end);
         for (let i2 = 0; i2 < len; ++i2) {
           if (thisCopy[i2] !== targetCopy[i2]) {
             x2 = thisCopy[i2];
@@ -928,17 +928,17 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           data: Array.prototype.slice.call(this._arr || this, 0)
         };
       };
-      function base64Slice(buf, start4, end) {
-        if (start4 === 0 && end === buf.length) {
+      function base64Slice(buf, start5, end) {
+        if (start5 === 0 && end === buf.length) {
           return base64.fromByteArray(buf);
         } else {
-          return base64.fromByteArray(buf.slice(start4, end));
+          return base64.fromByteArray(buf.slice(start5, end));
         }
       }
-      function utf8Slice(buf, start4, end) {
+      function utf8Slice(buf, start5, end) {
         end = Math.min(buf.length, end);
         const res = [];
-        let i2 = start4;
+        let i2 = start5;
         while (i2 < end) {
           const firstByte = buf[i2];
           let codePoint = null;
@@ -1011,49 +1011,49 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
         return res;
       }
-      function asciiSlice(buf, start4, end) {
+      function asciiSlice(buf, start5, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start4; i2 < end; ++i2) {
+        for (let i2 = start5; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2] & 127);
         }
         return ret;
       }
-      function latin1Slice(buf, start4, end) {
+      function latin1Slice(buf, start5, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start4; i2 < end; ++i2) {
+        for (let i2 = start5; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2]);
         }
         return ret;
       }
-      function hexSlice(buf, start4, end) {
+      function hexSlice(buf, start5, end) {
         const len = buf.length;
-        if (!start4 || start4 < 0) start4 = 0;
+        if (!start5 || start5 < 0) start5 = 0;
         if (!end || end < 0 || end > len) end = len;
         let out = "";
-        for (let i2 = start4; i2 < end; ++i2) {
+        for (let i2 = start5; i2 < end; ++i2) {
           out += hexSliceLookupTable[buf[i2]];
         }
         return out;
       }
-      function utf16leSlice(buf, start4, end) {
-        const bytes = buf.slice(start4, end);
+      function utf16leSlice(buf, start5, end) {
+        const bytes = buf.slice(start5, end);
         let res = "";
         for (let i2 = 0; i2 < bytes.length - 1; i2 += 2) {
           res += String.fromCharCode(bytes[i2] + bytes[i2 + 1] * 256);
         }
         return res;
       }
-      Buffer9.prototype.slice = function slice(start4, end) {
+      Buffer9.prototype.slice = function slice(start5, end) {
         const len = this.length;
-        start4 = ~~start4;
+        start5 = ~~start5;
         end = end === void 0 ? len : ~~end;
-        if (start4 < 0) {
-          start4 += len;
-          if (start4 < 0) start4 = 0;
-        } else if (start4 > len) {
-          start4 = len;
+        if (start5 < 0) {
+          start5 += len;
+          if (start5 < 0) start5 = 0;
+        } else if (start5 > len) {
+          start5 = len;
         }
         if (end < 0) {
           end += len;
@@ -1061,8 +1061,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         } else if (end > len) {
           end = len;
         }
-        if (end < start4) end = start4;
-        const newBuf = this.subarray(start4, end);
+        if (end < start5) end = start5;
+        const newBuf = this.subarray(start5, end);
         Object.setPrototypeOf(newBuf, Buffer9.prototype);
         return newBuf;
       };
@@ -1492,41 +1492,41 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       Buffer9.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
         return writeDouble(this, value, offset, false, noAssert);
       };
-      Buffer9.prototype.copy = function copy(target2, targetStart, start4, end) {
+      Buffer9.prototype.copy = function copy(target2, targetStart, start5, end) {
         if (!Buffer9.isBuffer(target2)) throw new TypeError("argument should be a Buffer");
-        if (!start4) start4 = 0;
+        if (!start5) start5 = 0;
         if (!end && end !== 0) end = this.length;
         if (targetStart >= target2.length) targetStart = target2.length;
         if (!targetStart) targetStart = 0;
-        if (end > 0 && end < start4) end = start4;
-        if (end === start4) return 0;
+        if (end > 0 && end < start5) end = start5;
+        if (end === start5) return 0;
         if (target2.length === 0 || this.length === 0) return 0;
         if (targetStart < 0) {
           throw new RangeError("targetStart out of bounds");
         }
-        if (start4 < 0 || start4 >= this.length) throw new RangeError("Index out of range");
+        if (start5 < 0 || start5 >= this.length) throw new RangeError("Index out of range");
         if (end < 0) throw new RangeError("sourceEnd out of bounds");
         if (end > this.length) end = this.length;
-        if (target2.length - targetStart < end - start4) {
-          end = target2.length - targetStart + start4;
+        if (target2.length - targetStart < end - start5) {
+          end = target2.length - targetStart + start5;
         }
-        const len = end - start4;
+        const len = end - start5;
         if (this === target2 && typeof Uint8Array.prototype.copyWithin === "function") {
-          this.copyWithin(targetStart, start4, end);
+          this.copyWithin(targetStart, start5, end);
         } else {
           Uint8Array.prototype.set.call(
             target2,
-            this.subarray(start4, end),
+            this.subarray(start5, end),
             targetStart
           );
         }
         return len;
       };
-      Buffer9.prototype.fill = function fill(val, start4, end, encoding) {
+      Buffer9.prototype.fill = function fill(val, start5, end, encoding) {
         if (typeof val === "string") {
-          if (typeof start4 === "string") {
-            encoding = start4;
-            start4 = 0;
+          if (typeof start5 === "string") {
+            encoding = start5;
+            start5 = 0;
             end = this.length;
           } else if (typeof end === "string") {
             encoding = end;
@@ -1549,18 +1549,18 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         } else if (typeof val === "boolean") {
           val = Number(val);
         }
-        if (start4 < 0 || this.length < start4 || this.length < end) {
+        if (start5 < 0 || this.length < start5 || this.length < end) {
           throw new RangeError("Out of range index");
         }
-        if (end <= start4) {
+        if (end <= start5) {
           return this;
         }
-        start4 = start4 >>> 0;
+        start5 = start5 >>> 0;
         end = end === void 0 ? this.length : end >>> 0;
         if (!val) val = 0;
         let i2;
         if (typeof val === "number") {
-          for (i2 = start4; i2 < end; ++i2) {
+          for (i2 = start5; i2 < end; ++i2) {
             this[i2] = val;
           }
         } else {
@@ -1569,8 +1569,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (len === 0) {
             throw new TypeError('The value "' + val + '" is invalid for argument "value"');
           }
-          for (i2 = 0; i2 < end - start4; ++i2) {
-            this[i2 + start4] = bytes[i2 % len];
+          for (i2 = 0; i2 < end - start5; ++i2) {
+            this[i2 + start5] = bytes[i2 % len];
           }
         }
         return this;
@@ -1644,8 +1644,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       function addNumericalSeparator(val) {
         let res = "";
         let i2 = val.length;
-        const start4 = val[0] === "-" ? 1 : 0;
-        for (; i2 >= start4 + 4; i2 -= 3) {
+        const start5 = val[0] === "-" ? 1 : 0;
+        for (; i2 >= start5 + 4; i2 -= 3) {
           res = `_${val.slice(i2 - 3, i2)}${res}`;
         }
         return `${val.slice(0, i2)}${res}`;
@@ -2063,7 +2063,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         basename: function basename(path5, ext) {
           if (ext !== void 0 && typeof ext !== "string") throw new TypeError('"ext" argument must be a string');
           assertPath(path5);
-          var start4 = 0;
+          var start5 = 0;
           var end = -1;
           var matchedSlash = true;
           var i2;
@@ -2075,7 +2075,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
               var code = path5.charCodeAt(i2);
               if (code === 47) {
                 if (!matchedSlash) {
-                  start4 = i2 + 1;
+                  start5 = i2 + 1;
                   break;
                 }
               } else {
@@ -2095,14 +2095,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
                 }
               }
             }
-            if (start4 === end) end = firstNonSlashEnd;
+            if (start5 === end) end = firstNonSlashEnd;
             else if (end === -1) end = path5.length;
-            return path5.slice(start4, end);
+            return path5.slice(start5, end);
           } else {
             for (i2 = path5.length - 1; i2 >= 0; --i2) {
               if (path5.charCodeAt(i2) === 47) {
                 if (!matchedSlash) {
-                  start4 = i2 + 1;
+                  start5 = i2 + 1;
                   break;
                 }
               } else if (end === -1) {
@@ -2111,7 +2111,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
               }
             }
             if (end === -1) return "";
-            return path5.slice(start4, end);
+            return path5.slice(start5, end);
           }
         },
         extname: function extname(path5) {
@@ -2162,12 +2162,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (path5.length === 0) return ret;
           var code = path5.charCodeAt(0);
           var isAbsolute = code === 47;
-          var start4;
+          var start5;
           if (isAbsolute) {
             ret.root = "/";
-            start4 = 1;
+            start5 = 1;
           } else {
-            start4 = 0;
+            start5 = 0;
           }
           var startDot = -1;
           var startPart = 0;
@@ -2175,7 +2175,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           var matchedSlash = true;
           var i2 = path5.length - 1;
           var preDotState = 0;
-          for (; i2 >= start4; --i2) {
+          for (; i2 >= start5; --i2) {
             code = path5.charCodeAt(i2);
             if (code === 47) {
               if (!matchedSlash) {
@@ -2998,7 +2998,6 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     const windowWidth = vv ? vv.width * vv.scale : window.innerWidth;
     const content = uiZoom === 1 ? "width=device-width,initial-scale=1,viewport-fit=cover" : `width=${Math.round(windowWidth / uiZoom)},initial-scale=${uiZoom},minimum-scale=${uiZoom},maximum-scale=${uiZoom},viewport-fit=cover`;
     if (meta2.getAttribute("content") !== content) meta2.setAttribute("content", content);
-    document.documentElement.classList.toggle("web-viewport-zoom", uiZoom !== 1);
   }
   var import_buffer, handlers, mainListeners, rendererListeners, markReady, ready, pendingFiles, clone, webContents, event, ipcMain, ipcRenderer, contextBridge, onIPad, uiZoom, webFrame, webUtils, win, BrowserWindow, app, dialog, shell, Menu, MenuItem, safeStorage, session, electron_default;
   var init_electron = __esm({
@@ -4401,12 +4400,12 @@ ${fmLine(key, text)}---
 ${raw}` : raw;
         const { lines, close } = bounds;
         const eol = lines[0].endsWith("\r") ? "\r" : "";
-        let start4 = -1;
+        let start5 = -1;
         let end = -1;
         for (let i2 = 1; i2 < close; i2++) {
           const colon = lines[i2].indexOf(":");
           if (colon < 1 || lines[i2].slice(0, colon).trim() !== key) continue;
-          start4 = i2;
+          start5 = i2;
           end = i2 + 1;
           if (lines[i2].slice(colon + 1).trim() === "|") {
             while (end < close && /^ {2}/.test(lines[end])) end++;
@@ -4414,7 +4413,7 @@ ${raw}` : raw;
           break;
         }
         const replacement = text ? fmLine(key, text).slice(0, -1).split("\n").map((line) => line + eol) : [];
-        if (start4 >= 0) lines.splice(start4, end - start4, ...replacement);
+        if (start5 >= 0) lines.splice(start5, end - start5, ...replacement);
         else if (replacement.length) lines.splice(close, 0, ...replacement);
         return lines.join("\n");
       }
@@ -4467,14 +4466,14 @@ ${raw}` : raw;
         }
         function diffWords(before, after, limit = 1e3) {
           const a = wordTokens(before), b = wordTokens(after);
-          let start4 = 0;
-          while (start4 < a.length && start4 < b.length && a[start4] === b[start4]) start4++;
+          let start5 = 0;
+          while (start5 < a.length && start5 < b.length && a[start5] === b[start5]) start5++;
           let endA = a.length, endB = b.length;
-          while (endA > start4 && endB > start4 && a[endA - 1] === b[endB - 1]) {
+          while (endA > start5 && endB > start5 && a[endA - 1] === b[endB - 1]) {
             endA--;
             endB--;
           }
-          const midA = a.slice(start4, endA), midB = b.slice(start4, endB);
+          const midA = a.slice(start5, endA), midB = b.slice(start5, endB);
           const edits = editDistance(midA, midB, limit);
           let kept2;
           if (edits !== null) kept2 = (midA.length + midB.length - edits) / 2;
@@ -6188,10 +6187,10 @@ ${raw}` : raw;
         0
       ]);
       clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
-      freb = function(eb, start4) {
+      freb = function(eb, start5) {
         var b = new u16(31);
         for (var i2 = 0; i2 < 31; ++i2) {
-          b[i2] = start4 += 1 << eb[i2 - 1];
+          b[i2] = start5 += 1 << eb[i2 - 1];
         }
         var r = new i32(b[30]);
         for (var i2 = 1; i2 < 30; ++i2) {
@@ -7312,7 +7311,7 @@ wait $child
           }
           if (!have || !have.equals(want)) fs.writeFileSync(p.customRules, want);
         }
-        async function start4() {
+        async function start5() {
           if (_server) return _server;
           if (_starting) return _starting;
           if (!isInstalled()) throw new Error("LanguageTool is not installed.");
@@ -7383,7 +7382,7 @@ wait $child
           if (!ENGLISH_LANGUAGES.has(language)) throw new TypeError("Unsupported LanguageTool dialect.");
           if (text.length > MAX_TEXT) throw new Error("This document is too long to check in one pass.");
           if (!text.trim()) return [];
-          const { port } = await start4();
+          const { port } = await start5();
           clearTimeout(_idleTimer);
           _idleTimer = setTimeout(() => {
             stop().catch(() => {
@@ -7714,9 +7713,9 @@ wait $child
           if (e.flags & 1) throw new EpubError("This EPUB is encrypted (DRM) and cannot be opened.");
           const lp = e.localOffset;
           if (lp + 30 > buf.length || buf.readUInt32LE(lp) !== 67324752) throw new EpubError("This EPUB is truncated or damaged.");
-          const start4 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
-          if (start4 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
-          const data = buf.subarray(start4, start4 + e.compSize);
+          const start5 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
+          if (start5 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
+          const data = buf.subarray(start5, start5 + e.compSize);
           const budget = Math.min(limits.maxEntryBytes, limits.maxTotalBytes - total);
           let out;
           if (e.method === 0) {
@@ -8196,8 +8195,8 @@ wait $child
           }
           return { t, i: i2 };
         }
-        function makeAnchor(text, start4, end) {
-          const s = Math.max(0, Math.min(start4, end)), e = Math.min(text.length, Math.max(start4, end));
+        function makeAnchor(text, start5, end) {
+          const s = Math.max(0, Math.min(start5, end)), e = Math.min(text.length, Math.max(start5, end));
           return {
             start: s,
             end: e,
@@ -8388,8 +8387,8 @@ wait $child
           if (scored.length > 1 && scored[0].score < scored[1].score + 5) return { status: "ambiguous", chapterIndex: ci, count: scored.length };
           return { status: "ok", chapterIndex: ci, start: scored[0].start, end: scored[0].end };
         }
-        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start4, end) {
-          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start4, end) };
+        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start5, end) {
+          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start5, end) };
         }
         function splitSentences(text) {
           const out = [];
@@ -13346,17 +13345,17 @@ ${tags}`);
           if (!match.targetHash || currentHash !== match.targetHash) {
             throw new Error(`\u201C${match.fileTitle || "A result"}\u201D changed since the search. Search again before replacing.`);
           }
-          const start4 = Number(match.matchStart);
+          const start5 = Number(match.matchStart);
           const end = Number(match.matchEnd);
-          if (!Number.isInteger(start4) || !Number.isInteger(end) || start4 < 0 || end <= start4 || end > value.length || value.slice(start4, end) !== match.matchedText || value.slice(start4, end).toLowerCase() !== term.toLowerCase()) {
+          if (!Number.isInteger(start5) || !Number.isInteger(end) || start5 < 0 || end <= start5 || end > value.length || value.slice(start5, end) !== match.matchedText || value.slice(start5, end).toLowerCase() !== term.toLowerCase()) {
             throw new Error("A selected match is stale. Search again before replacing.");
           }
           if (!targets.has(key)) targets.set(key, { value, ref, occurrences: [] });
           const target2 = targets.get(key);
           if (target2.value !== value) throw new Error("A replacement target changed during validation.");
-          if (target2.occurrences.some((item) => item.start === start4 && item.end === end)) return;
+          if (target2.occurrences.some((item) => item.start === start5 && item.end === end)) return;
           target2.occurrences.push({
-            start: start4,
+            start: start5,
             end,
             lineNumber: Number(match.lineNumber),
             lineMatchStart: Number(match.lineMatchStart)
@@ -13578,10 +13577,10 @@ ${tags}`);
               let nextQuote = quote;
               let delta = 0;
               for (const occurrence of inside2.sort((a, b) => b.start - a.start)) {
-                const start4 = occurrence.start - quoteStart;
+                const start5 = occurrence.start - quoteStart;
                 const end = occurrence.end - quoteStart;
-                nextQuote = nextQuote.slice(0, start4) + String(replacement) + nextQuote.slice(end);
-                delta += String(replacement).length - (end - start4);
+                nextQuote = nextQuote.slice(0, start5) + String(replacement) + nextQuote.slice(end);
+                delta += String(replacement).length - (end - start5);
               }
               comment.text = nextQuote;
               if (comment.anchor && Number.isInteger(comment.anchor.end)) comment.anchor.end += delta;
@@ -18575,6 +18574,27 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     });
   }
 
+  // web/editorzoom.js
+  function start3() {
+    const root = document.documentElement;
+    root.classList.add("web-ipad");
+    const badge = document.getElementById("selection-wc");
+    const view = document.getElementById("view-editor");
+    if (badge && view && badge.parentElement !== view) view.appendChild(badge);
+    let shown = null;
+    const update = () => {
+      const editorZoom = parseFloat(root.style.getPropertyValue("--editor-zoom")) || 1;
+      const uiScale = parseFloat(root.style.getPropertyValue("--ui-scale")) || 1;
+      const scale = Math.round(editorZoom / uiScale * 1e3) / 1e3;
+      if (scale === shown) return;
+      shown = scale;
+      root.classList.toggle("web-page-scaled", scale !== 1);
+      root.style.setProperty("--web-page-scale", String(scale));
+    };
+    update();
+    new MutationObserver(update).observe(root, { attributes: true, attributeFilter: ["style"] });
+  }
+
   // web/boot.js
   document.addEventListener("click", async (event2) => {
     if (!event2.target.closest?.("#web-see-changes")) return;
@@ -18617,7 +18637,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     return realFetch(input, init);
   };
   require_preload();
-  async function start3() {
+  async function start4() {
     try {
       await load();
     } catch (error) {
@@ -18641,6 +18661,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
     start();
     start2();
+    if (onIPad2) start3();
     show();
     await new Promise((r) => setTimeout(r, 600));
     if (onIPad2 && !fromHomeScreen) {
@@ -18711,7 +18732,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-05T04:35:03.220Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-05T04:50:21.901Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
@@ -18733,7 +18754,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       location.reload();
     }, { once: true });
   }
-  start3();
+  start4();
 })();
 /*! Bundled license information:
 
