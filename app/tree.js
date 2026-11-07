@@ -295,7 +295,7 @@ const Tree = (() => {
     }
     wrap.appendChild(actions)
     const manuscriptChildren = (project.children || []).filter(child =>
-      child.folder_type !== 'worldbible' && child.name.toLowerCase() !== 'world bible')
+      child.folder_type !== 'worldbible' && child.folder_type !== 'unsorted' && child.name.toLowerCase() !== 'world bible')
     renderTree({ children: manuscriptChildren }, wrap, 0, project.folder_type || 'general', openPaths)
     ;(project.files || []).forEach(file => renderWorkspaceRootFile(file, project, wrap))
     if (!manuscriptChildren.length && !(project.files || []).length) {
@@ -306,6 +306,8 @@ const Tree = (() => {
     }
 
     if (project.folder_type !== 'novel') return
+
+    renderUnsortedSection(wrap, project)
 
     const worldBible = (project.children || []).find(child =>
       child.folder_type === 'worldbible' || child.name.toLowerCase() === 'world bible')
@@ -345,6 +347,61 @@ const Tree = (() => {
     workspaceNavRow(wrap, project, 'brainstorm', 'Brainstorm', '✦', () => App.openNovelWorkspace(project.path, 'brainstorm'))
     workspaceNavRow(wrap, project, 'concept', 'Concept Art', '◉', () => App.openNovelWorkspace(project.path, 'concept'))
     workspaceNavRow(wrap, project, 'styleguide', 'Style Guide', 'Aa', () => App.openNovelWorkspace(project.path, 'styleguide'))
+  }
+
+  // Scenes waiting for a chapter. They're real scene files in the novel's Unsorted folder, so
+  // they open, drag and move like any other; they count toward word totals but aren't compiled.
+  function renderUnsortedSection(wrap, project) {
+    const folder = (project.children || []).find(child => child.folder_type === 'unsorted')
+    const files = folder?.files || []
+    const heading = document.createElement('div')
+    heading.className = 'workspace-section-label workspace-unsorted-label'
+    heading.textContent = 'Unsorted'
+    heading.title = 'Scenes without a chapter yet. Drag a scene here, or drag one out into a chapter.'
+    wrap.appendChild(heading)
+    const actions = document.createElement('div')
+    actions.className = 'workspace-create-actions'
+    const idea = document.createElement('button')
+    idea.type = 'button'
+    idea.className = 'btn sm'
+    idea.id = 'workspace-new-scene-idea'
+    idea.textContent = '+ Scene idea'
+    idea.title = 'Think a scene through on the page, then structure it. It waits here until you give it a chapter.'
+    idea.onclick = () => Landing.buildUnsortedScene(project.path)
+    actions.appendChild(idea)
+    wrap.appendChild(actions)
+    const list = document.createElement('div')
+    list.className = 'workspace-unsorted'
+    wrap.appendChild(list)
+    if (folder) files.forEach(file => renderFileRow(file, folder.path, files, 0, list))
+    if (!files.length) {
+      const empty = document.createElement('div')
+      empty.className = 'workspace-unsorted-empty'
+      empty.textContent = 'Scenes waiting for a chapter'
+      list.appendChild(empty)
+    }
+    // Dropping a scene on the heading or the empty space files it as unsorted.
+    const targets = [heading, list]
+    const accepts = () => _dragSrc && !_folderDragSrc && (!folder || _dragSrc.folder !== folder.path)
+      && _dragSrc.path.split('/')[0] === project.path.split('/')[0]
+    for (const target of targets) {
+      target.addEventListener('dragover', e => {
+        if (!accepts() || (target === list && e.target.closest('.file-row'))) return
+        e.preventDefault()
+        list.classList.add('drag-over')
+      })
+      target.addEventListener('dragleave', e => { if (!list.contains(e.relatedTarget)) list.classList.remove('drag-over') })
+      target.addEventListener('drop', async e => {
+        list.classList.remove('drag-over')
+        if (!accepts() || (target === list && e.target.closest('.file-row'))) return
+        e.preventDefault()
+        const src = _dragSrc
+        const made = folder ? { ok: true, path: folder.path } : await window.quill.ensureUnsortedFolder(project.path)
+        if (!made?.ok) { alert(made?.error || 'Could not make the Unsorted folder.'); return }
+        _dragSrc = src
+        await moveFile(made.path)
+      })
+    }
   }
 
   function renderSavedSearches(wrap, project) {
@@ -806,93 +863,97 @@ const Tree = (() => {
 
     // files inside this folder
     const folderPath = child.path || ''
-    ;(child.files || []).forEach(file => {
-      const fileRow = document.createElement('div')
-      fileRow.className = 'file-row' + (file.path === App.getCurrentFile() ? ' active' : '')
-      fileRow.style.paddingLeft = (10 + (depth + 1) * 14) + 'px'
-      fileRow.dataset.path   = file.path
-      fileRow.dataset.folder = folderPath
-      fileRow.draggable      = true
+    ;(child.files || []).forEach(file => renderFileRow(file, folderPath, child.files, depth + 1, childWrap))
+  }
 
-      const wc = file.word_count > 0 ? file.word_count.toLocaleString() + ' w' : ''
-      fileRow.innerHTML = `
-        <span class="file-drag" title="Drag to reorder or move">⠿</span>
-        <span class="file-title">${esc(file.title || 'Untitled')}</span>${SYNC_COPY.test(file.path || '') ? '<span class="file-sync-copy" title="Kept twice when merging a backup: this is the other device’s version. Keep the one you want and delete the other.">2 versions</span>' : ''}
-        <span class="file-actions">
-          <button class="f-btn rename-btn" title="Rename">
-            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="f-btn delete-btn" title="Delete file">
-            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-          </button>
-        </span>
-        <span class="file-wc">${wc}</span>`
+  // One scene or file row: open, select, rename, delete, drag to reorder or onto a folder.
+  // files is its folder's list, so a drop between rows lands at the right place.
+  function renderFileRow(file, folderPath, files, depth, container) {
+    const fileRow = document.createElement('div')
+    fileRow.className = 'file-row' + (file.path === App.getCurrentFile() ? ' active' : '')
+    fileRow.style.paddingLeft = (10 + depth * 14) + 'px'
+    fileRow.dataset.path   = file.path
+    fileRow.dataset.folder = folderPath
+    fileRow.draggable      = true
 
-      fileRow.querySelector('.rename-btn').onclick = e => {
-        e.stopPropagation()
-        showRenameModal(file.path, 'file', file.title || file.name.replace(/\.md$/, ''))
-      }
+    const wc = file.word_count > 0 ? file.word_count.toLocaleString() + ' w' : ''
+    fileRow.innerHTML = `
+      <span class="file-drag" title="Drag to reorder or move">⠿</span>
+      <span class="file-title">${esc(file.title || 'Untitled')}</span>${SYNC_COPY.test(file.path || '') ? '<span class="file-sync-copy" title="Kept twice when merging a backup: this is the other device’s version. Keep the one you want and delete the other.">2 versions</span>' : ''}
+      <span class="file-actions">
+        <button class="f-btn rename-btn" title="Rename">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="f-btn delete-btn" title="Delete file">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
+      </span>
+      <span class="file-wc">${wc}</span>`
 
-      fileRow.querySelector('.delete-btn').onclick = e => {
-        e.stopPropagation()
-        App.showDeleteModal(file.path, 'file')
-      }
+    fileRow.querySelector('.rename-btn').onclick = e => {
+      e.stopPropagation()
+      showRenameModal(file.path, 'file', file.title || file.name.replace(/\.md$/, ''))
+    }
 
-      fileRow.addEventListener('mousedown', () => { _didDrag = false })
-      fileRow.onclick = e => {
-        if (e.target.closest('.f-btn')) return
-        if (_didDrag) return
-        if (handleFileSelection(e, fileRow, file.path)) return
-        App.setCurrentFolder(folderPath)
-        App.openFile(file.path)
-      }
+    fileRow.querySelector('.delete-btn').onclick = e => {
+      e.stopPropagation()
+      App.showDeleteModal(file.path, 'file')
+    }
 
-      fileRow.addEventListener('dragstart', e => {
-        if (_selectedFiles.size > 1) { e.preventDefault(); return }
-        _dragSrc = { path: file.path, folder: folderPath }
-        _didDrag = true
-        e.dataTransfer.effectAllowed = 'move'
-        e.dataTransfer.setData('text/plain', file.path)
-        setTimeout(() => fileRow.classList.add('dragging'), 0)
-      })
-      fileRow.addEventListener('dragend', () => {
-        fileRow.classList.remove('dragging')
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'))
-        document.querySelectorAll('#sidebar .dnd-before, #sidebar .dnd-after').forEach(el => el.classList.remove('dnd-before', 'dnd-after'))
-        setTimeout(() => { _dragSrc = null; _didDrag = false }, 50)
-      })
-      // Same rule as every other list: the top or bottom half of a row decides the side.
-      const below = e => { const r = fileRow.getBoundingClientRect(); return e.clientY > r.top + r.height / 2 }
-      fileRow.addEventListener('dragover', e => {
-        if (!_dragSrc || _dragSrc.path === file.path) return
-        e.preventDefault(); e.stopPropagation()
-        const after = below(e)
-        if (fileRow.classList.contains(after ? 'dnd-after' : 'dnd-before')) return
-        document.querySelectorAll('#sidebar .dnd-before, #sidebar .dnd-after').forEach(el => el.classList.remove('dnd-before', 'dnd-after'))
-        fileRow.classList.add('dnd-y', after ? 'dnd-after' : 'dnd-before')
-      })
-      fileRow.addEventListener('dragleave', e => {
-        if (!fileRow.contains(e.relatedTarget)) fileRow.classList.remove('dnd-before', 'dnd-after')
-      })
-      fileRow.addEventListener('drop', e => {
-        e.preventDefault(); e.stopPropagation()
-        fileRow.classList.remove('dnd-before', 'dnd-after')
-        if (!_dragSrc) return
-        const after = below(e)
-        if (_dragSrc.folder === folderPath) reorderFiles(folderPath, _dragSrc.path, file.path, after)
-        else {
-          const names = (child.files || []).map(f => f.path)
-          moveFile(folderPath, names.indexOf(file.path) + (after ? 1 : 0))
-        }
-      })
+    fileRow.addEventListener('mousedown', () => { _didDrag = false })
+    fileRow.onclick = e => {
+      if (e.target.closest('.f-btn')) return
+      if (_didDrag) return
+      if (handleFileSelection(e, fileRow, file.path)) return
+      App.setCurrentFolder(folderPath)
+      App.openFile(file.path)
+    }
 
-      fileRow.addEventListener('contextmenu', e => {
-        e.preventDefault()
-        showFileContextMenu(e.clientX, e.clientY, file, folderPath)
-      })
-
-      childWrap.appendChild(fileRow)
+    fileRow.addEventListener('dragstart', e => {
+      if (_selectedFiles.size > 1) { e.preventDefault(); return }
+      _dragSrc = { path: file.path, folder: folderPath }
+      _didDrag = true
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', file.path)
+      setTimeout(() => fileRow.classList.add('dragging'), 0)
     })
+    fileRow.addEventListener('dragend', () => {
+      fileRow.classList.remove('dragging')
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'))
+      document.querySelectorAll('#sidebar .dnd-before, #sidebar .dnd-after').forEach(el => el.classList.remove('dnd-before', 'dnd-after'))
+      setTimeout(() => { _dragSrc = null; _didDrag = false }, 50)
+    })
+    // Same rule as every other list: the top or bottom half of a row decides the side.
+    const below = e => { const r = fileRow.getBoundingClientRect(); return e.clientY > r.top + r.height / 2 }
+    fileRow.addEventListener('dragover', e => {
+      if (!_dragSrc || _dragSrc.path === file.path) return
+      e.preventDefault(); e.stopPropagation()
+      const after = below(e)
+      if (fileRow.classList.contains(after ? 'dnd-after' : 'dnd-before')) return
+      document.querySelectorAll('#sidebar .dnd-before, #sidebar .dnd-after').forEach(el => el.classList.remove('dnd-before', 'dnd-after'))
+      fileRow.classList.add('dnd-y', after ? 'dnd-after' : 'dnd-before')
+    })
+    fileRow.addEventListener('dragleave', e => {
+      if (!fileRow.contains(e.relatedTarget)) fileRow.classList.remove('dnd-before', 'dnd-after')
+    })
+    fileRow.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation()
+      fileRow.classList.remove('dnd-before', 'dnd-after')
+      if (!_dragSrc) return
+      const after = below(e)
+      if (_dragSrc.folder === folderPath) reorderFiles(folderPath, _dragSrc.path, file.path, after)
+      else {
+        const names = files.map(f => f.path)
+        moveFile(folderPath, names.indexOf(file.path) + (after ? 1 : 0))
+      }
+    })
+
+    fileRow.addEventListener('contextmenu', e => {
+      e.preventDefault()
+      showFileContextMenu(e.clientX, e.clientY, file, folderPath)
+    })
+
+    container.appendChild(fileRow)
   }
 
   function hasActive(node, active) {
@@ -1465,7 +1526,7 @@ const Tree = (() => {
     // build a simple inline picker using the ctx menu system
     const items = targets.map(f => ({
       label: f.path,
-      icon: { novel:'✦', journal:'◎', scratch:'✂', act:'▸', general:'◦' }[f.type] || '◦',
+      icon: { novel:'✦', journal:'◎', scratch:'✂', act:'▸', unsorted:'◌', general:'◦' }[f.type] || '◦',
       // Same path as a drag, so the board card, notes and Undo come along.
       action: () => { _dragSrc = { path: filePath, folder: ownFolder }; return moveFile(f.path) }
     }))
@@ -1527,12 +1588,14 @@ const Tree = (() => {
       const meta = await window.quill.getFolderMeta(node.path).catch(() => ({}))
       return [node.path, meta.folder_title || node.name]
     })))
+    const unsorted = (novel.children || []).find(node => node.folder_type === 'unsorted') || null
+    if (unsorted) titles.set(unsorted.path, 'Unsorted')
     return askName({ heading:kind === 'scene' ? 'New scene' : 'New chapter',
-      location:{ novel, acts, chapters, titles, parent, kind } })
+      location:{ novel, acts, chapters, titles, parent, kind, unsorted } })
   }
 
   function setupNameLocation(location) {
-    const { novel, acts, chapters, titles, kind } = location
+    const { novel, acts, chapters, titles, kind, unsorted } = location
     const actSelect = document.getElementById('name-act-select')
     const chapterSelect = document.getElementById('name-chapter-select')
     const within = (parent, node) => parent === node.path || parent.startsWith(node.path + '/')
@@ -1561,14 +1624,16 @@ const Tree = (() => {
     const updateChapters = (selected = '') => {
       const container = actSelect.value
       const available = chapters.filter(node => node.path.slice(0, node.path.lastIndexOf('/')) === container)
+      // Unsorted sits at novel level: a scene there waits for a chapter.
+      if (unsorted && container === novel.path) available.push(unsorted)
       chapterSelect.replaceChildren(option(container, 'No chapter — directly in ' + titles.get(container)),
-        ...available.map(node => option(node.path, titles.get(node.path))))
+        ...available.map(node => option(node.path, node === unsorted ? 'Unsorted (no chapter yet)' : titles.get(node.path))))
       chapterSelect.value = available.some(node => node.path === selected) ? selected : container
       updateDestination()
     }
     actSelect.onchange = () => updateChapters()
     chapterSelect.onchange = updateDestination
-    updateChapters(initialChapter?.path)
+    updateChapters(initialChapter?.path || (unsorted && within(location.parent, unsorted) ? unsorted.path : undefined))
   }
 
   // An insertion point pins the parent; free creation offers a visible location picker.

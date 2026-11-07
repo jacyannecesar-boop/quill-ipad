@@ -1503,11 +1503,15 @@ const Landing = (() => {
     if (!container.querySelector('.outliner-act, .outliner-empty')) {
       container.innerHTML = '<div class="read-loading">Loading outliner…</div>'
     }
-    const acts = await window.quill.getNovelStructure(novelPath).catch(() => [])
+    const [acts, unsorted] = await Promise.all([
+      window.quill.getNovelStructure(novelPath).catch(() => []),
+      window.quill.getUnsortedScenes(novelPath).catch(() => null),
+    ])
     if (!document.body.contains(container)) return
     container.innerHTML = ''
     let sceneCount = 0
     let totalWords = 0
+    const unsortedScenes = unsorted?.path ? unsorted.scenes || [] : []
 
     acts.forEach(act => {
       const actWrap = document.createElement('section')
@@ -1535,8 +1539,21 @@ const Landing = (() => {
       container.innerHTML = '<div class="outliner-empty">The Outliner lists every chapter and scene with its synopsis and status, so you can see the whole book at once. Add a chapter with <b>+ Chapter</b> in the sidebar to begin.</div>'
       container.appendChild(outlinerAddButton('outliner-add-chapter', '+ Chapter', () => outlinerAddChapter(novelPath)))
     }
+    // Scenes waiting for a chapter: they count in the totals, but aren't part of the
+    // outline's order, so the export and "previous scene" skip them.
+    const exportable = sceneCount
+    if (unsortedScenes.length) {
+      sceneCount += unsortedScenes.length
+      totalWords += unsortedScenes.reduce((sum, scene) => sum + (scene.word_count || 0), 0)
+      const group = document.createElement('section')
+      group.className = 'outliner-act outliner-unsorted'
+      group.appendChild(buildOutlinerChapter({ path: unsorted.path, name: 'Unsorted', folderTitle: 'Unsorted' },
+        unsortedScenes, { unsorted: true }))
+      container.appendChild(group)
+    }
     if (summary) summary.textContent = `${sceneCount} scene${sceneCount === 1 ? '' : 's'} · ${totalWords.toLocaleString()} words`
-    _outlinerActs = sceneCount ? acts : []
+      + (unsortedScenes.length ? ` (${unsortedScenes.length} unsorted)` : '')
+    _outlinerActs = exportable ? acts : []
     initOutlinerExport()
     if (scroller) scroller.scrollTop = scrollTop
   }
@@ -1641,7 +1658,12 @@ const Landing = (() => {
       chapter = (act.chapters || []).find(item => (item.scenes || []).some(scene => scene.path === scenePath))
       if (chapter) break
     }
-    if (!chapter) return false
+    if (!chapter) {
+      const unsorted = await window.quill.getUnsortedScenes(_path).catch(() => null)
+      if (!(unsorted?.scenes || []).some(scene => scene.path === scenePath)) return false
+      await buildUnsortedScene(_path, scenePath)
+      return true
+    }
     await flushOutliner()
     await SceneBuilder.open({
       novelPath: _path,
@@ -1650,6 +1672,28 @@ const Landing = (() => {
       prev: outlinerPreviousScene(chapter.path, scenePath, acts),
       createScene: title => outlinerCreateScene(chapter.path, title, '', chapter.scenes || []),
       onClose: () => { if (document.getElementById('novel-outliner')) loadNovelOutliner(_path) },
+    })
+    return true
+  }
+
+  // A scene with no chapter yet lives in the novel's Unsorted folder. A new one starts on the
+  // Scene Builder's free-write; Create puts it in Unsorted, ready to drag into a chapter later.
+  async function buildUnsortedScene(novelPath, scenePath = '') {
+    const made = await window.quill.ensureUnsortedFolder(novelPath).catch(error => ({ ok: false, error: error.message }))
+    if (!made?.ok) { alert(made?.error || 'Could not make the Unsorted folder.'); return false }
+    if (_path === novelPath) await flushOutliner()
+    await SceneBuilder.open({
+      novelPath,
+      chapterPath: made.path,
+      scenePath,
+      prev: null,
+      unsorted: true,
+      startAt: scenePath ? '' : 'think',
+      createScene: title => outlinerCreateScene(made.path, title),
+      onClose: async () => {
+        await Tree.refresh()
+        if (_path === novelPath && document.getElementById('novel-outliner')) loadNovelOutliner(novelPath)
+      },
     })
     return true
   }
@@ -1754,7 +1798,7 @@ const Landing = (() => {
     }
   }
 
-  function buildOutlinerChapter(chapter, scenes) {
+  function buildOutlinerChapter(chapter, scenes, { unsorted = false } = {}) {
     const wrap = document.createElement('section')
     wrap.className = 'outliner-chapter'
     const words = scenes.reduce((sum, scene) => sum + (scene.word_count || 0), 0)
@@ -1767,7 +1811,13 @@ const Landing = (() => {
         <span>Scene</span><span>Synopsis</span><span>Status</span><span>Words</span>
       </div>
       <div class="outliner-rows"></div>`
-    wrap.querySelector('.outliner-chapter-header').onclick = () => App.openFolder(chapter.path, 'novel')
+    const header = wrap.querySelector('.outliner-chapter-header')
+    if (unsorted) {
+      header.disabled = true
+      header.title = 'Scenes without a chapter yet. Drag one into a chapter above when you know where it goes.'
+    } else header.onclick = () => App.openFolder(chapter.path, 'novel')
+    // The Scene Builder for a scene here: unsorted scenes have no scene before them.
+    const build = (scenePath = '') => unsorted ? buildUnsortedScene(_path, scenePath) : outlinerBuildScene(chapter.path, scenes, scenePath)
     const rows = wrap.querySelector('.outliner-rows')
 
     const finishDrop = async targetIndex => {
@@ -1809,8 +1859,8 @@ const Landing = (() => {
     const addRow = document.createElement('div')
     addRow.className = 'outliner-add-row'
     addRow.appendChild(outlinerAddButton('outliner-add-scene', '+ Scene', () => outlinerAddScene(chapter.path)))
-    addRow.appendChild(outlinerAddButton('outliner-add-scene outliner-build-scene', '✦ Build scene',
-      () => outlinerBuildScene(chapter.path, scenes)))
+    addRow.appendChild(outlinerAddButton('outliner-add-scene outliner-build-scene', unsorted ? '✦ Scene idea' : '✦ Build scene',
+      () => build()))
     wrap.appendChild(addRow)
     if (!scenes.length) {
       rows.innerHTML = '<div class="outliner-chapter-empty">No scenes in this chapter yet.</div>'
@@ -1837,7 +1887,7 @@ const Landing = (() => {
         <div class="outliner-words">${(scene.word_count || 0).toLocaleString()}</div>`
       row.querySelector('.outliner-scene-title').onclick = () => App.openFile(scene.path)
       const buildBtn = row.querySelector('.outliner-build')
-      if (buildBtn) buildBtn.onclick = () => outlinerBuildScene(chapter.path, scenes, scene.path)
+      if (buildBtn) buildBtn.onclick = () => build(scene.path)
       // Sits on the row's top edge, so a drop onto it still counts as a drop on this row.
       row.appendChild(outlinerInsertButton('Insert a scene here', () => outlinerAddScene(chapter.path, scene.file, scenes)))
 
@@ -3709,6 +3759,6 @@ Write only the scene itself. No title, no preamble, no commentary after. Start i
 
   function isInSubView() { return _inCharSheet }
 
-  return { open, openCharSheet, openCharacter, goBack, isInSubView, flushPending, activateNovelTab, acceptCharacter, openScenePlan,
+  return { open, openCharSheet, openCharacter, goBack, isInSubView, flushPending, activateNovelTab, acceptCharacter, openScenePlan, buildUnsortedScene,
            selectTimelineEvent, selectTimelineScene }
 })()

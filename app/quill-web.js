@@ -3273,6 +3273,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         getScenePlanDraft: (args) => ipcRenderer2.invoke("get-scene-plan-draft", args),
         saveScenePlanDraft: (args) => ipcRenderer2.invoke("save-scene-plan-draft", args),
         deleteScenePlanDraft: (args) => ipcRenderer2.invoke("delete-scene-plan-draft", args),
+        ensureUnsortedFolder: (novelRel) => ipcRenderer2.invoke("ensure-unsorted-folder", novelRel),
+        getUnsortedScenes: (novelRel) => ipcRenderer2.invoke("get-unsorted-scenes", novelRel),
         getBoard: (folder) => ipcRenderer2.invoke("get-board", folder),
         saveBoard: (args) => ipcRenderer2.invoke("save-board", args),
         updateSceneMeta: (args) => ipcRenderer2.invoke("update-scene-meta", args),
@@ -9482,6 +9484,8 @@ ${body}
       function folderType(folderPath) {
         return readMeta(folderPath).folder_type || "general";
       }
+      var NOT_CHAPTER_TYPES = /* @__PURE__ */ new Set(["act", "worldbible", "unsorted"]);
+      var UNSORTED_FOLDER = "Unsorted";
       function folderTypeForFile(filePath) {
         const MEANINGFUL = /* @__PURE__ */ new Set(["journal", "worldbible", "novel", "act"]);
         let p = path5.dirname(filePath);
@@ -11640,7 +11644,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
       }
       function isChapterDir(dir) {
         if (path5.dirname(dir) === path5.resolve(ROOT)) return false;
-        return !["act", "worldbible"].includes(readMeta(dir).folder_type);
+        return !NOT_CHAPTER_TYPES.has(readMeta(dir).folder_type);
       }
       function chapterIdForDir(dir) {
         if (!isChapterDir(dir)) return "";
@@ -14580,6 +14584,33 @@ ${body.trim()}`;
           beats: beatsSummary
         };
       });
+      function structureScenes(folderPath, folderRel) {
+        const meta2 = readMeta(folderPath);
+        const fileOrder = Array.isArray(meta2.file_order) ? meta2.file_order : [];
+        const index = Object.fromEntries(fileOrder.map((name, i2) => [name, i2]));
+        let files = [];
+        try {
+          files = fs.readdirSync(folderPath).filter((name) => name.endsWith(".md") && !name.startsWith(".") && safeChildStat(path5.join(folderPath, name))?.isFile());
+        } catch {
+        }
+        files.sort((a, b) => (index[a] ?? 9999) - (index[b] ?? 9999) || a.localeCompare(b));
+        return files.map((file) => {
+          try {
+            const { meta: sceneMeta, body } = parseFM(fs.readFileSync(path5.join(folderPath, file), "utf8"));
+            return {
+              file,
+              path: folderRel ? `${folderRel}/${file}` : file,
+              scene_id: sceneMeta.scene_id || null,
+              title: sceneMeta.title || path5.basename(file, ".md"),
+              synopsis: sceneMeta.scene_synopsis || "",
+              status: sceneMeta.scene_status || "drafting",
+              word_count: wordCount(body)
+            };
+          } catch {
+            return null;
+          }
+        }).filter(Boolean);
+      }
       function novelStructure(novelRel) {
         const dir = inRoot(novelRel);
         function getCards(folderPath) {
@@ -14605,33 +14636,6 @@ ${body.trim()}`;
           }
           return entries;
         }
-        function getScenes(folderPath, folderRel) {
-          const meta2 = readMeta(folderPath);
-          const fileOrder = Array.isArray(meta2.file_order) ? meta2.file_order : [];
-          const index = Object.fromEntries(fileOrder.map((name, i2) => [name, i2]));
-          let files = [];
-          try {
-            files = fs.readdirSync(folderPath).filter((name) => name.endsWith(".md") && !name.startsWith(".") && safeChildStat(path5.join(folderPath, name))?.isFile());
-          } catch {
-          }
-          files.sort((a, b) => (index[a] ?? 9999) - (index[b] ?? 9999) || a.localeCompare(b));
-          return files.map((file) => {
-            try {
-              const { meta: sceneMeta, body } = parseFM(fs.readFileSync(path5.join(folderPath, file), "utf8"));
-              return {
-                file,
-                path: folderRel ? `${folderRel}/${file}` : file,
-                scene_id: sceneMeta.scene_id || null,
-                title: sceneMeta.title || path5.basename(file, ".md"),
-                synopsis: sceneMeta.scene_synopsis || "",
-                status: sceneMeta.scene_status || "drafting",
-                word_count: wordCount(body)
-              };
-            } catch {
-              return null;
-            }
-          }).filter(Boolean);
-        }
         function getChaptersIn(folderPath, folderRel) {
           const chapters = [];
           for (const entry of sortedEntries(folderPath)) {
@@ -14639,7 +14643,7 @@ ${body.trim()}`;
             const entryStat = safeChildStat(full);
             if (!entryStat?.isDirectory()) continue;
             const meta2 = readMeta(full);
-            if (meta2.folder_type === "act" || meta2.folder_type === "worldbible") continue;
+            if (NOT_CHAPTER_TYPES.has(meta2.folder_type)) continue;
             const rel = `${folderRel}/${entry}`;
             chapters.push({
               name: entry,
@@ -14647,7 +14651,7 @@ ${body.trim()}`;
               folderTitle: meta2.folder_title || entry,
               status: meta2.status || "",
               cards: getCards(full),
-              scenes: getScenes(full, rel)
+              scenes: structureScenes(full, rel)
             });
           }
           return chapters;
@@ -14687,6 +14691,49 @@ ${body.trim()}`;
         return acts;
       }
       ipcMain2.handle("get-novel-structure", (_, novelRel) => novelStructure(novelRel));
+      function unsortedDir(novelDir) {
+        for (const entry of fs.readdirSync(novelDir)) {
+          if (entry.startsWith(".")) continue;
+          const full = path5.join(novelDir, entry);
+          if (safeChildStat(full)?.isDirectory() && readMeta(full).folder_type === "unsorted") return full;
+        }
+        return null;
+      }
+      function topNovelDir(novelRel) {
+        const dir = inRoot(String(novelRel || ""));
+        if (readMeta(dir).folder_type !== "novel" || path5.dirname(dir) !== path5.resolve(ROOT)) {
+          throw new Error("Unsorted scenes belong to a novel.");
+        }
+        return dir;
+      }
+      ipcMain2.handle("ensure-unsorted-folder", (_, novelRel) => {
+        try {
+          const dir = topNovelDir(novelRel);
+          let found = unsortedDir(dir);
+          if (!found) {
+            let name = UNSORTED_FOLDER, n = 2;
+            while (fs.existsSync(path5.join(dir, name))) name = `${UNSORTED_FOLDER} ${n++}`;
+            found = path5.join(dir, name);
+            fs.mkdirSync(found);
+            writeMeta(found, { folder_type: "unsorted", folder_title: "Unsorted", file_order: [] });
+            const order = Array.isArray(readMeta(dir).folder_order) ? readMeta(dir).folder_order : [];
+            if (!order.includes(name)) writeMeta(dir, { folder_order: [...order, name] });
+          }
+          return { ok: true, path: path5.relative(ROOT, found).replace(/\\/g, "/") };
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+      });
+      ipcMain2.handle("get-unsorted-scenes", (_, novelRel) => {
+        try {
+          const found = unsortedDir(topNovelDir(novelRel));
+          if (!found) return { ok: true, path: null, scenes: [] };
+          const rel = path5.relative(ROOT, found).replace(/\\/g, "/");
+          return { ok: true, path: rel, scenes: structureScenes(found, rel) };
+        } catch (error) {
+          return { ok: false, error: error.message, path: null, scenes: [] };
+        }
+      });
       function isNovelDir(dir) {
         return readMeta(dir).folder_type === "novel";
       }
@@ -15332,7 +15379,7 @@ ${sc.text}`);
           for (const entry of sortedDirs(folderPath)) {
             const full = path5.join(folderPath, entry);
             const meta2 = readMeta(full);
-            if (meta2.folder_type === "act") continue;
+            if (NOT_CHAPTER_TYPES.has(meta2.folder_type)) continue;
             const title = meta2.folder_title || entry;
             out.push({ type: "chapter", title, path: path5.relative(ROOT, full).replace(/\\/g, "/") });
             out.push(...getScenesIn(full));
@@ -18732,7 +18779,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-05T07:24:44.271Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-07T04:41:28.955Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
