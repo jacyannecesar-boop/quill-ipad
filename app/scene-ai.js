@@ -302,11 +302,21 @@ Rules:
 
   const model = () => models()?.current?.() || models()?.role?.('writing')
 
+  // The chat-completions body. `effort` asks a ChatGPT thinking model to think less, so its answer
+  // starts before the iPad relay's minute is up. OpenRouter models never get it: there it could
+  // switch thinking on for a model that would otherwise answer straight away.
+  function requestBody(modelId, messages, { maxTokens = 900, stream = false, effort = '' } = {}) {
+    const body = { model: modelId, max_tokens: maxTokens, messages }
+    if (stream) body.stream = true
+    if (effort && String(modelId || '').startsWith('chatgpt:')) body.reasoning_effort = effort
+    return body
+  }
+
   // Streams the reply; onDelta gets the whole text so far.
-  async function stream(messages, { maxTokens = 900, onDelta, signal } = {}) {
+  async function stream(messages, { maxTokens = 900, onDelta, signal, effort } = {}) {
     await ready()
     const resp = await ai().fetch({ method: 'POST', signal,
-      body: JSON.stringify({ model: model(), max_tokens: maxTokens, stream: true, messages }) })
+      body: JSON.stringify(requestBody(model(), messages, { maxTokens, stream: true, effort })) })
     if (!resp.ok) throw await errorFrom(resp)
     const reader = resp.body.getReader()
     const decoder = new TextDecoder()
@@ -329,10 +339,10 @@ Rules:
     return out.trim()
   }
 
-  async function complete(messages, { maxTokens = 1600, signal } = {}) {
+  async function complete(messages, { maxTokens = 1600, signal, effort } = {}) {
     await ready()
     const resp = await ai().fetch({ method: 'POST', signal,
-      body: JSON.stringify({ model: model(), max_tokens: maxTokens, messages }) })
+      body: JSON.stringify(requestBody(model(), messages, { maxTokens, effort })) })
     if (!resp.ok) throw await errorFrom(resp)
     return ((await resp.json()).choices?.[0]?.message?.content || '').trim()
   }
@@ -346,7 +356,7 @@ Rules:
 
   const api = {
     OUTCOMES, parseKV, toPlan, merge, isEmptyPlan, beatsArePristine, matchOutcome,
-    storyReference, reviewMessages, structureMessages, stream, complete, timed,
+    storyReference, reviewMessages, structureMessages, requestBody, stream, complete, timed,
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   if (root) root.SceneAI = api

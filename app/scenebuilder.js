@@ -443,7 +443,7 @@ const SceneBuilder = (() => {
         title="An editor reads your notes, reflects them back and asks the questions that help you work it out">✦ ${_brief.review.length ? 'Review again' : 'Review my thinking'}</button>
       <button type="button" class="btn primary" id="sb-ai-structure"${empty || busy ? ' disabled' : ''}
         title="Sort your notes into the next five steps. You see a preview first, and nothing is changed until you choose.">✦ Structure this with AI</button>
-      ${_aiBusy === 'structure' ? '<span class="sb-ai-status">Sorting your notes into a scene plan…</span>' : ''}
+      ${_aiBusy === 'structure' ? `<span class="sb-ai-status" id="sb-ai-status">${esc(structureStatus())}</span>` : ''}
       ${_aiError ? `<div class="sb-ai-error" role="alert">${esc(_aiError)}</div>` : ''}`
   }
 
@@ -555,7 +555,17 @@ const SceneBuilder = (() => {
     })
   }
 
-  const aiFailure = error => error?.name === 'AbortError' ? '' : `Couldn’t reach the AI: ${error?.message || error}`
+  // ChatGPT's own messages already say what happened; anything else is a connection problem.
+  const aiFailure = error => {
+    if (error?.name === 'AbortError') return ''
+    const message = String(error?.message || error)
+    return /^ChatGPT/.test(message) ? message : `Couldn’t reach the AI: ${message}`
+  }
+  // How far the plan has come, counted in the KEY: lines streamed so far.
+  let _structureLines = 0
+  const structureStatus = () => _structureLines
+    ? `Sorting your notes into a scene plan… (${_structureLines} line${_structureLines === 1 ? '' : 's'} so far)`
+    : 'Sorting your notes into a scene plan…'
 
   async function runReview(reply) {
     if (_aiBusy) return
@@ -601,14 +611,24 @@ const SceneBuilder = (() => {
     _aiBusy = 'structure'
     _aiError = ''
     _plan = null
+    _structureLines = 0
     paintThink()
-    const t = SceneAI.timed(90000)
+    // Long enough for main to ask again when the iPad relay closes before ChatGPT has started.
+    const t = SceneAI.timed(300000)
     _aiAbort = t.abort
     try {
       const options = beatOptions()
-      const raw = await SceneAI.complete(SceneAI.structureMessages({
+      // Streamed: once text is arriving, a cut connection is picked up where it stopped.
+      const raw = await SceneAI.stream(SceneAI.structureMessages({
         freewrite: _brief.freewrite, thread: _brief.review, reference: await aiReference(), beatOptions: options,
-      }), { maxTokens: 1800, signal: t.signal })
+      }), {
+        maxTokens: 1800, signal: t.signal, effort: 'low',
+        onDelta: out => {
+          _structureLines = (out.match(/^\s*[A-Z][A-Z0-9_]+\s*:/gm) || []).length
+          const el = $('sb-ai-status')
+          if (el && _ctx === ctx) el.textContent = structureStatus()
+        },
+      })
       const plan = SceneAI.toPlan(SceneAI.parseKV(raw), { chars: _chars, beatIds: options.map(b => b.id) })
       if (SceneAI.isEmptyPlan(plan)) throw new Error('the reply didn’t contain a plan I could read. Try again, or add a little more to your notes.')
       if (_ctx === ctx) _plan = plan

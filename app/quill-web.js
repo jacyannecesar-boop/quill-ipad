@@ -9063,13 +9063,26 @@ ${str(e.text).trim()}
         if (Array.isArray(content)) return content.map((c) => typeof c === "string" ? c : c && (c.text || "")).join("");
         return "";
       }
+      var EFFORTS = /* @__PURE__ */ new Set(["minimal", "low", "medium", "high"]);
       function toResponsesBody(chat) {
         const msgs = Array.isArray(chat && chat.messages) ? chat.messages : [];
         const instructions = msgs.filter((m) => m.role === "system").map((m) => textOf(m.content).trim()).filter(Boolean).join("\n\n");
         const input = msgs.filter((m) => m.role !== "system" && textOf(m.content).trim()).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: textOf(m.content) }));
         const body = { model: String(chat.model || "").slice(MODEL_PREFIX.length), input, store: false, stream: true };
         if (instructions) body.instructions = instructions;
+        if (EFFORTS.has(chat && chat.reasoning_effort)) body.reasoning = { effort: chat.reasoning_effort };
         return body;
+      }
+      var withoutReasoning = (body) => {
+        const { reasoning, ...rest } = body;
+        return rest;
+      };
+      function rejectsReasoning(status2, body) {
+        if (status2 !== 400) return false;
+        const code = errorCode(body);
+        if (code === "subscription_sharing_unsupported_capability") return true;
+        let text = typeof body === "string" ? body : JSON.stringify(body || {});
+        return /reasoning/i.test(text) && (/unsupported|not supported|unknown|invalid|unrecognized/i.test(text) || code === "unsupported_parameter");
       }
       var CONTINUE = "Your last reply was cut off. Continue it from exactly where it stopped, mid-sentence or mid-word if need be. Do not repeat anything or add a preface.";
       function continuationBody(body, partial) {
@@ -9215,6 +9228,8 @@ ${str(e.text).trim()}
         modelsFromList,
         isChatGPTModel,
         toResponsesBody,
+        withoutReasoning,
+        rejectsReasoning,
         continuationBody,
         errorCode,
         errorMessage,
@@ -16819,6 +16834,8 @@ ${sc.text}`);
         writeChatGPT(chatgptRegistration(rec));
         return chatgptStatus();
       });
+      var chatgptRefusesReasoning = false;
+      var CHATGPT_STILL_THINKING = "ChatGPT was still thinking when the connection closed. On the iPad the relay waits about a minute. Try again, or pick a faster ChatGPT model in Settings \u2192 AI.";
       async function chatgptRequest(event2, id, chat) {
         const send = (msg) => {
           if (!event2.sender.isDestroyed()) event2.sender.send("ai-event", { id, ...msg });
@@ -16834,7 +16851,8 @@ ${sc.text}`);
         };
         const controller = new AbortController();
         aiRequests.set(id, { destroy: () => controller.abort() });
-        const requestBody = ChatGPT.toResponsesBody(chat);
+        let requestBody = ChatGPT.toResponsesBody(chat);
+        if (chatgptRefusesReasoning) requestBody = ChatGPT.withoutReasoning(requestBody);
         const requestChars = (requestBody.instructions || "").length + requestBody.input.reduce((n, m) => n + m.content.length, 0);
         const open = async (body) => fetch(`${ChatGPT.RESOURCE}/responses`, {
           method: "POST",
@@ -16852,8 +16870,22 @@ ${sc.text}`);
           }
           return fail(401, err2.message);
         }
+        let errBody = res.ok ? "" : await res.text().catch(() => "");
+        if (!res.ok && requestBody.reasoning && ChatGPT.rejectsReasoning(res.status, errBody)) {
+          chatgptRefusesReasoning = true;
+          requestBody = ChatGPT.withoutReasoning(requestBody);
+          try {
+            res = await open(requestBody);
+          } catch (err2) {
+            if (err2.name === "AbortError") {
+              aiRequests.delete(id);
+              return { error: "Request aborted." };
+            }
+            return fail(401, err2.message);
+          }
+          errBody = res.ok ? "" : await res.text().catch(() => "");
+        }
         if (!res.ok) {
-          const errBody = await res.text().catch(() => "");
           logChatGPTUsage({ model: requestBody.model, error: ChatGPT.errorCode(errBody) || `http_${res.status}` });
           return fail(res.status, ChatGPT.errorMessage({ status: res.status, body: errBody }));
         }
@@ -16909,21 +16941,21 @@ ${sc.text}`);
                 return;
               }
               const cut = outcome.code === "stream_cut";
-              if (!cut || !text || attempt >= RESUMES) {
+              if (!cut || attempt >= RESUMES) {
                 logChatGPTUsage({ model: requestBody.model, error: outcome.code || "stream_failed" });
-                finishError(cut && dropped ? `ChatGPT's reply was cut off (${dropped}).` : outcome.message);
+                finishError(!cut ? outcome.message : !text ? CHATGPT_STILL_THINKING : dropped ? `ChatGPT's reply was cut off (${dropped}).` : outcome.message);
                 return;
               }
               try {
-                res = await open(ChatGPT.continuationBody(requestBody, text));
+                res = await open(text ? ChatGPT.continuationBody(requestBody, text) : requestBody);
               } catch (err2) {
                 if (err2.name === "AbortError") return;
                 finishError(`ChatGPT's reply was cut off, and picking it up again failed (${err2.message}).`);
                 return;
               }
               if (!res.ok) {
-                const errBody = await res.text().catch(() => "");
-                finishError(ChatGPT.errorMessage({ status: res.status, body: errBody }));
+                const errBody2 = await res.text().catch(() => "");
+                finishError(ChatGPT.errorMessage({ status: res.status, body: errBody2 }));
                 return;
               }
             }
@@ -18779,7 +18811,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-07T04:41:28.955Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-07T05:12:26.714Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
