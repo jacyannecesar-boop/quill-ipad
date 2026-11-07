@@ -107,8 +107,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
         return arr;
       }
-      function tripletToBase64(num) {
-        return lookup[num >> 18 & 63] + lookup[num >> 12 & 63] + lookup[num >> 6 & 63] + lookup[num & 63];
+      function tripletToBase64(num2) {
+        return lookup[num2 >> 18 & 63] + lookup[num2 >> 12 & 63] + lookup[num2 >> 6 & 63] + lookup[num2 & 63];
       }
       function encodeChunk(uint8, start5, end) {
         var tmp;
@@ -2229,6 +2229,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   // web/vfs.js
   var vfs_exports = {};
   __export(vfs_exports, {
+    baselineOf: () => baselineOf,
     changedSinceExportPaths: () => changedSinceExportPaths,
     changesSinceLastExport: () => changesSinceLastExport,
     flush: () => flush,
@@ -2261,6 +2262,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     err2.syscall = syscall;
     err2.path = p;
     return err2;
+  }
+  function rememberBaseline(p) {
+    if (!p.startsWith("/Quill/") || p.includes(".quill-tmp-") || changedSinceExport.has(p) || baseline.has(p)) return;
+    const node2 = nodes.get(p);
+    if (node2?.dir) return;
+    if (node2 && (!textLike(p) || node2.data.byteLength > BASELINE_MAX_BYTES)) return;
+    baseline.set(p, node2 ? node2.data : null);
+    baselineDirty.add(p);
   }
   function touch(p) {
     if (isSaved(p)) {
@@ -2315,6 +2324,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     const parent = nodes.get(import_path_browserify.default.posix.dirname(p));
     if (!parent) throw fsError("ENOENT", "open", p);
     if (!parent.dir) throw fsError("ENOTDIR", "open", p);
+    if (!silent) rememberBaseline(p);
     nodes.set(p, { data, mtimeMs });
     link(p);
     if (!silent) {
@@ -2327,6 +2337,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     const node2 = nodes.get(p);
     if (!node2) return;
     if (node2.dir) for (const name of [...children.get(p) || []]) remove(import_path_browserify.default.posix.join(p, name));
+    rememberBaseline(p);
     nodes.delete(p);
     children.delete(p);
     unlinkName(p);
@@ -2350,6 +2361,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       const moved = [...nodes.keys()].filter((k) => k === from || k.startsWith(from + "/"));
       for (const k of moved) {
         const dest = to + k.slice(from.length);
+        rememberBaseline(k);
+        rememberBaseline(dest);
         nodes.set(dest, nodes.get(k));
         if (children.has(k)) {
           children.set(dest, children.get(k));
@@ -2360,6 +2373,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         touch(dest);
       }
     } else {
+      rememberBaseline(from);
+      rememberBaseline(to);
       nodes.set(to, node2);
       nodes.delete(from);
       touch(from);
@@ -2391,14 +2406,22 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   }
   function markExported() {
     changedSinceExport.clear();
+    for (const p of baseline.keys()) baselineDirty.add(p);
+    baseline.clear();
     localMeta("changedSinceExport", []);
   }
   function changedSinceExportPaths() {
     return [...changedSinceExport];
   }
   function forgetChanges(paths) {
-    for (const p of paths) changedSinceExport.delete(p);
+    for (const p of paths) {
+      changedSinceExport.delete(p);
+      if (baseline.delete(p)) baselineDirty.add(p);
+    }
     localMeta("changedSinceExport", [...changedSinceExport]);
+  }
+  function baselineOf(p) {
+    return baseline.get(norm(p));
   }
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -2434,8 +2457,11 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       t.onerror = () => reject(t.error);
     });
     const entries = all.keys.map((k, i2) => [k, all.values[i2]]);
-    for (const [k, v] of entries) if (k === META_KEY) meta = v || {};
-    entries.filter(([k]) => k !== META_KEY).sort(([a], [b]) => a.length - b.length || (a < b ? -1 : 1)).forEach(([k, v]) => {
+    for (const [k, v] of entries) {
+      if (k === META_KEY) meta = v || {};
+      else if (typeof k === "string" && k.startsWith(BASE_PREFIX)) baseline.set(k.slice(BASE_PREFIX.length), v?.data ?? null);
+    }
+    entries.filter(([k]) => !(typeof k === "string" && k.startsWith("\0"))).sort(([a], [b]) => a.length - b.length || (a < b ? -1 : 1)).forEach(([k, v]) => {
       if (!nodes.has(import_path_browserify.default.posix.dirname(k))) mkdirSilently(import_path_browserify.default.posix.dirname(k));
       if (v.dir) {
         if (!nodes.has(k)) {
@@ -2446,6 +2472,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       link(k);
     });
     for (const p of meta.changedSinceExport || []) changedSinceExport.add(p);
+    for (const p of [...baseline.keys()]) if (!changedSinceExport.has(p)) {
+      baseline.delete(p);
+      baselineDirty.add(p);
+    }
   }
   function mkdirSilently(p) {
     if (nodes.has(p)) return;
@@ -2460,9 +2490,11 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   }
   function flush() {
     clearTimeout(flushTimer);
-    if (!db || !dirty.size) return flushing || Promise.resolve();
+    if (!db || !dirty.size && !baselineDirty.size) return flushing || Promise.resolve();
     const batch = [...dirty];
+    const bases = [...baselineDirty];
     dirty.clear();
+    baselineDirty.clear();
     meta.changedSinceExport = [...changedSinceExport];
     const run2 = () => tx("readwrite", (store) => {
       for (const p of batch) {
@@ -2470,9 +2502,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         if (!node2) store.delete(p);
         else store.put(node2.dir ? { dir: true, mtimeMs: node2.mtimeMs } : { data: node2.data, mtimeMs: node2.mtimeMs }, p);
       }
+      for (const p of bases) {
+        if (baseline.has(p)) store.put({ data: baseline.get(p) }, BASE_PREFIX + p);
+        else store.delete(BASE_PREFIX + p);
+      }
       store.put(meta, META_KEY);
     }).catch((err2) => {
       batch.forEach((p) => dirty.add(p));
+      bases.forEach((p) => baselineDirty.add(p));
       throw err2;
     });
     flushing = (flushing || Promise.resolve()).catch(() => {
@@ -2482,7 +2519,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   function pendingWrites() {
     return dirty.size;
   }
-  var import_path_browserify, DB_NAME, STORE, SAVED, nodes, children, dirty, listeners, db, flushTimer, flushing, changedSinceExport, isSaved, norm, META_KEY, meta;
+  var import_path_browserify, DB_NAME, STORE, SAVED, nodes, children, dirty, listeners, db, flushTimer, flushing, changedSinceExport, baseline, baselineDirty, BASE_PREFIX, BASELINE_MAX_BYTES, textLike, isSaved, norm, META_KEY, meta;
   var init_vfs = __esm({
     "web/vfs.js"() {
       import_path_browserify = __toESM(require_path_browserify());
@@ -2497,6 +2534,11 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       flushTimer = null;
       flushing = null;
       changedSinceExport = /* @__PURE__ */ new Set();
+      baseline = /* @__PURE__ */ new Map();
+      baselineDirty = /* @__PURE__ */ new Set();
+      BASE_PREFIX = "\0base:";
+      BASELINE_MAX_BYTES = 2 * 1024 * 1024;
+      textLike = (p) => /\.(md|json|txt)$/i.test(p) || p.endsWith("/.quill_meta");
       isSaved = (p) => SAVED.some((root) => p === root || p.startsWith(root + "/"));
       norm = (p) => {
         const n = import_path_browserify.default.posix.resolve("/", String(p));
@@ -2538,6 +2580,64 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     document.body.append(backdrop);
     return () => backdrop.remove();
   }
+  function wordDelta(w) {
+    const parts = [];
+    if (w.written) parts.push(el("span", { class: "web-changes-added", text: `+${words(w.written)}` }));
+    if (w.cut) parts.push(el("span", { class: "web-changes-cut", text: `\u2212${words(w.cut)}` }));
+    return parts;
+  }
+  function companionLine(c) {
+    if (c.count) return `${c.count} snapshot${c.count === 1 ? "" : "s"} saved`;
+    if (c.state === "added" && !c.written) return `${c.label} added`;
+    if (c.state === "removed") return `${c.label} removed`;
+    if (c.written != null) {
+      const delta = [c.written ? `+${words(c.written)}` : "", c.cut ? `\u2212${words(c.cut)}` : ""].filter(Boolean).join(" ");
+      return `${c.label} ${c.state === "added" ? "added" : "edited"}${delta ? ` (${delta})` : ""}`;
+    }
+    return `${c.label} changed${c.summary ? `: ${c.summary}` : ""}`;
+  }
+  function changeDetails(item) {
+    const d = item.details || {};
+    const lines = [];
+    const w = d.words;
+    if (item.scene && w) {
+      if (item.group === "new") lines.push([words(w.after)]);
+      else if (item.group === "deleted") lines.push([w.before != null ? `Had ${words(w.before)}` : "Removed"]);
+      else if (w.before == null) lines.push([`${words(w.after)} \xB7 changed before Quill kept details, so the words added and cut aren\u2019t known`]);
+      else if (!d.textChanged) lines.push([`Text unchanged \xB7 ${words(w.after)}`]);
+      else {
+        const delta = wordDelta(w);
+        lines.push(delta.length ? [...delta, `${words(w.after)} now`] : [`Punctuation or formatting only \xB7 ${words(w.after)}`]);
+      }
+    }
+    if (d.renamedFrom) lines.push([`Renamed from \u201C${d.renamedFrom}\u201D`]);
+    if (d.fields?.length) lines.push([`${d.fields.join(", ")} changed`]);
+    for (const c of d.companions || []) lines.push([companionLine(c)]);
+    if (d.summary) lines.push([d.summary]);
+    const nodes2 = lines.map((parts) => el(
+      "span",
+      { class: "web-changes-detail" },
+      parts.flatMap((part, i2) => [i2 ? " \xB7 " : null, typeof part === "string" ? document.createTextNode(part) : part]).filter(Boolean)
+    ));
+    if (d.excerpt) nodes2.push(el("span", { class: "web-changes-excerpt", text: `\u201C${d.excerpt}\u201D` }));
+    return nodes2;
+  }
+  function changesTotal(items) {
+    let written = 0, cut = 0, scenes = 0;
+    for (const item of items) {
+      const w = item.details?.words;
+      if (!item.scene || !w || w.written == null) continue;
+      if (!w.written && !w.cut) continue;
+      written += w.written;
+      cut += w.cut;
+      scenes++;
+    }
+    if (!scenes) return null;
+    return el("p", { class: "web-changes-total" }, [
+      ...wordDelta({ written, cut }).flatMap((part, i2) => [i2 ? " \xB7 " : null, part]).filter(Boolean),
+      document.createTextNode(` across ${scenes} scene${scenes === 1 ? "" : "s"}`)
+    ]);
+  }
   function changesSheet(items, { onBackUp } = {}) {
     let close;
     const groups = CHANGE_GROUPS.map(([group, label]) => {
@@ -2547,7 +2647,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         el("div", { class: "web-changes-label", text: `${label} \xB7 ${rows.length}` }),
         el("ul", {}, rows.map((item) => el("li", {}, [
           el("span", { class: "web-changes-name", text: item.name }),
-          item.where ? el("span", { class: "web-changes-where", text: item.where }) : null
+          item.where ? el("span", { class: "web-changes-where", text: item.where }) : null,
+          ...changeDetails(item)
         ])))
       ]);
     });
@@ -2557,6 +2658,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     } }) : null;
     close = sheet([
       el("h3", { text: items.length ? `${items.length} change${items.length === 1 ? "" : "s"} since your last backup` : "Nothing changed since your last backup" }),
+      items.length ? changesTotal(items) : null,
       el("p", { class: "web-sheet-hint", text: "Made on this iPad and not yet in a backup or on the Mac. Files Bring In Changes brought over from the Mac aren\u2019t counted." }),
       items.length ? el("div", { class: "web-changes" }, groups) : null,
       el("div", { class: "web-sheet-buttons" }, [el("button", { class: "btn", text: "Close", onclick: () => close() }), backUp])
@@ -2770,12 +2872,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       ])
     ]);
   }
-  var import_path_browserify2, CHANGE_GROUPS, MIME, mimeFor, closeSignIn;
+  var import_path_browserify2, CHANGE_GROUPS, num, words, MIME, mimeFor, closeSignIn;
   var init_ui = __esm({
     "web/ui.js"() {
       import_path_browserify2 = __toESM(require_path_browserify());
       init_vfs();
       CHANGE_GROUPS = [["edited", "Edited"], ["new", "New"], ["deleted", "Deleted"], ["settings", "Quill data (notes, order, stats)"]];
+      num = (n) => Number(n || 0).toLocaleString();
+      words = (n) => `${num(n)} word${n === 1 ? "" : "s"}`;
       MIME = {
         zip: "application/zip",
         md: "text/markdown",
@@ -4950,8 +5054,8 @@ ${raw}` : raw;
   var require_funfacts = __commonJS({
     "funfacts.js"(exports, module) {
       var { countWords } = require_words();
-      var num = (n) => Math.round(Number(n) || 0).toLocaleString("en-US");
-      var plural = (n, one, many = one + "s") => `${num(n)} ${Math.round(n) === 1 ? one : many}`;
+      var num2 = (n) => Math.round(Number(n) || 0).toLocaleString("en-US");
+      var plural = (n, one, many = one + "s") => `${num2(n)} ${Math.round(n) === 1 ? one : many}`;
       function hourLabel(hour) {
         if (hour === 0) return "midnight";
         if (hour === 12) return "noon";
@@ -5016,9 +5120,9 @@ ${raw}` : raw;
         const writing = added.filter(([, w]) => w > 0);
         if (writing.length >= (recent ? 8 : 10)) {
           const byDay = WEEKDAYS.map(() => ({ total: 0, days: 0 }));
-          for (const [date, words] of writing) {
+          for (const [date, words2] of writing) {
             const slot = byDay[(/* @__PURE__ */ new Date(date + "T12:00:00")).getDay()];
-            slot.total += words;
+            slot.total += words2;
             slot.days++;
           }
           const top = byDay.map((s, i2) => ({ i: i2, days: s.days, avg: s.days ? s.total / s.days : 0 })).filter((s) => s.days >= 2).sort((a, b) => b.avg - a.avg)[0];
@@ -5069,8 +5173,8 @@ ${raw}` : raw;
         }
         const goalDays = (stats.goalMetDays || []).filter(inRange).length;
         if (goalDays && Number(stats.dailyGoal) > 0) {
-          const times = goalDays === 1 ? "once" : `on ${num(goalDays)} days`;
-          facts.push({ id: "goal-days", icon: "\u{1F3C1}", text: `You\u2019ve hit your ${num(stats.dailyGoal)}-word daily goal ${times}${recent ? " in the last 30 days" : ""}.` });
+          const times = goalDays === 1 ? "once" : `on ${num2(goalDays)} days`;
+          facts.push({ id: "goal-days", icon: "\u{1F3C1}", text: `You\u2019ve hit your ${num2(stats.dailyGoal)}-word daily goal ${times}${recent ? " in the last 30 days" : ""}.` });
         }
         return facts;
       }
@@ -5150,22 +5254,22 @@ ${raw}` : raw;
       var CLAUSE_BREAK = /[.!?…;:,—–"“”()[\]]+/;
       var TOKEN = /[\p{L}\p{N}]+(?:['’][\p{L}]+)*/gu;
       function dialogueWords(paragraph) {
-        let words = 0;
-        for (const m of paragraph.matchAll(/“([^”]*)(”|$)/g)) words += countWords(m[1]);
-        for (const m of paragraph.matchAll(/"([^"]*)("|$)/g)) words += countWords(m[1]);
-        return words;
+        let words2 = 0;
+        for (const m of paragraph.matchAll(/“([^”]*)(”|$)/g)) words2 += countWords(m[1]);
+        for (const m of paragraph.matchAll(/"([^"]*)("|$)/g)) words2 += countWords(m[1]);
+        return words2;
       }
       var HONORIFICS = /^(madame|madam|mme|lady|lord|sir|dame|detective|det|captain|capt|dr|doctor|mr|mrs|ms|miss|agent|officer|sergeant|sgt|professor|prof|father|mother|sister|brother|king|queen|prince|princess)\.?$/i;
       function characterKey(name) {
-        const words = String(name || "").trim().split(/\s+/).filter(Boolean);
-        if (/^(the|a|an)$/i.test(words[0] || "")) return words.length > 1 ? words.join(" ") : "";
-        while (words.length > 1 && HONORIFICS.test(words[0])) words.shift();
-        return (words[0] || "").length >= 3 ? words[0] : "";
+        const words2 = String(name || "").trim().split(/\s+/).filter(Boolean);
+        if (/^(the|a|an)$/i.test(words2[0] || "")) return words2.length > 1 ? words2.join(" ") : "";
+        while (words2.length > 1 && HONORIFICS.test(words2[0])) words2.shift();
+        return (words2[0] || "").length >= 3 ? words2[0] : "";
       }
       function proseFacts(scenes = [], { characters = [], novel = "your novel" } = {}) {
         const where = `in ${novel}`;
         const facts = [];
-        let words = 0, dialogue = 0, sentences = 0, dashes = 0, questions = 0, exclaims = 0;
+        let words2 = 0, dialogue = 0, sentences = 0, dashes = 0, questions = 0, exclaims = 0;
         let longest = null;
         const crutch = /* @__PURE__ */ new Map();
         const grams = /* @__PURE__ */ new Map();
@@ -5174,7 +5278,7 @@ ${raw}` : raw;
         for (const scene of scenes) {
           const text = String(scene.text || "");
           allText.push(text);
-          words += countWords(text);
+          words2 += countWords(text);
           dashes += (text.match(new RegExp("[\u2014\u2E3A\u2E3B]|(?<!-)--(?!-)", "g")) || []).length;
           questions += (text.match(/\?/g) || []).length;
           exclaims += (text.match(/!/g) || []).length;
@@ -5209,7 +5313,7 @@ ${raw}` : raw;
             }
           }
         }
-        if (words < 500) return facts;
+        if (words2 < 500) return facts;
         const cased = (phrase) => phrase.split(" ").map((w) => {
           const forms = casing.get(w);
           return (forms ? [...forms.entries()].sort((a, b) => b[1] - a[1])[0][0] : w).replace(/'/g, "\u2019");
@@ -5239,7 +5343,7 @@ ${raw}` : raw;
           facts.push({
             id: "phrase",
             icon: "\u{1F501}",
-            text: `Your most common phrase ${where} is \u201C${cased(top.key)}\u201D (${plural(top.n, "time")}).` + (rest.length ? ` Runners-up: ${rest.map((p) => `\u201C${cased(p.key)}\u201D (${num(p.n)})`).join(", ")}.` : "")
+            text: `Your most common phrase ${where} is \u201C${cased(top.key)}\u201D (${plural(top.n, "time")}).` + (rest.length ? ` Runners-up: ${rest.map((p) => `\u201C${cased(p.key)}\u201D (${num2(p.n)})`).join(", ")}.` : "")
           });
         }
         const pets = [...crutch.entries()].sort((a, b) => b[1] - a[1]);
@@ -5248,15 +5352,15 @@ ${raw}` : raw;
           facts.push({
             id: "pet-word",
             icon: "\u{1F43E}",
-            text: `Your pet word is \u201C${word}\u201D: ${plural(n, "time")} ${where}, about once every ${num(words / n)} words.` + (pets[1] && pets[1][1] >= 5 ? ` \u201C${pets[1][0]}\u201D is close behind with ${num(pets[1][1])}.` : "")
+            text: `Your pet word is \u201C${word}\u201D: ${plural(n, "time")} ${where}, about once every ${num2(words2 / n)} words.` + (pets[1] && pets[1][1] >= 5 ? ` \u201C${pets[1][0]}\u201D is close behind with ${num2(pets[1][1])}.` : "")
           });
         }
         if (dialogue > 0) {
-          const pct = Math.round(dialogue / words * 100);
+          const pct = Math.round(dialogue / words2 * 100);
           facts.push({ id: "dialogue", icon: "\u{1F4AC}", text: `${pct}% of your prose ${where} is dialogue; the other ${100 - pct}% is narration.` });
         }
         if (sentences >= 20) {
-          facts.push({ id: "sentence-length", icon: "\u{1F4CF}", text: `Your sentences ${where} average ${(words / sentences).toFixed(1)} words.` });
+          facts.push({ id: "sentence-length", icon: "\u{1F4CF}", text: `Your sentences ${where} average ${(words2 / sentences).toFixed(1)} words.` });
         }
         if (longest && longest.words >= 40) {
           const opening = longest.text.split(/\s+/).slice(0, 10).join(" ");
@@ -5264,11 +5368,11 @@ ${raw}` : raw;
             id: "longest-sentence",
             icon: "\u{1F40D}",
             path: longest.path,
-            text: `Your longest sentence runs ${num(longest.words)} words, in \u201C${longest.title}\u201D. It starts: \u201C${opening}\u2026\u201D`
+            text: `Your longest sentence runs ${num2(longest.words)} words, in \u201C${longest.title}\u201D. It starts: \u201C${opening}\u2026\u201D`
           });
         }
         if (dashes >= 5) {
-          facts.push({ id: "em-dashes", icon: "\u2014", text: `You use ${(dashes / words * 1e3).toFixed(1)} em dashes per 1,000 words: ${plural(dashes, "dash", "dashes")} ${where} so far.` });
+          facts.push({ id: "em-dashes", icon: "\u2014", text: `You use ${(dashes / words2 * 1e3).toFixed(1)} em dashes per 1,000 words: ${plural(dashes, "dash", "dashes")} ${where} so far.` });
         }
         if (questions + exclaims >= 10) {
           facts.push({ id: "punctuation", icon: "\u2753", text: `You\u2019ve written ${plural(questions, "question mark")} and ${plural(exclaims, "exclamation point")} ${where}.` });
@@ -5284,17 +5388,17 @@ ${raw}` : raw;
             facts.push({
               id: "most-named",
               icon: "\u{1F3AD}",
-              text: `${counted[0].key} is your most-named character ${where}, with ${plural(counted[0].n, "mention")}. ${counted[1].key} is second with ${num(counted[1].n)}.`
+              text: `${counted[0].key} is your most-named character ${where}, with ${plural(counted[0].n, "mention")}. ${counted[1].key} is second with ${num2(counted[1].n)}.`
             });
           }
         }
-        const passed = BOOKS.filter((b) => b.words <= words).pop();
-        const next = BOOKS.find((b) => b.words > words);
+        const passed = BOOKS.filter((b) => b.words <= words2).pop();
+        const next = BOOKS.find((b) => b.words > words2);
         if (passed || next) {
           facts.push({
             id: "book-length",
             icon: "\u{1F4DA}",
-            text: `${novel} is ${plural(words, "word")}` + (passed ? `, longer than ${passed.title} (about ${num(passed.words)})` : "") + (next ? `. ${num(next.words - words)} more and you pass ${next.title}.` : ". Longer than Dracula.")
+            text: `${novel} is ${plural(words2, "word")}` + (passed ? `, longer than ${passed.title} (about ${num2(passed.words)})` : "") + (next ? `. ${num2(next.words - words2)} more and you pass ${next.title}.` : ". Longer than Dracula.")
           });
         }
         return facts;
@@ -8683,9 +8787,9 @@ wait $child
         }
         function studyTitle(study) {
           const focal = (study.excerpts || []).find((e) => e.role === "focal") || (study.excerpts || [])[0];
-          const words = focal ? focal.t.split(/\s+/).slice(0, 6).join(" ") : "Study";
+          const words2 = focal ? focal.t.split(/\s+/).slice(0, 6).join(" ") : "Study";
           const book = study.source && study.source.bookTitle;
-          return `${book ? book + " \xB7 " : ""}${words}${focal && wordCount(focal.t) > 6 ? "\u2026" : ""}`;
+          return `${book ? book + " \xB7 " : ""}${words2}${focal && wordCount(focal.t) > 6 ? "\u2026" : ""}`;
         }
         function quoteBlock(text) {
           return String(text || "").split("\n").map((l) => "> " + l).join("\n");
@@ -8884,12 +8988,12 @@ ${str(e.text).trim()}
           for (const raw of titles || []) {
             const q = str(raw).toLowerCase().trim();
             if (!q) continue;
-            const words = q.split(/\s+/);
+            const words2 = q.split(/\s+/);
             const rankOf = (it) => {
               const t = str(it.title).toLowerCase();
               if (t === q) return 0;
               if (new RegExp(`\\b${escapeRe(q)}\\b`).test(t)) return 1 + (it.kind === "chapter" ? 1 : 0);
-              if (words.every((w) => t.includes(w))) return 3;
+              if (words2.every((w) => t.includes(w))) return 3;
               return 99;
             };
             const best = pool.map((it) => [rankOf(it), it]).filter(([r]) => r < 99).sort((a, b) => a[0] - b[0])[0];
@@ -8900,13 +9004,13 @@ ${str(e.text).trim()}
         }
         function autoVoiceExcerpt(scenes, targetWords = VOICE_TARGET_WORDS) {
           const picked = [];
-          let words = 0;
-          for (let i2 = (scenes || []).length - 1; i2 >= 0 && words < targetWords; i2--) {
+          let words2 = 0;
+          for (let i2 = (scenes || []).length - 1; i2 >= 0 && words2 < targetWords; i2--) {
             const paras = str(scenes[i2].text).split(/\n+/).map((t) => t.trim()).filter(Boolean);
             const keep2 = [];
-            for (let p = paras.length - 1; p >= 0 && words < targetWords; p--) {
+            for (let p = paras.length - 1; p >= 0 && words2 < targetWords; p--) {
               keep2.unshift(paras[p]);
-              words += paras[p].split(/\s+/).filter(Boolean).length;
+              words2 += paras[p].split(/\s+/).filter(Boolean).length;
             }
             if (keep2.length) picked.unshift({ title: scenes[i2].title, text: keep2.join("\n\n") });
           }
@@ -12344,9 +12448,9 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           thisMonth: (() => {
             let t = 0;
             const now2 = /* @__PURE__ */ new Date();
-            for (const [date, words] of Object.entries(stats.wordsAddedByDay || {})) {
+            for (const [date, words2] of Object.entries(stats.wordsAddedByDay || {})) {
               const d2 = /* @__PURE__ */ new Date(date + "T12:00:00");
-              if (d2.getFullYear() === now2.getFullYear() && d2.getMonth() === now2.getMonth()) t += words;
+              if (d2.getFullYear() === now2.getFullYear() && d2.getMonth() === now2.getMonth()) t += words2;
             }
             return t;
           })()
@@ -12361,8 +12465,8 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const heatStart = addLocalDays(now, -(now.getDay() + 25 * 7));
         for (let d2 = heatStart; localDateKey(d2) <= today; d2 = addLocalDays(d2, 1)) {
           const key = localDateKey(d2);
-          const words = Number((stats.wordsAddedByDay || {})[key] ?? (stats.wordsByDay || {})[key]) || 0;
-          heatmap.push({ date: key, words, active: words > 0 || days.has(key) || (secondsByDay[key] || 0) >= 60 });
+          const words2 = Number((stats.wordsAddedByDay || {})[key] ?? (stats.wordsByDay || {})[key]) || 0;
+          heatmap.push({ date: key, words: words2, active: words2 > 0 || days.has(key) || (secondsByDay[key] || 0) >= 60 });
         }
         const todayKey = today;
         const todayWords = (stats.wordsAddedByDay || {})[todayKey] || 0;
@@ -12425,8 +12529,8 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const scenes = [];
         let characters = [];
         if (novel?.totalWords) {
-          for (const { path: rel, words } of novel.sceneActivity) {
-            if (!words) continue;
+          for (const { path: rel, words: words2 } of novel.sceneActivity) {
+            if (!words2) continue;
             try {
               const parsed = parseFM(fs.readFileSync(inRoot(rel), "utf8"));
               scenes.push({ path: rel, title: sceneLabel(rel), text: proseText(parsed.body) });
@@ -12498,25 +12602,25 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
                   if (stat.isDirectory()) walk3(full);
                   else if (child.endsWith(".md") && ["novel", "act"].includes(folderTypeForFile(full))) {
                     seen.add(full);
-                    let words, status2, title;
+                    let words2, status2, title;
                     const cached = censusCache.get(full);
                     if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
-                      ({ words, status: status2, title } = cached);
+                      ({ words: words2, status: status2, title } = cached);
                     } else {
                       const raw = fs.readFileSync(full, "utf8");
                       const parsed = parseFM(raw);
-                      words = wordCount(parsed.body);
+                      words2 = wordCount(parsed.body);
                       status2 = String(parsed.meta.scene_status || "").trim().toLowerCase();
                       title = String(parsed.meta.title || "").trim() || child.replace(/\.md$/, "");
-                      censusCache.set(full, { mtimeMs: stat.mtimeMs, size: stat.size, words, status: status2, title });
+                      censusCache.set(full, { mtimeMs: stat.mtimeMs, size: stat.size, words: words2, status: status2, title });
                     }
                     const rel = path5.relative(ROOT, full).replace(/\\/g, "/");
                     if (status2) statusCounts[status2] = (statusCounts[status2] || 0) + 1;
-                    if (!words) emptyScenes++;
+                    if (!words2) emptyScenes++;
                     else if (!lastEdited || stat.mtimeMs > lastEdited.mtimeMs) lastEdited = { path: rel, title, mtimeMs: stat.mtimeMs };
-                    totalWords += words;
+                    totalWords += words2;
                     scenes++;
-                    sceneActivity.push({ path: rel, words, status: status2 });
+                    sceneActivity.push({ path: rel, words: words2, status: status2 });
                   }
                 } catch {
                 }
@@ -12646,13 +12750,13 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const names = /* @__PURE__ */ new Set([String(meta2.folder_title || path5.basename(dir)).trim()]);
         const honorifics = /^(madame|madam|mme|lady|lord|sir|dame|detective|det|captain|capt|dr|doctor|mr|mrs|ms|miss|agent|officer|sergeant|sgt|professor|prof|father|mother|sister|brother|king|queen|prince|princess)\.?$/i;
         for (const character of Array.isArray(characters) ? characters : []) {
-          const words = String(character?.name || "").trim().split(/\s+/).filter(Boolean);
-          if (/^(the|a|an)$/i.test(words[0] || "")) {
-            if (words.length > 1) names.add(words.join(" "));
+          const words2 = String(character?.name || "").trim().split(/\s+/).filter(Boolean);
+          if (/^(the|a|an)$/i.test(words2[0] || "")) {
+            if (words2.length > 1) names.add(words2.join(" "));
             continue;
           }
-          while (words.length > 1 && honorifics.test(words[0])) words.shift();
-          if ((words[0] || "").length >= 3) names.add(words[0]);
+          while (words2.length > 1 && honorifics.test(words2[0])) words2.shift();
+          if ((words2[0] || "").length >= 3) names.add(words2[0]);
         }
         const escaped = [...names].filter(Boolean).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
         if (!escaped.length) return empty;
@@ -12726,16 +12830,16 @@ ${tags}`);
           const currentIds = new Set(projects.map((project) => project?.id).filter(Boolean));
           let shift = 0;
           for (const project of Object.values(stats.projectProgress || {})) {
-            const words = Number(project.lastTotal) || 0;
-            if (!words || !project.path) continue;
+            const words2 = Number(project.lastTotal) || 0;
+            if (!words2 || !project.path) continue;
             let onDisk = true;
             try {
               onDisk = fs.existsSync(inRoot(project.path));
             } catch {
               onDisk = false;
             }
-            if (project.present !== false && !currentIds.has(project.id) && !onDisk) shift -= words;
-            if (project.present === false && currentIds.has(project.id)) shift += words;
+            if (project.present !== false && !currentIds.has(project.id) && !onDisk) shift -= words2;
+            if (project.present === false && currentIds.has(project.id)) shift += words2;
           }
           if (shift) {
             stats.lastSceneCensusTotal += shift;
@@ -12750,21 +12854,21 @@ ${tags}`);
         stats.pendingCuts = stats.pendingCuts && typeof stats.pendingCuts === "object" ? stats.pendingCuts : {};
         const nowMs = Date.now();
         for (const [scenePath, pending] of Object.entries(stats.pendingCuts)) {
-          const words = currentSceneWords[scenePath];
-          if (Number.isFinite(words) && words >= pending.from * PENDING_CUT_RESTORE) {
+          const words2 = currentSceneWords[scenePath];
+          if (Number.isFinite(words2) && words2 >= pending.from * PENDING_CUT_RESTORE) {
             delete stats.pendingCuts[scenePath];
           } else if (nowMs - pending.at >= PENDING_CUT_MS || pending.day !== today) {
-            const lost = Number.isFinite(words) ? Math.min(pending.words, Math.max(0, pending.from - words)) : pending.words;
+            const lost = Number.isFinite(words2) ? Math.min(pending.words, Math.max(0, pending.from - words2)) : pending.words;
             if (pending.day === today) stats.censusCutByDay[today] += lost;
             else stats.wordsCutByDay[pending.day] = (Number(stats.wordsCutByDay[pending.day]) || 0) + lost;
             delete stats.pendingCuts[scenePath];
           }
         }
-        const observedCut = migrated ? 0 : Object.entries(currentSceneWords).reduce((sum, [scenePath, words]) => {
+        const observedCut = migrated ? 0 : Object.entries(currentSceneWords).reduce((sum, [scenePath, words2]) => {
           if (!Object.prototype.hasOwnProperty.call(previousSceneWords, scenePath)) return sum;
           if (draftScenes[scenePath]) return sum;
           const before = Number(previousSceneWords[scenePath]) || 0;
-          const dropped = Math.max(0, before - words);
+          const dropped = Math.max(0, before - words2);
           if (before >= PENDING_CUT_MIN_WORDS && dropped > before * PENDING_CUT_SHARE && !stats.pendingCuts[scenePath]) {
             stats.pendingCuts[scenePath] = { words: dropped, from: before, at: nowMs, day: today };
             return sum;
@@ -16274,9 +16378,105 @@ ${sc.text}`);
         ".brainstorm-history.json": "Brainstorm conversations"
       };
       var dataFileName = (name) => DATA_FILE_NAMES[name] || name;
-      function describeLocalChanges(rels) {
+      var COMPANION_LABELS = { ".notes.json": "Notes", ".outline.json": "Outline", ".comments.json": "Comments", ".board.json": "Board card", ".brief.json": "Brief" };
+      var SCENE_FIELD_LABELS = {
+        scene_status: "Status",
+        scene_pov: "POV",
+        scene_setting: "Setting",
+        scene_synopsis: "Synopsis",
+        scene_purpose: "Purpose",
+        scene_beats: "Beats",
+        tags: "Tags",
+        mood: "Mood",
+        word_goal: "Word goal",
+        font: "Font"
+      };
+      var QUIET_SCENE_FIELDS = /* @__PURE__ */ new Set(["title", "scene_id", "date"]);
+      var fieldLabel = (key) => SCENE_FIELD_LABELS[key] || key.replace(/^scene_/, "").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+      function firstNewParagraph(before, after) {
+        const lines = (text) => String(text || "").split(/\n/).map((line) => line.trim()).filter(Boolean);
+        const old = new Set(lines(before));
+        for (const line of lines(after)) {
+          if (old.has(line)) continue;
+          const plain = proseText(line).replace(/\s+/g, " ").trim();
+          if (!plain) continue;
+          return plain.length > 140 ? `${plain.slice(0, 140).replace(/\s+\S*$/, "")}\u2026` : plain;
+        }
+        return "";
+      }
+      function describeJsonChange(beforeText, afterText) {
+        let a, b;
+        try {
+          a = beforeText == null ? void 0 : JSON.parse(beforeText);
+        } catch {
+          return "";
+        }
+        try {
+          b = afterText == null ? void 0 : JSON.parse(afterText);
+        } catch {
+          return "";
+        }
+        if (a === void 0 || b === void 0) return "";
+        for (let depth = 0; depth < 2; depth++) {
+          if (!a || !b || typeof a !== "object" || typeof b !== "object" || Array.isArray(a) !== Array.isArray(b)) return "";
+          let added = 0, removed = 0, changed = 0;
+          const changedKeys = [];
+          if (Array.isArray(a)) {
+            const counts = /* @__PURE__ */ new Map();
+            for (const x2 of a) {
+              const k = JSON.stringify(x2);
+              counts.set(k, (counts.get(k) || 0) + 1);
+            }
+            for (const x2 of b) {
+              const k = JSON.stringify(x2);
+              if (counts.get(k) > 0) counts.set(k, counts.get(k) - 1);
+              else added++;
+            }
+            removed = [...counts.values()].reduce((sum, n) => sum + n, 0);
+            if (!added && !removed && JSON.stringify(a) !== JSON.stringify(b)) return "Reordered";
+            if ([...a, ...b].some((x2) => x2 && typeof x2 === "object")) {
+              changed = Math.min(added, removed);
+              added -= changed;
+              removed -= changed;
+            }
+          } else {
+            for (const k of /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])) {
+              if (!(k in a)) added++;
+              else if (!(k in b)) removed++;
+              else if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) {
+                changed++;
+                changedKeys.push(k);
+              }
+            }
+            if (depth === 0 && !added && !removed && changed === 1 && a[changedKeys[0]] && typeof a[changedKeys[0]] === "object") {
+              a = a[changedKeys[0]];
+              b = b[changedKeys[0]];
+              continue;
+            }
+          }
+          const parts = [];
+          if (added) parts.push(`${added} added`);
+          if (removed) parts.push(`${removed} removed`);
+          if (changed) parts.push(`${changed} changed`);
+          return parts.join(", ");
+        }
+        return "";
+      }
+      function proseChange(before, after) {
+        const { written, cut } = diffWords(proseText(before), proseText(after));
+        return { before: wordCount(before), after: wordCount(after), written, cut };
+      }
+      function describeLocalChanges(rels, before = {}) {
         const bases = Object.values(readSyncState().bases).map((base) => base.files || {});
-        const matched = [], items = /* @__PURE__ */ new Map();
+        const has = (rel) => Object.prototype.hasOwnProperty.call(before, rel);
+        const readNow = (rel) => {
+          try {
+            return fs.readFileSync(path5.join(ROOT, rel), "utf8");
+          } catch {
+            return null;
+          }
+        };
+        const matched = [], members = /* @__PURE__ */ new Map();
         for (const rel of [...new Set(rels)].filter((rel2) => typeof rel2 === "string" && !BackupMerge.IGNORED(rel2))) {
           const full = path5.join(ROOT, rel);
           let hash = null;
@@ -16284,29 +16484,85 @@ ${sc.text}`);
             hash = BackupMerge.sha256(fs.readFileSync(full));
           } catch {
           }
-          if (hash ? bases.some((files) => files[rel] === hash) : !bases.some((files) => files[rel])) {
+          const then = has(rel) ? before[rel] : void 0;
+          const same = then !== void 0 ? (hash ? then !== null && BackupMerge.sha256(Buffer.from(then, "utf8")) === hash : then === null) || hash && bases.some((files) => files[rel] === hash) : hash ? bases.some((files) => files[rel] === hash) : !bases.some((files) => files[rel]);
+          if (same) {
             matched.push(rel);
             continue;
           }
-          const owner = sceneOwnerOf(rel);
-          const id = owner || rel;
-          if (items.has(id)) continue;
-          const known = bases.some((files) => files[id]);
+          const id = sceneOwnerOf(rel) || rel;
+          if (!members.has(id)) members.set(id, []);
+          members.get(id).push(rel);
+        }
+        const items = [];
+        for (const [id, changed] of members) {
+          const known = has(id) ? before[id] !== null : bases.some((files) => files[id]);
           const exists = fs.existsSync(path5.join(ROOT, id));
           const parts = id.split("/");
           const scene = /\.md$/i.test(id);
-          items.set(id, {
+          const group = BackupMerge.isData(id) || id.startsWith(".trash/") ? "settings" : !exists ? "deleted" : known ? "edited" : "new";
+          const details = {};
+          if (scene && !id.startsWith(".trash/")) {
+            const nowRaw = exists ? readNow(id) : null;
+            const thenRaw = !changed.includes(id) ? nowRaw : has(id) ? before[id] : void 0;
+            const now = nowRaw == null ? null : parseFM(nowRaw), then = thenRaw == null ? null : parseFM(thenRaw);
+            if (now && then) {
+              details.words = proseChange(then.body, now.body);
+              details.textChanged = then.body !== now.body;
+              if (details.textChanged) details.excerpt = firstNewParagraph(then.body, now.body);
+              if ((then.meta.title || "") !== (now.meta.title || "") && then.meta.title) details.renamedFrom = then.meta.title;
+              const keys = /* @__PURE__ */ new Set([...Object.keys(then.meta), ...Object.keys(now.meta)]);
+              details.fields = [...keys].filter((k) => !QUIET_SCENE_FIELDS.has(k) && JSON.stringify(then.meta[k] ?? "") !== JSON.stringify(now.meta[k] ?? "")).map(fieldLabel);
+            } else if (now) details.words = { before: thenRaw === null ? 0 : null, after: wordCount(now.body), written: thenRaw === null ? wordCount(now.body) : null, cut: thenRaw === null ? 0 : null };
+            else if (then) details.words = { before: wordCount(then.body), after: 0, written: 0, cut: wordCount(then.body) };
+            if (!exists) delete details.excerpt;
+            const companions = [];
+            let snapshots = 0;
+            for (const rel of changed) {
+              if (rel === id) continue;
+              if (/\/\.[^/]+\.snapshots\//.test(rel) || /^\.[^/]+\.snapshots\//.test(rel)) {
+                snapshots++;
+                continue;
+              }
+              const suffix = SCENE_COMPANION_SUFFIXES.find((s) => rel.endsWith(s));
+              if (!suffix) continue;
+              const entry = { label: COMPANION_LABELS[suffix] || suffix };
+              const nowText = readNow(rel), thenText = has(rel) ? before[rel] : void 0;
+              entry.state = nowText == null ? "removed" : thenText === null ? "added" : "changed";
+              if (suffix === ".notes.json" && thenText !== void 0) {
+                const content = (text) => {
+                  try {
+                    return String(JSON.parse(text)?.content || "");
+                  } catch {
+                    return "";
+                  }
+                };
+                const change = proseChange(thenText == null ? "" : content(thenText), nowText == null ? "" : content(nowText));
+                entry.written = change.written;
+                entry.cut = change.cut;
+              } else if (thenText !== void 0) entry.summary = describeJsonChange(thenText, nowText);
+              companions.push(entry);
+            }
+            if (snapshots) companions.push({ label: "Snapshots", state: "added", count: snapshots });
+            details.companions = companions;
+          } else if (group === "settings") {
+            const thenText = has(id) ? before[id] : void 0;
+            if (thenText !== void 0) details.summary = describeJsonChange(thenText, readNow(id));
+          }
+          items.push({
             rel: id,
             scene,
-            group: BackupMerge.isData(id) || id.startsWith(".trash/") ? "settings" : !exists ? "deleted" : known ? "edited" : "new",
-            // A deleted scene's title is gone with it; its filename is the next best name.
-            name: scene ? exists && sceneTitle(path5.join(ROOT, id)) || parts.at(-1).replace(/\.md$/i, "").replace(/^\d{4}-\d{2}-\d{2}[_-]/, "").replace(/[-_]/g, " ") : dataFileName(parts.at(-1)),
-            where: parts.slice(0, -1).join(" \u203A ")
+            group,
+            // A deleted scene's title is gone with it, unless the backup's copy is known; failing that,
+            // its filename is the next best name.
+            name: scene ? (exists ? sceneTitle(path5.join(ROOT, id)) : typeof before[id] === "string" && parseFM(before[id]).meta.title) || parts.at(-1).replace(/\.md$/i, "").replace(/^\d{4}-\d{2}-\d{2}[_-]/, "").replace(/[-_]/g, " ") : dataFileName(parts.at(-1)),
+            where: parts.slice(0, -1).join(" \u203A "),
+            details
           });
         }
-        return { matched, items: [...items.values()].sort((a, b) => a.rel.localeCompare(b.rel)) };
+        return { matched, items: items.sort((a, b) => a.rel.localeCompare(b.rel)) };
       }
-      ipcMain2.handle("describe-local-changes", (_, { rels } = {}) => describeLocalChanges(Array.isArray(rels) ? rels : []));
+      ipcMain2.handle("describe-local-changes", (_, { rels, before } = {}) => describeLocalChanges(Array.isArray(rels) ? rels : [], before && typeof before === "object" ? before : {}));
       function mergeReview(preview) {
         return {
           ok: true,
@@ -17925,7 +18181,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         if (dup) return { ok: true, duplicate: true, id: dup.id, title: dup.title };
         const id = Study.newId("bk");
         const paragraphs = book.chapters.reduce((n, c) => n + c.paragraphs.length, 0);
-        const words = book.chapters.reduce((n, c) => n + c.paragraphs.reduce((m, p) => m + Study.wordCount(p.t), 0), 0);
+        const words2 = book.chapters.reduce((n, c) => n + c.paragraphs.reduce((m, p) => m + Study.wordCount(p.t), 0), 0);
         const entry = {
           id,
           title: book.title,
@@ -17940,7 +18196,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
           repair: null,
           chapters: book.chapters.length,
           paragraphs,
-          words
+          words: words2
         };
         atomicWriteFileSync(path5.join(bookshelfDir(), `${id}.json`), JSON.stringify({ ...entry, chapters: book.chapters }), "utf8");
         atomicWriteFileSync(bookIndexFile(), JSON.stringify([entry, ...index], null, 2), "utf8");
@@ -17997,7 +18253,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         const dir = bookshelfDir();
         const current2 = path5.join(dir, `${id}.json`);
         const paragraphs = book.chapters.reduce((n, c) => n + c.paragraphs.length, 0);
-        const words = book.chapters.reduce((n, c) => n + c.paragraphs.reduce((m, p) => m + Study.wordCount(p.t), 0), 0);
+        const words2 = book.chapters.reduce((n, c) => n + c.paragraphs.reduce((m, p) => m + Study.wordCount(p.t), 0), 0);
         const patch = {
           contentHash: book.contentHash,
           parserVersion: book.parserVersion,
@@ -18007,7 +18263,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
           updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
           chapters: book.chapters.length,
           paragraphs,
-          words
+          words: words2
         };
         try {
           atomicWriteFileSync(path5.join(dir, `${id}.prev.json`), fs.readFileSync(current2, "utf8"), "utf8");
@@ -18191,7 +18447,13 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   var overrides_exports = {};
   async function libraryChanges() {
     const rels = changedSinceExportPaths().map((p) => p.slice("/Quill/".length));
-    const { matched, items } = await handlerFor("describe-local-changes")({}, { rels });
+    const decoder = new TextDecoder();
+    const before = {};
+    for (const rel of rels) {
+      const data = baselineOf(`/Quill/${rel}`);
+      if (data !== void 0) before[rel] = data === null ? null : decoder.decode(data);
+    }
+    const { matched, items } = await handlerFor("describe-local-changes")({}, { rels, before });
     if (matched.length) forgetChanges(matched.map((rel) => `/Quill/${rel}`));
     return items;
   }
@@ -18811,7 +19073,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-07T05:12:26.714Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-07T20:32:25.755Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
