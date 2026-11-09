@@ -4842,6 +4842,7 @@ ${raw}` : raw;
         else root.QuillAchievements = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const HOUR = 3600;
+        const SCULPTOR_HOLD_MS = 5 * 60 * 1e3;
         const CATEGORIES = [
           { id: "words", name: "Words" },
           { id: "days", name: "Big days" },
@@ -4939,12 +4940,28 @@ ${raw}` : raw;
           const s = String(n);
           return s.length >= 4 && s === [...s].reverse().join("");
         }
+        function isSculptorDay(added, cut) {
+          return Number(cut) >= 500 && !(Number(added) > 0);
+        }
+        function holdSculptor(stats, today, nowMs) {
+          if (!isSculptorDay(stats.wordsAddedByDay?.[today], stats.wordsCutByDay?.[today])) {
+            delete stats.sculptorHold;
+          } else if (stats.sculptorHold?.day !== today) {
+            stats.sculptorHold = { day: today, since: nowMs };
+          } else if (nowMs - stats.sculptorHold.since >= SCULPTOR_HOLD_MS) {
+            stats.sculptorHold.settled = true;
+          }
+        }
         function context(stats = {}, projects = [], today = "") {
-          const added = stats.wordsAddedByDay || {};
-          const cut = stats.wordsCutByDay || {};
+          const brought = stats.broughtIn || {};
+          const ownCounts = (days, from) => Object.fromEntries(Object.entries(days || {}).map(([d, n]) => [d, (Number(n) || 0) - (Number(from?.[d]) || 0)]));
+          const ownDays = (days, from) => (days || []).filter((d) => !(from || []).includes(d));
+          const added = ownCounts(stats.wordsAddedByDay, brought.wordsAddedByDay);
+          const cut = ownCounts(stats.wordsCutByDay, brought.wordsCutByDay);
+          const writeDays = ownDays(stats.writeDays, brought.writeDays);
           const dates = [.../* @__PURE__ */ new Set([
             ...Object.keys(added).filter((d) => Number(added[d]) > 0),
-            ...stats.writeDays || []
+            ...writeDays
           ])].sort();
           let longestGap = 0;
           for (let i2 = 1; i2 < dates.length; i2++) {
@@ -4958,7 +4975,7 @@ ${raw}` : raw;
             lifetimeWords: Object.values(added).reduce((sum, n) => sum + (Number(n) || 0), 0),
             bestDay: Math.max(0, ...Object.values(added).map(Number).filter(Number.isFinite)),
             bestCutDay: Math.max(0, ...Object.values(cut).map(Number).filter(Number.isFinite)),
-            sculptorDays: Object.keys(cut).filter((d) => Number(cut[d]) >= 500 && !(Number(added[d]) > 0)).length,
+            sculptorDays: Object.keys(cut).filter((d) => isSculptorDay(added[d], cut[d]) && (d !== today || stats.sculptorHold?.day === today && stats.sculptorHold.settled)).length,
             maxNovelWords: Math.max(0, ...present.map((p) => Number(p.totalWords) || 0)),
             novelTotals: present.map((p) => Number(p.totalWords) || 0),
             novelGoalsMet: present.filter((p) => p.goal > 0 && p.totalWords >= p.goal).length,
@@ -4970,7 +4987,7 @@ ${raw}` : raw;
             longestSprint: Number(stats.longestSprint) || 0,
             longestStreak: longestRun(dates),
             writingDays: dates.length,
-            goalDays: (stats.goalMetDays || []).length,
+            goalDays: ownDays(stats.goalMetDays, brought.goalMetDays).length,
             todayWords: Number(added[today]) || 0,
             netZeroDays: Object.keys(added).filter((d) => Number(added[d]) >= 200 && Number(cut[d]) >= Number(added[d])).length,
             maxIdleVisits: Math.max(0, ...scenes.map((s) => Number(s.idleVisits) || 0)),
@@ -5018,7 +5035,8 @@ ${raw}` : raw;
               wordsAddedByDay: upTo(stats.wordsAddedByDay, day),
               wordsCutByDay: upTo(stats.wordsCutByDay, day),
               writeDays: (stats.writeDays || []).filter((d) => d <= day),
-              goalMetDays: (stats.goalMetDays || []).filter((d) => d <= day)
+              goalMetDays: (stats.goalMetDays || []).filter((d) => d <= day),
+              broughtIn: stats.broughtIn
             }, [], day)
           }));
         }
@@ -5045,7 +5063,7 @@ ${raw}` : raw;
             };
           });
         }
-        return { CATEGORIES, CATALOG, context, update, describe, isPalindrome };
+        return { CATEGORIES, CATALOG, SCULPTOR_HOLD_MS, context, update, describe, holdSculptor, isPalindrome };
       });
     }
   });
@@ -9375,7 +9393,8 @@ ${str(e.text).trim()}
       var crypto2 = (init_crypto(), __toCommonJS(crypto_exports));
       var MANIFEST = ".quill-sync.json";
       var SLACK_MS = 2 * 6e4;
-      var IGNORED = (rel) => rel === MANIFEST || rel.includes(".quill-tmp-") || /(^|\/)\.DS_Store$/.test(rel);
+      var IGNORED = (rel) => rel === MANIFEST || rel === ".quill_day_text.json" || rel.includes(".quill-tmp-") || /(^|\/)\.DS_Store$/.test(rel);
+      var STATS = ".quill_stats.json";
       var isData = (rel) => /\.json$/.test(rel) || /(^|\/)\.quill_meta$/.test(rel) || rel.endsWith(".trashmeta");
       var sha2563 = (data) => crypto2.createHash("sha256").update(data).digest("hex");
       function copyName(rel, deviceName, taken = /* @__PURE__ */ new Set()) {
@@ -9510,6 +9529,58 @@ ${str(e.text).trim()}
         }
         return newer;
       }
+      var STATS_DEVICE_ONLY = [
+        "achievements",
+        "featureUse",
+        "totalSessions",
+        "longestSprint",
+        "writingHours",
+        "writingHoursByDay",
+        "sceneEvents",
+        "projectProgress",
+        "lastSceneCensusTotal",
+        "lastCensusTotal",
+        "sceneDayBaselines",
+        "dayBaselines",
+        "sceneWordCounts",
+        "pendingCuts",
+        "censusCutByDay",
+        "wordSnapshots",
+        "sculptorHold",
+        "mistakenBadgesRemoved"
+      ];
+      var STATS_DAY_TOTALS = ["wordsAddedByDay", "wordsByDay", "wordsCutByDay"];
+      var STATS_DAY_LISTS = ["writeDays", "goalMetDays"];
+      function combineStats(mine, theirs, today, theirsNewer = false) {
+        const out = theirsNewer ? combineJson(theirs, mine) : combineJson(mine, theirs);
+        for (const key of STATS_DEVICE_ONLY) {
+          if (key in mine) out[key] = mine[key];
+          else delete out[key];
+        }
+        const before = mine.broughtIn || {};
+        const broughtIn = {};
+        for (const key of STATS_DAY_TOTALS) {
+          const days = { ...mine[key] };
+          const brought = { ...before[key] };
+          for (const [day, count] of Object.entries(theirs[key] || {})) {
+            const have = Number(days[day]) || 0;
+            const more = (Number(count) || 0) - have;
+            if (day === today || more <= 0) continue;
+            days[day] = have + more;
+            brought[day] = (Number(brought[day]) || 0) + more;
+          }
+          out[key] = days;
+          broughtIn[key] = brought;
+        }
+        for (const key of STATS_DAY_LISTS) {
+          const have = new Set(mine[key] || []);
+          const fresh2 = (theirs[key] || []).filter((day) => day !== today && !have.has(day));
+          out[key] = [...have, ...fresh2].sort();
+          broughtIn[key] = [.../* @__PURE__ */ new Set([...before[key] || [], ...fresh2])];
+        }
+        out.broughtIn = broughtIn;
+        return out;
+      }
       function retitleScene(text, deviceName) {
         const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
         if (!fm) return text;
@@ -9532,7 +9603,7 @@ ${body}
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
       }
-      module.exports = { MANIFEST, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, retitleScene, orderWithCopies };
+      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, combineStats, retitleScene, orderWithCopies };
     }
   });
 
@@ -12705,16 +12776,25 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           };
         }
       }
-      function refreshAchievements(stats) {
+      function refreshAchievements(stats, { catchingUp = false } = {}) {
         const today = localDateKey();
+        if (!catchingUp) Achievements.holdSculptor(stats, today, Date.now());
         const ctx = Achievements.context(stats, Object.values(stats.projectProgress || {}), today);
         stats.achievements = Achievements.update(stats.achievements || null, ctx, today, stats);
         const byId = Object.fromEntries(Achievements.CATALOG.map((badge) => [badge.id, badge]));
         return Object.entries(stats.achievements).filter(([badgeId, got]) => !got.seen && byId[badgeId]).map(([badgeId]) => byId[badgeId]).map((badge) => ({ id: badge.id, icon: badge.icon, name: badge.name, desc: badge.desc, quip: badge.quip || null, tier: badge.tier }));
       }
+      function removeMistakenBadges(stats) {
+        if (stats.mistakenBadgesRemoved) return;
+        stats.mistakenBadgesRemoved = true;
+        for (const badgeId of ["day-2500", "day-5k", "sculptor"]) {
+          if (stats.achievements?.[badgeId]?.date === "2026-11-08") delete stats.achievements[badgeId];
+        }
+      }
       function catchUpAchievements(stats) {
+        removeMistakenBadges(stats);
         const existing = new Set(Object.keys(stats.achievements || {}));
-        refreshAchievements(stats);
+        refreshAchievements(stats, { catchingUp: true });
         for (const [badgeId, earned] of Object.entries(stats.achievements || {})) {
           if (!existing.has(badgeId)) earned.seen = true;
         }
@@ -16218,13 +16298,48 @@ ${sc.text}`);
         if (peer !== state.deviceId) state.bases[peer] = { files: hashesOf(hashTree(ROOT)), at: (/* @__PURE__ */ new Date()).toISOString(), name: manifest?.deviceName || "" };
         writeSyncState(state);
       }
+      function mergeStatsFile(target2, source, theirsNewer) {
+        try {
+          const mine = fs.existsSync(target2) ? JSON.parse(fs.readFileSync(target2, "utf8")) : {};
+          const theirs = JSON.parse(fs.readFileSync(source, "utf8"));
+          atomicWriteFileSync(target2, JSON.stringify(BackupMerge.combineStats(mine, theirs, localDateKey(), theirsNewer)), "utf8");
+        } catch {
+        }
+      }
+      function rebaselineAfterMerge(before, after) {
+        try {
+          const stats = readStats();
+          const today = localDateKey();
+          const shift = after.totalWords - before.totalWords;
+          if (Number.isFinite(stats.lastSceneCensusTotal)) stats.lastSceneCensusTotal += shift;
+          if (Number.isFinite(stats.sceneDayBaselines?.[today])) stats.sceneDayBaselines[today] += shift;
+          const wordsBefore = censusSceneWordCounts(before.projects), wordsAfter = censusSceneWordCounts(after.projects);
+          if (stats.sceneWordCounts) {
+            for (const scene of /* @__PURE__ */ new Set([...Object.keys(wordsBefore), ...Object.keys(wordsAfter)])) {
+              if (wordsBefore[scene] === wordsAfter[scene]) continue;
+              if (scene in wordsAfter) stats.sceneWordCounts[scene] = wordsAfter[scene];
+              else delete stats.sceneWordCounts[scene];
+            }
+          }
+          const totalOf = (census, id) => census.projects.find((project) => project.id === id)?.totalWords || 0;
+          for (const project of Object.values(stats.projectProgress || {})) {
+            const change = totalOf(after, project.id) - totalOf(before, project.id);
+            if (Number.isFinite(project.lastTotal)) project.lastTotal += change;
+            if (Number.isFinite(project.dayBaselines?.[today])) project.dayBaselines[today] += change;
+          }
+          atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
+        } catch {
+        }
+      }
       function applyMergeActions(actions, sourceRoot, remoteName, remotePaths) {
         const copies = /* @__PURE__ */ new Map();
         const trashed = [];
         for (const action of actions) {
           const target2 = path5.join(ROOT, action.rel);
           const source = path5.join(sourceRoot, action.rel);
-          if (action.op === "take") {
+          if (action.rel === BackupMerge.STATS && (action.op === "take" || action.op === "combine")) {
+            mergeStatsFile(target2, source, action.op === "take" || action.newer === "remote");
+          } else if (action.op === "take") {
             fs.mkdirSync(path5.dirname(target2), { recursive: true });
             atomicWriteFileSync(target2, fs.readFileSync(source), null);
           } else if (action.op === "combine") {
@@ -16614,7 +16729,9 @@ ${sc.text}`);
         const chosen = [], skipped = [];
         for (const item of items) (skip.has(item.id) ? skipped : chosen).push(...item.actions);
         const safetyArchive = chosen.length ? await createPreRestoreSafetyArchive() : "";
+        const censusBefore = manuscriptProjectCensus();
         applyMergeActions(chosen, preview.extractedRoot, preview.remoteName, Object.keys(preview.remote));
+        rebaselineAfterMerge(censusBefore, manuscriptProjectCensus());
         const state = readSyncState();
         state.bases[preview.peer] = {
           files: BackupMerge.nextBase(preview.remote, preview.base, preview.local, skipped),
@@ -19073,7 +19190,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-07T20:32:25.755Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-09T05:47:21.025Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

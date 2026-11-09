@@ -625,6 +625,9 @@ const Settings = (() => {
     }
   }
 
+  // Waits ten minutes so changes brought in from the iPad make it into the day's one automatic backup.
+  const CLOUD_BACKUP_LAUNCH_DELAY_MS = 10 * 60 * 1000
+
   function _scheduleCloudBackup() {
     setTimeout(async () => {
       try {
@@ -634,7 +637,7 @@ const Settings = (() => {
         if (result && !$('settings-modal')?.classList.contains('show')) _cloudBackup = result
         else if (result) _renderCloudBackup(result)
       } catch {}
-    }, 8000)
+    }, CLOUD_BACKUP_LAUNCH_DELAY_MS)
   }
 
   function init() {
