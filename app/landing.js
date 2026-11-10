@@ -3051,7 +3051,9 @@ const Landing = (() => {
 
   // ── Journal landing ────────────────────────────────────────
 
-  function journalHTML(name, meta) { return `
+  function journalHTML(name, meta) {
+    const about = ['purpose', 'intention', 'rhythm'].some(key => String(meta[key] || '').trim())
+    return `
     <div class="l-header">
       <div class="l-badge journal">Journal</div>
       <input class="l-title" type="text" data-key="folder_title"
@@ -3060,19 +3062,11 @@ const Landing = (() => {
         <button class="btn sm l-backup-btn" type="button" data-backup-type="journal">↓ Back up…</button></div>
     </div>
     <div class="journal-write-actions"><button class="btn primary" id="journal-write-today">Write today’s entry</button></div>
-    <div class="l-grid">
-      <div class="l-card l-wide"><span class="l-lbl">What is this journal for?</span>
-        <textarea class="l-field" data-key="purpose" rows="2"
-          placeholder="Processing, tracking, creative exploration…">${esc(meta.purpose||'')}</textarea></div>
-      <div class="l-card"><span class="l-lbl">Intention</span>
-        <textarea class="l-field l-auto" data-key="intention" rows="2" placeholder="One word or phrase…">${esc(meta.intention||'')}</textarea></div>
-      <div class="l-card"><span class="l-lbl">Writing rhythm</span>
-        <textarea class="l-field l-auto" data-key="rhythm" rows="2" placeholder="e.g. every morning, weekly…">${esc(meta.rhythm||'')}</textarea></div>
-    </div>
+    <section class="journal-stats" id="journal-stats" aria-live="polite" hidden></section>
     <div class="l-journal-calendar-wrap">
       <div class="l-journal-cal-header">
         <button class="l-cal-nav" id="j-cal-prev" aria-label="Previous month">&#8249;</button>
-        <span class="l-cal-month-label" id="j-cal-label"></span>
+        <span class="l-cal-month-label"><span id="j-cal-label"></span><span class="j-cal-sum" id="j-cal-sum"></span></span>
         <button class="l-cal-nav" id="j-cal-next" aria-label="Next month">&#8250;</button>
       </div>
       <div class="l-journal-calendar" id="j-cal-grid"></div>
@@ -3083,13 +3077,26 @@ const Landing = (() => {
       <div class="l-prompt-text" id="l-prompt-text">${esc(meta.last_prompt||pick(JOURNAL))}</div>
       <button class="btn primary" id="journal-write-prompt">Write from this prompt</button>
       <button class="l-prompt-btn" id="l-prompt-refresh">&#x21BA; New prompt</button>
-    </div>` }
+    </div>
+    <details class="l-details journal-about"${about ? '' : ' open'}>
+      <summary>About this journal</summary>
+      <div class="l-grid">
+        <div class="l-card l-wide"><span class="l-lbl">What is this journal for?</span>
+          <textarea class="l-field" data-key="purpose" rows="2"
+            placeholder="Processing, tracking, creative exploration…">${esc(meta.purpose||'')}</textarea></div>
+        <div class="l-card"><span class="l-lbl">Intention</span>
+          <textarea class="l-field l-auto" data-key="intention" rows="2" placeholder="One word or phrase…">${esc(meta.intention||'')}</textarea></div>
+        <div class="l-card"><span class="l-lbl">Writing rhythm</span>
+          <textarea class="l-field l-auto" data-key="rhythm" rows="2" placeholder="e.g. every morning, weekly…">${esc(meta.rhythm||'')}</textarea></div>
+      </div>
+    </details>` }
 
-  // A folder inside a journal: same calendar and write actions, without the journal-level fields.
+  // A folder inside a journal: same numbers, calendar and write actions, scoped to the folder,
+  // without the journal-level fields.
   function journalSubHTML(name, meta) {
     const full = journalHTML(name, meta)
     const doc = new DOMParser().parseFromString(`<div>${full}</div>`, 'text/html').body.firstChild
-    doc.querySelector('.l-grid')?.remove()
+    doc.querySelector('.journal-about')?.remove()
     doc.querySelector('.l-backup-btn')?.remove()
     const badge = doc.querySelector('.l-badge')
     if (badge) badge.textContent = 'Journal folder'
@@ -3100,57 +3107,136 @@ const Landing = (() => {
     return doc.innerHTML
   }
 
+  const JOURNAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const journalNum = n => Math.round(Number(n) || 0).toLocaleString('en-US')
+  const journalPlural = (n, one, many = one + 's') => `${journalNum(n)} ${Math.round(n) === 1 ? one : many}`
+  // "2026-03-04" → "Mar 4, 2026", without a time zone shifting the day.
+  function journalDay(key) {
+    const [y, m, d] = String(key).split('-').map(Number)
+    return y && m && d ? `${JOURNAL_MONTHS[m - 1].slice(0, 3)} ${d}, ${y}` : ''
+  }
+
+  // The numbers for a journal (scope 'journal') or one folder inside it ('folder').
+  // Everything shown comes from get-journal-stats; a fact with too little behind it is left out.
+  function renderJournalStats(el, data) {
+    if (!el) return
+    const { stats, scope, previous } = data
+    el.hidden = false
+    if (!stats.entries) {
+      el.innerHTML = `<p class="journal-stats-empty">${scope === 'journal'
+        ? 'Your entries, words and streak will show up here once you’ve written one.'
+        : 'Nothing written in this folder yet.'}</p>`
+      return
+    }
+    const stat = (value, label, id) => `<span class="jstat"${id ? ` data-jstat="${id}"` : ''}><b>${esc(value)}</b> ${esc(label)}</span>`
+    const line = items => `<div class="jstat-line">${items.filter(Boolean).join('')}</div>`
+    const rows = []
+    if (scope === 'journal') {
+      rows.push(`<div class="section-label">Your journal</div>` + line([
+        stat(journalNum(stats.entries), stats.entries === 1 ? 'entry' : 'entries', 'entries'),
+        stat(journalNum(stats.words), 'words', 'words'),
+        stat(journalNum(stats.daysWritten), stats.daysWritten === 1 ? 'day written' : 'days written', 'days'),
+        stat(journalNum(stats.streak), 'day streak', 'streak'),
+        stat(journalNum(stats.longestStreak), 'longest streak', 'longest-streak'),
+        stat(journalNum(stats.avgWords), 'words / entry', 'avg'),
+      ]))
+      const m = stats.thisMonth
+      rows.push(`<div class="jstat-sub"><span class="jstat-sub-label">${esc(m.label)}</span>` + line([
+        stat(journalNum(m.entries), m.entries === 1 ? 'entry' : 'entries', 'month-entries'),
+        stat(journalNum(m.words), 'words', 'month-words'),
+        stat(`${m.daysWritten} of ${m.daysSoFar}`, 'days written', 'month-days'),
+      ]) + `</div>`)
+    } else {
+      const month = stats.month
+      rows.push(`<div class="section-label">${esc(month ? month.label : 'This folder')}</div>` + line([
+        stat(journalNum(stats.entries), stats.entries === 1 ? 'entry' : 'entries', 'entries'),
+        stat(journalNum(stats.words), 'words', 'words'),
+        // The month still in progress is measured against the days so far.
+        month && stat(`${month.daysWritten} of ${month.key === stats.thisMonth.key ? stats.thisMonth.daysSoFar : month.daysInMonth}`, 'days written', 'days'),
+        stat(journalNum(stats.avgWords), 'words / entry', 'avg'),
+      ]))
+    }
+
+    if (stats.moods.length) {
+      // The journal ranks moods by the last 30 days; a folder by its own entries.
+      const recent = scope === 'journal' && stats.moods.some(mood => mood.recent)
+      const value = mood => recent ? mood.recent : mood.count
+      const shown = stats.moods.filter(mood => value(mood) > 0).sort((a, b) => value(b) - value(a)).slice(0, 6)
+      const top = Math.max(...shown.map(value))
+      rows.push(`<div class="jmoods"><div class="jstat-sub-label">${recent ? 'Moods, last 30 days' : 'Moods'}</div>
+        ${shown.map(mood => `<div class="jmood" title="${esc(`${journalPlural(mood.count, 'entry', 'entries')} in all`)}">
+          <span class="jmood-name">${esc(mood.mood)}</span>
+          <span class="jmood-track"><i data-width="${Math.round(value(mood) / top * 100)}"></i></span>
+          <span class="jmood-count">${value(mood)}</span></div>`).join('')}</div>`)
+    }
+    if (stats.tags.length) {
+      rows.push(`<div class="jtags"><div class="jstat-sub-label">Tags</div><div class="chip-row">
+        ${stats.tags.map(({ tag, count }) => `<button type="button" class="chip" data-jtag="${esc(tag)}">${esc(tag)} <span class="jtag-count">${count}</span></button>`).join('')}</div></div>`)
+    }
+
+    const facts = []
+    if (scope === 'journal') {
+      if (stats.busiestWeekday) facts.push(`You write most on ${esc(stats.busiestWeekday.day)}s.`)
+      if (stats.firstDate) facts.push(`First entry ${esc(journalDay(stats.firstDate))}.`)
+    }
+    if (stats.longest) {
+      facts.push(`Longest entry: <button type="button" class="jfact-link" data-jopen="${esc(stats.longest.path)}">${esc(stats.longest.title || 'Untitled')}</button>, ${journalPlural(stats.longest.wordCount, 'word')}.`)
+    }
+    if (scope === 'folder' && previous && previous.words !== stats.words) {
+      const diff = stats.words - previous.words
+      facts.push(`${journalPlural(Math.abs(diff), 'word')} ${diff > 0 ? 'more' : 'fewer'} than ${esc(previous.label)}.`)
+    }
+    if (stats.undated) facts.push(`${journalPlural(stats.undated, 'entry has', 'entries have')} no date, so ${stats.undated === 1 ? 'it isn’t' : 'they aren’t'} on the calendar.`)
+    if (facts.length) rows.push(`<p class="jfacts">${facts.join(' ')}</p>`)
+
+    el.innerHTML = rows.join('')
+    el.querySelectorAll('.jmood-track i').forEach(bar => { bar.style.width = `${bar.dataset.width}%` })
+    el.querySelectorAll('[data-jtag]').forEach(chip => { chip.onclick = () => App.openTagSearch(chip.dataset.jtag) })
+    el.querySelectorAll('[data-jopen]').forEach(link => { link.onclick = () => App.openFile(link.dataset.jopen) })
+  }
+
   async function initJournalPage(folderPath) {
     initSimplePage('journal')
+    const inner = document.getElementById('landing-inner')
+    inner.querySelector('.journal-about')?.addEventListener('toggle', e => { if (e.target.open) resizeAutoFields(e.target) })
     document.getElementById('journal-write-today').onclick = () => App.newFile({ folder:folderPath, folderType:'journal' })
     document.getElementById('journal-write-prompt').onclick = () => App.newFile({
       folder:folderPath, folderType:'journal', prompt:document.getElementById('l-prompt-text').textContent.trim(),
     })
 
-    // Collect all entry dates across all subfolders recursively
-    const allFiles = []
-    async function collectFiles(fPath) {
-      try {
-        const files = await window.quill.getFilesInFolder(fPath)
-        files.forEach(f => { if (f.date) allFiles.push({ path: f.path, date: f.date, title:f.title }) })
-        const tree = await window.quill.getTree()
-        function findNode(node, target) {
-          if (node.path === target) return node
-          for (const ch of (node.children||[])) { const r = findNode(ch, target); if (r) return r }
-          return null
-        }
-        const node = findNode(tree, fPath)
-        if (node) {
-          for (const child of (node.children || [])) {
-            await collectFiles(child.path)
-          }
-        }
-      } catch(e) { console.error('collectFiles error', e) }
-    }
-    await collectFiles(folderPath)
+    // One read gives the numbers and every entry's day, here and in the folders below.
+    const data = await window.quill.getJournalStats(folderPath).catch(() => null)
+    if (_path !== folderPath) return
+    const stats = data?.ok ? data.stats : null
+    if (stats) renderJournalStats(document.getElementById('journal-stats'), data)
+    const days = stats?.days || {}
+    const levels = data?.levels || {}
 
-    // Build a map of YYYY-MM-DD -> [file paths]
-    const dateMap = {}
-    allFiles.forEach(({ path: fp, date }) => {
-      const d = (date || '').slice(0, 10)
-      if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-        if (!dateMap[d]) dateMap[d] = []
-        dateMap[d].push(fp)
-      }
-    })
-
-    const now    = new Date()
+    // The journal opens on this month; a folder opens on the month its entries were written in.
+    const now = new Date()
     let calYear  = now.getFullYear()
     let calMonth = now.getMonth()
+    if (data?.scope === 'folder' && stats?.month) {
+      const [y, m] = stats.month.key.split('-').map(Number)
+      calYear = y; calMonth = m - 1
+    }
 
     function renderCalendar() {
       document.getElementById('journal-day-entries').innerHTML = ''
       const label = document.getElementById('j-cal-label')
       const grid  = document.getElementById('j-cal-grid')
       if (!label || !grid) return
-      const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
       const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa']
-      label.textContent = MONTHS[calMonth] + ' ' + calYear
+      label.textContent = JOURNAL_MONTHS[calMonth] + ' ' + calYear
+
+      const monthKey = calYear + '-' + String(calMonth+1).padStart(2,'0')
+      const inMonth = Object.keys(days).filter(day => day.startsWith(monthKey))
+      const sum = document.getElementById('j-cal-sum')
+      if (sum) {
+        const entries = inMonth.reduce((total, day) => total + days[day].entries.length, 0)
+        const words = inMonth.reduce((total, day) => total + days[day].words, 0)
+        sum.textContent = entries ? `${journalPlural(entries, 'entry', 'entries')} · ${journalPlural(words, 'word')}` : ''
+      }
 
       const firstDay  = new Date(calYear, calMonth, 1).getDay()
       const daysInMon = new Date(calYear, calMonth + 1, 0).getDate()
@@ -3159,31 +3245,30 @@ const Landing = (() => {
       let html = DAYS.map(d => '<div class="j-cal-dow">' + d + '</div>').join('')
       for (let i = 0; i < firstDay; i++) html += '<div class="j-cal-empty"></div>'
       for (let d = 1; d <= daysInMon; d++) {
-        const key  = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
-        const has  = !!dateMap[key]
+        const key  = monthKey + '-' + String(d).padStart(2,'0')
+        const slot = days[key]
         const isToday = key === todayStr
-        const paths = JSON.stringify(has ? dateMap[key] : []).replace(/'/g, '&#39;')
-        html += '<button type="button"' + (has ? '' : ' disabled') + ' aria-label="' + key + (has ? ', open entries' : ', no entries') + '" class="j-cal-day' + (has ? ' has-entry' : '') + (isToday ? ' today' : '') + '"'
-             +  ' data-date="' + key + '" data-paths=\'' + paths + '\'>' + d + '</button>'
+        const about = slot ? `, ${journalPlural(slot.entries.length, 'entry', 'entries')}, ${journalPlural(slot.words, 'word')}` : ', no entries'
+        html += '<button type="button"' + (slot ? '' : ' disabled') + ' aria-label="' + key + about + '"'
+             +  (slot ? ' title="' + esc(journalPlural(slot.words, 'word')) + '" data-heat="' + (levels[key] || 1) + '"' : '')
+             +  ' class="j-cal-day' + (slot ? ' has-entry' : '') + (isToday ? ' today' : '') + '"'
+             +  ' data-date="' + key + '">' + d + '</button>'
       }
       grid.innerHTML = html
 
       grid.querySelectorAll('.j-cal-day.has-entry').forEach(cell => {
         cell.onclick = () => {
-          try {
-            const paths = JSON.parse(cell.dataset.paths || '[]')
-            const list = document.getElementById('journal-day-entries')
-            list.innerHTML = '<h3>' + esc(cell.dataset.date) + '</h3>'
-            paths.forEach(fp => {
-              const button = document.createElement('button')
-              button.type = 'button'
-              button.className = 'btn sm'
-              button.textContent = allFiles.find(file => file.path === fp)?.title || fp.split('/').pop().replace(/\.md$/, '')
-              button.onclick = () => App.openFile(fp)
-              list.appendChild(button)
-            })
-            list.querySelector('button')?.focus()
-          } catch {}
+          const list = document.getElementById('journal-day-entries')
+          list.innerHTML = '<h3>' + esc(cell.dataset.date) + '</h3>'
+          for (const entry of days[cell.dataset.date]?.entries || []) {
+            const button = document.createElement('button')
+            button.type = 'button'
+            button.className = 'btn sm'
+            button.textContent = entry.title || entry.path.split('/').pop().replace(/\.md$/, '')
+            button.onclick = () => App.openFile(entry.path)
+            list.appendChild(button)
+          }
+          list.querySelector('button')?.focus()
         }
       })
     }

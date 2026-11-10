@@ -5585,6 +5585,34 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 #journal-day-entries:empty{display:none}
 #journal-day-entries h3{width:100%;font-size:13px}
 #journal-day-entries button{min-height:30px}
+
+/* ── Journal statistics (journal page and each folder inside it) ── */
+.journal-stats{margin:0 0 var(--sp-5)}
+.journal-stats-empty,.jfacts{margin:0;color:var(--muted);font:var(--fs-md)/1.6 var(--ui)}
+.jfacts{margin-top:var(--sp-4)}
+.jstat-line{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-5);color:var(--muted);font:var(--fs-sm)/1.4 var(--ui)}
+.jstat b{color:var(--text);font-size:var(--fs-lg);font-weight:500;font-variant-numeric:tabular-nums}
+.jstat-sub{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp-2) var(--sp-4);margin-top:var(--sp-3)}
+.jstat-sub-label{font:600 var(--fs-xs)/1.4 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.jmoods,.jtags{margin-top:var(--sp-4)}
+.jmoods .jstat-sub-label,.jtags .jstat-sub-label{margin-bottom:var(--sp-2)}
+.jmood{display:grid;grid-template-columns:minmax(110px,160px) 1fr 28px;align-items:center;gap:var(--sp-3);
+  padding:2px 0;font:var(--fs-sm)/1.4 var(--ui);color:var(--text)}
+.jmood-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jmood-track{height:6px;border-radius:var(--r-pill);background:var(--surface2);overflow:hidden}
+.jmood-track i{display:block;height:100%;border-radius:var(--r-pill);background:var(--accent)}
+.jmood-count{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.jtag-count{color:var(--subtle);font-variant-numeric:tabular-nums}
+.jfact-link{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.j-cal-sum{margin-left:var(--sp-3);font-weight:400;color:var(--muted)}
+.j-cal-sum:empty{display:none}
+/* Four steps of the accent, by how much was written that day compared with your other days.
+   Today keeps its own solid marker. */
+.j-cal-day.has-entry:not(.today)[data-heat="2"]{background:color-mix(in srgb,var(--accent) 28%,var(--surface))}
+.j-cal-day.has-entry:not(.today)[data-heat="3"]{background:color-mix(in srgb,var(--accent) 46%,var(--surface));color:var(--text)}
+.j-cal-day.has-entry:not(.today)[data-heat="4"]{background:color-mix(in srgb,var(--accent) 82%,var(--surface));color:var(--on-accent)}
+.j-cal-day.has-entry[data-heat]:hover{opacity:.85}
+.journal-about .l-grid{margin-top:var(--sp-3)}
 /* Keep every tool in the header. Wrap at narrow widths instead of hiding commands. */
 #toolbar{height:auto;min-height:40px;flex-wrap:wrap;row-gap:4px;padding-top:6px;padding-bottom:6px}
 #toolbar > button,#toolbar > select,#toolbar > .font-size-stepper,#tb-right{flex-shrink:0}

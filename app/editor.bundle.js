@@ -21405,7 +21405,7 @@ ${prefix}
       const paragraph = textBefore(view.state, from2, Infinity);
       const lastOpen = paragraph.lastIndexOf("\u2018");
       const singleOpen = lastOpen >= 0 && !new RegExp("\u2019(?!\\p{L})", "u").test(paragraph.slice(lastOpen + 1));
-      replacement = /[\p{L}\p{N}]$/u.test(before) || before.endsWith("\u2014") && singleOpen ? "\u2019" : "\u2018";
+      replacement = /[\p{L}\p{N}.,!?…;:]$/u.test(before) || before.endsWith("\u2014") && singleOpen ? "\u2019" : "\u2018";
     }
     if (replacement == null) return false;
     view.dispatch(view.state.tr.insertText(replacement, start, to).scrollIntoView());
@@ -26370,6 +26370,18 @@ ${fromBody}`;
   function focus2() {
     if (_editor) _editor.commands.focus();
   }
+  function getCursor() {
+    return _editor ? _editor.state.selection.head : null;
+  }
+  function placeCursor(pos, { focus: focus4 = true } = {}) {
+    if (!_editor || _editor.isDestroyed) return null;
+    const { state, view } = _editor;
+    const size = state.doc.content.size;
+    const selection = pos === "end" || pos == null || !Number.isFinite(Number(pos)) ? Selection.atEnd(state.doc) : Selection.near(state.doc.resolve(Math.max(0, Math.min(Number(pos), size))), -1);
+    view.dispatch(state.tr.setSelection(selection));
+    if (focus4) view.focus();
+    return selection.head;
+  }
   function applyFormat(cmd, val) {
     return formatWith(_editor, cmd, val);
   }
@@ -26696,6 +26708,8 @@ ${fromBody}`;
     getMarkdown,
     getHTML,
     focus: focus2,
+    getCursor,
+    placeCursor,
     applyFormat,
     insertBreak,
     undo: undo2,

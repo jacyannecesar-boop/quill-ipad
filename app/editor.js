@@ -24,6 +24,9 @@ const Editor = (() => {
   let _ntimer    = null
   let _openWords      = 0
   let _trackedWords   = 0
+  let _placeReady = false  // true once this scene's cursor has been put back; only then is it recorded
+  let _placeTimer = null
+  let _restorable = false  // scenes and entries reopen where they were left; World Bible entries open at the top
   let _visit = null        // { path, md, startedAt, empty } for the procrastination badges
   let _typewriterMode = localStorage.getItem('quill_typewriter') === 'on'
 
@@ -142,6 +145,8 @@ const Editor = (() => {
 
   function init() {
     _loadSceneSeconds()
+    document.addEventListener('selectionchange', notePlace)
+    window.addEventListener('pagehide', recordPlace)
     // font family
     const fp = document.getElementById('font-picker')
     fp.value = localStorage.getItem('quill_font') || 'poppins'
@@ -519,8 +524,81 @@ const Editor = (() => {
       .catch(() => {})
   }
 
+  // ── Where the writer left off ──────────────────────────────────────────────
+  // The cursor's last position in each scene, per device, so reopening a scene (Continue on the
+  // dashboard, a click in the sidebar) lands on the sentence being written instead of the top.
+  // Keyed by path; a scene with no entry opens at its end.
+  const PLACES_KEY = 'quill_scene_places'
+  const PLACES_KEEP = 300
+
+  function readPlaces() {
+    try {
+      const places = JSON.parse(localStorage.getItem(PLACES_KEY) || '{}')
+      return places && typeof places === 'object' && !Array.isArray(places) ? places : {}
+    } catch { return {} }
+  }
+
+  function writePlaces(places) {
+    const entries = Object.entries(places)
+    if (entries.length > PLACES_KEEP) {
+      entries.sort((a, b) => (b[1]?.at || 0) - (a[1]?.at || 0))
+      places = Object.fromEntries(entries.slice(0, PLACES_KEEP))
+    }
+    try { localStorage.setItem(PLACES_KEY, JSON.stringify(places)) } catch {}
+  }
+
+  function recordPlace() {
+    clearTimeout(_placeTimer); _placeTimer = null
+    if (!_placeReady || !_restorable || !_path || _loadingDocument || _loadedMd === null) return
+    const pos = window.QuillEditor.getCursor?.()
+    if (!Number.isFinite(pos)) return
+    const places = readPlaces()
+    if (places[_path]?.pos === pos) return
+    places[_path] = { pos, at: Date.now() }
+    writePlaces(places)
+  }
+
+  // The cursor moved inside the page: remember it shortly after, not on every keystroke.
+  function notePlace() {
+    if (!_placeReady || _placeTimer) return
+    const node = window.getSelection()?.anchorNode
+    if (!node || !document.getElementById('entry-body')?.contains(node)) return
+    _placeTimer = setTimeout(recordPlace, 400)
+  }
+
+  // Scrolls so the cursor sits a little above the middle of the page.
+  function scrollToCursor() {
+    const editor = window.QuillEditor.editor?.()
+    const wrap = document.getElementById('editor-wrap')
+    if (!editor || editor.isDestroyed || !wrap) return
+    let coords
+    try { coords = editor.view.coordsAtPos(editor.state.selection.head) } catch { return }
+    const box = wrap.getBoundingClientRect()
+    wrap.scrollTop = Math.max(0, wrap.scrollTop + coords.top - box.top - box.height * 0.4)
+  }
+
+  // Called by App.openFile once the scene is in and the editor takes input again. Callers that
+  // open a scene to show one spot (a search match, a comment, a stub) select it afterwards.
+  // A reload behind another view (after a restore or a project replace) passes focus: false.
+  function restorePlace({ focus = true } = {}) {
+    if (!_path || _loadingDocument || _loadedMd === null) return
+    _placeReady = true
+    if (!_restorable) return
+    const path = _path
+    const touch = navigator.maxTouchPoints > 0 && window.matchMedia?.('(pointer: coarse)').matches
+    const head = window.QuillEditor.placeCursor?.(readPlaces()[path]?.pos ?? 'end', { focus: focus && !touch })
+    if (head == null) return
+    scrollToCursor()
+    // Fonts and the typewriter padding can settle a moment later and move the line.
+    setTimeout(() => {
+      if (_path === path && window.QuillEditor.getCursor?.() === head) scrollToCursor()
+    }, 80)
+  }
+
   async function openFile(path) {
+    recordPlace()
     endVisit()
+    _placeReady = false
     const generation = ++_openGeneration
     // Keep a copy of the scene as it is before this visit can change it.
     await window.quill.saveSnapshot({ rel: path, auto: true }).catch(() => {})
@@ -555,6 +633,7 @@ const Editor = (() => {
     // open is cancelled at one of the awaits below, the previous scene's inspector values,
     // timeline fields, font or notes would otherwise be saved into this scene.
     _isNovelScene = data.folder_type === 'novel' || data.folder_type === 'act'
+    _restorable = data.folder_type !== 'worldbible'
     _visit = _isNovelScene ? { path, md: _loadedMd, startedAt: Date.now(), empty: !_loadedMd.trim() } : null
     document.getElementById('insp-timeline-section').style.display = _isNovelScene ? '' : 'none'
     _timelineSceneState = { status:'none' }
@@ -1280,13 +1359,17 @@ const Editor = (() => {
   // Main edited the open scene's file (an overview close or reopen); show what is on disk.
   async function reloadFromDisk() {
     if (!_path) return null
-    return openFile(_path)
+    const type = await openFile(_path)
+    restorePlace({ focus: false })
+    return type
   }
 
   // The scene stays loaded after the writer leaves it for a folder page, so a folder rename must
   // move these too, or the next save (Cmd-S, or the flush on navigation) writes into a folder
   // that no longer exists.
   function followRename(from, to) {
+    const places = readPlaces()
+    writePlaces(Object.fromEntries(Object.entries(places).map(([p, place]) => [rebasePath(p, from, to), place])))
     _path = rebasePath(_path, from, to)
     _notesFor = rebasePath(_notesFor, from, to)
     followTime(from, to)
@@ -1301,7 +1384,7 @@ const Editor = (() => {
     _flushTime()
   }
 
-  return { init, openFile, save, scheduleSave, currentPath, followRename, reloadFromDisk, flushPending, cancelPendingOpen, freeze, unfreeze, syncSynopsisFromBoard, syncStatusFromOutliner,
+  return { init, openFile, restorePlace, save, scheduleSave, currentPath, followRename, reloadFromDisk, flushPending, cancelPendingOpen, freeze, unfreeze, syncSynopsisFromBoard, syncStatusFromOutliner,
            toggleInspector, toggleNotes: toggleInspector,
            toggleTypewriter, toggleIndentMode, applyFontSize, exportDoc, toggleFind, closeFind, getTimeSpent, sceneSeconds, followTime, reloadSceneSeconds:_loadSceneSeconds, stopTimeTracking,
            handleEditorCommand }

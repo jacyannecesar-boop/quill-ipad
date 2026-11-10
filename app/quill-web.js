@@ -3508,6 +3508,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         getProjectCollection: (args) => ipcRenderer2.invoke("get-project-collection", args),
         // journal context
         getJournalContext: (rel) => ipcRenderer2.invoke("get-journal-context", rel),
+        getJournalStats: (rel) => ipcRenderer2.invoke("get-journal-stats", rel),
         // import
         importNovel: () => ipcRenderer2.invoke("import-novel"),
         // style lab
@@ -5422,6 +5423,168 @@ ${raw}` : raw;
         return facts;
       }
       module.exports = { habitFacts, proseFacts, characterKey, hourLabel, duration };
+    }
+  });
+
+  // journal-stats.js
+  var require_journal_stats = __commonJS({
+    "journal-stats.js"(exports, module) {
+      (function(root, factory) {
+        const api = factory();
+        if (typeof module !== "undefined" && module.exports) module.exports = api;
+        else root.QuillJournalStats = api;
+      })(typeof self !== "undefined" ? self : globalThis, function() {
+        const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const TOP_TAGS = 10;
+        const RECENT_DAYS = 30;
+        const WEEKDAY_MIN_DAYS = 7;
+        const pad = (n) => String(n).padStart(2, "0");
+        const dayOf = (date) => {
+          const key = String(date || "").slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(key) && fromUTC(toUTC(key)) === key ? key : "";
+        };
+        function toUTC(key) {
+          const [y, m, d] = key.split("-").map(Number);
+          return new Date(Date.UTC(y, m - 1, d));
+        }
+        function fromUTC(date) {
+          return `${String(date.getUTCFullYear()).padStart(4, "0")}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+        }
+        const addDays = (key, amount) => {
+          const d = toUTC(key);
+          d.setUTCDate(d.getUTCDate() + amount);
+          return fromUTC(d);
+        };
+        const daysInMonth = (monthKey) => {
+          const [y, m] = monthKey.split("-").map(Number);
+          return new Date(Date.UTC(y, m, 0)).getUTCDate();
+        };
+        const monthLabel = (monthKey) => {
+          const [y, m] = monthKey.split("-").map(Number);
+          return `${MONTHS[m - 1]} ${y}`;
+        };
+        const words2 = (entry) => Math.max(0, Number(entry?.wordCount) || 0);
+        function streaks(dayKeys, today) {
+          const days = [...new Set(dayKeys)].sort();
+          const has = new Set(days);
+          let longest = 0, run2 = 0, previous = "";
+          for (const day of days) {
+            run2 = previous && addDays(previous, 1) === day ? run2 + 1 : 1;
+            if (run2 > longest) longest = run2;
+            previous = day;
+          }
+          let current2 = 0;
+          let cursor = has.has(today) ? today : addDays(today, -1);
+          while (has.has(cursor)) {
+            current2++;
+            cursor = addDays(cursor, -1);
+          }
+          return { current: current2, longest };
+        }
+        function dominantMonth(entries) {
+          const counts = {};
+          for (const entry of entries || []) {
+            const day = dayOf(entry?.date);
+            if (day) counts[day.slice(0, 7)] = (counts[day.slice(0, 7)] || 0) + 1;
+          }
+          return Object.keys(counts).sort((a, b) => counts[b] - counts[a] || b.localeCompare(a))[0] || "";
+        }
+        function compute(entries, today) {
+          const list2 = Array.isArray(entries) ? entries.filter(Boolean) : [];
+          const todayKey = dayOf(today);
+          const days = {};
+          const moodCounts = {}, moodRecent = {}, tagCounts = {};
+          let totalWords = 0, undated = 0, longest = null;
+          const recentFrom = todayKey ? addDays(todayKey, -RECENT_DAYS) : "";
+          for (const entry of list2) {
+            const count = words2(entry);
+            totalWords += count;
+            if (!longest || count > longest.wordCount) {
+              longest = { path: entry.path || "", title: entry.title || "", wordCount: count, date: dayOf(entry.date) };
+            }
+            const day = dayOf(entry.date);
+            if (day) {
+              const slot = days[day] || (days[day] = { words: 0, entries: [] });
+              slot.words += count;
+              slot.entries.push({ path: entry.path || "", title: entry.title || "" });
+            } else undated++;
+            const mood = String(entry.mood || "").trim();
+            if (mood) {
+              moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+              if (day && recentFrom && day >= recentFrom && day <= todayKey) moodRecent[mood] = (moodRecent[mood] || 0) + 1;
+            }
+            for (const raw of Array.isArray(entry.tags) ? entry.tags : []) {
+              const tag = String(raw || "").trim();
+              if (tag) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            }
+          }
+          const dayKeys = Object.keys(days).sort();
+          const { current: current2, longest: longestStreak } = todayKey ? streaks(dayKeys, todayKey) : { current: 0, longest: streaks(dayKeys, "0000-00-00").longest };
+          const thisMonthKey = todayKey.slice(0, 7);
+          const inThisMonth = dayKeys.filter((day) => thisMonthKey && day.startsWith(thisMonthKey));
+          const thisMonth = {
+            key: thisMonthKey,
+            label: thisMonthKey ? monthLabel(thisMonthKey) : "",
+            entries: inThisMonth.reduce((sum, day) => sum + days[day].entries.length, 0),
+            words: inThisMonth.reduce((sum, day) => sum + days[day].words, 0),
+            daysWritten: inThisMonth.length,
+            daysSoFar: todayKey ? Number(todayKey.slice(8, 10)) : 0
+          };
+          const monthKey = dominantMonth(list2);
+          const inMonth = dayKeys.filter((day) => monthKey && day.startsWith(monthKey));
+          const month = monthKey ? {
+            key: monthKey,
+            label: monthLabel(monthKey),
+            daysWritten: inMonth.length,
+            daysInMonth: daysInMonth(monthKey)
+          } : null;
+          const perWeekday = Array(7).fill(0);
+          for (const day of dayKeys) perWeekday[toUTC(day).getUTCDay()]++;
+          const top = Math.max(...perWeekday);
+          const busiestWeekday = dayKeys.length >= WEEKDAY_MIN_DAYS && perWeekday.filter((n) => n === top).length === 1 ? { day: WEEKDAYS[perWeekday.indexOf(top)], count: top } : null;
+          const moods = Object.keys(moodCounts).map((mood) => ({ mood, count: moodCounts[mood], recent: moodRecent[mood] || 0 })).sort((a, b) => b.recent - a.recent || b.count - a.count || a.mood.localeCompare(b.mood));
+          const tags = Object.keys(tagCounts).map((tag) => ({ tag, count: tagCounts[tag] })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag)).slice(0, TOP_TAGS);
+          return {
+            entries: list2.length,
+            words: totalWords,
+            undated,
+            daysWritten: dayKeys.length,
+            streak: current2,
+            longestStreak,
+            avgWords: list2.length ? Math.round(totalWords / list2.length) : 0,
+            firstDate: dayKeys[0] || "",
+            lastDate: dayKeys[dayKeys.length - 1] || "",
+            longest: longest && longest.wordCount > 0 ? longest : null,
+            thisMonth,
+            month,
+            busiestWeekday,
+            moods,
+            tags,
+            days
+          };
+        }
+        function heatLevels(days) {
+          const amounts = [...new Set(Object.values(days || {}).map((day) => day.words).filter((n) => n > 0))].sort((a, b) => a - b);
+          const levels = {};
+          for (const [day, { words: n }] of Object.entries(days || {})) {
+            const rank = amounts.indexOf(n);
+            levels[day] = rank <= 0 || amounts.length < 2 ? 1 : 1 + Math.floor(3 * rank / (amounts.length - 1));
+          }
+          return levels;
+        }
+        function monthTotals(days, monthKey) {
+          let entries = 0, total = 0;
+          for (const [day, slot] of Object.entries(days || {})) {
+            if (day.startsWith(monthKey)) {
+              entries += slot.entries.length;
+              total += slot.words;
+            }
+          }
+          return { entries, words: total };
+        }
+        return { compute, streaks, dominantMonth, heatLevels, monthTotals, monthLabel, daysInMonth, addDays, WEEKDAYS, MONTHS };
+      });
     }
   });
 
@@ -9622,6 +9785,7 @@ ${body}
       var Revisions = require_revisions();
       var Achievements = require_achievements();
       var FunFacts = require_funfacts();
+      var JournalStats = require_journal_stats();
       var Structure = require_structure();
       var CaseKit = require_case();
       var LanguageTool = require_languagetool();
@@ -14022,12 +14186,9 @@ ${raw}`;
           missing: ids.filter((sceneId2) => !byId.has(sceneId2)).length
         };
       });
-      ipcMain2.handle("get-journal-context", (_, journalPath) => {
-        const dir = inRoot(journalPath);
+      function journalEntries(dir, relBase) {
         const entries = [];
-        const moodCounts = {};
-        const tagCounts = {};
-        function walkJournal(d, relBase) {
+        function walkJournal(d, base) {
           let items;
           try {
             items = fs.readdirSync(d);
@@ -14037,7 +14198,7 @@ ${raw}`;
           for (const item of items) {
             if (item.startsWith(".")) continue;
             const full = path5.join(d, item);
-            const rel = relBase ? `${relBase}/${item}` : item;
+            const rel = base ? `${base}/${item}` : item;
             const stat = safeChildStat(full);
             if (!stat) continue;
             if (stat.isDirectory()) {
@@ -14048,23 +14209,84 @@ ${raw}`;
             try {
               const raw = fs.readFileSync(full, "utf8");
               const { meta: meta2, body } = parseFM(raw);
-              const preview = body.trim().split("\n").slice(0, 5).join("\n").slice(0, 400);
               entries.push({
                 path: rel,
                 title: meta2.title || item.replace(/\.md$/, ""),
                 date: meta2.date || "",
                 mood: meta2.mood || "",
                 tags: meta2.tags || [],
-                preview,
+                preview: body.trim().split("\n").slice(0, 5).join("\n").slice(0, 400),
                 wordCount: countWords(body)
               });
-              if (meta2.mood) moodCounts[meta2.mood] = (moodCounts[meta2.mood] || 0) + 1;
-              for (const tag of meta2.tags || []) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
             } catch {
             }
           }
         }
-        walkJournal(dir, journalPath || "");
+        walkJournal(dir, relBase);
+        return entries;
+      }
+      ipcMain2.handle("get-journal-stats", (_, rel) => {
+        const clean2 = String(rel || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+        if (!clean2) return { ok: false, error: "Journal not found." };
+        let dir;
+        try {
+          dir = inRoot(clean2);
+        } catch {
+          return { ok: false, error: "Journal not found." };
+        }
+        const stat = safeChildStat(dir);
+        if (!stat?.isDirectory()) return { ok: false, error: "Journal not found." };
+        const resolved = path5.relative(ROOT, dir).replace(/\\/g, "/");
+        const parts = resolved.split("/");
+        let journalRoot;
+        try {
+          journalRoot = inRoot(parts[0]);
+        } catch {
+          return { ok: false, error: "Journal not found." };
+        }
+        if (readMeta(journalRoot).folder_type !== "journal") return { ok: false, error: "This folder is not in a journal." };
+        const today = localDateKey();
+        const pick = (entries) => entries.map(({ preview, ...entry }) => entry);
+        const stats = JournalStats.compute(pick(journalEntries(dir, resolved)), today);
+        const result = {
+          ok: true,
+          scope: parts.length === 1 ? "journal" : "folder",
+          today,
+          stats,
+          levels: JournalStats.heatLevels(stats.days),
+          previous: null
+        };
+        if (result.scope === "folder" && stats.month) {
+          const parent = path5.dirname(dir);
+          let best = null;
+          for (const name of sortedDirEntries(parent)) {
+            if (name.startsWith(".") || name === path5.basename(dir)) continue;
+            const full = path5.join(parent, name);
+            if (!safeChildStat(full)?.isDirectory()) continue;
+            const entries = journalEntries(full, "");
+            const month = JournalStats.dominantMonth(entries);
+            if (!month || month >= stats.month.key || best && month <= best.month) continue;
+            best = {
+              month,
+              label: JournalStats.monthLabel(month),
+              title: readMeta(full).folder_title || name,
+              entries: entries.length,
+              words: entries.reduce((sum, entry) => sum + entry.wordCount, 0)
+            };
+          }
+          result.previous = best;
+        }
+        return result;
+      });
+      ipcMain2.handle("get-journal-context", (_, journalPath) => {
+        const dir = inRoot(journalPath);
+        const moodCounts = {};
+        const tagCounts = {};
+        const entries = journalEntries(dir, journalPath || "");
+        for (const entry of entries) {
+          if (entry.mood) moodCounts[entry.mood] = (moodCounts[entry.mood] || 0) + 1;
+          for (const tag of entry.tags) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        }
         entries.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
         const thirtyDaysAgo = localDateKey(addLocalDays(/* @__PURE__ */ new Date(), -30));
         const recentMoods = {};
@@ -19205,7 +19427,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-10T04:13:23.433Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-10T23:30:20.536Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

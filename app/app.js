@@ -361,6 +361,8 @@ const App = (() => {
       await loadOutline()
     } finally {
       Editor.unfreeze?.()
+      // After unfreeze: the editor takes no cursor while it takes no input.
+      if (generation === _navigationGeneration && _currentFile === path) Editor.restorePlace?.()
     }
   }
 
@@ -1007,6 +1009,7 @@ const App = (() => {
     try {
       if (_currentFile && (result.changedPaths || []).includes(_currentFile)) {
         await Editor.openFile(_currentFile)
+        Editor.restorePlace?.({ focus: false })
         await loadOutline()
       }
       // The landing page holds its folder's meta in memory and saves all of it back on the next
@@ -1648,6 +1651,7 @@ const App = (() => {
     const changed = item.kind === 'snapshot' ? [item.rel] : (result.changedPaths || [])
     if (_currentFile && changed.includes(_currentFile)) {
       await Editor.openFile(_currentFile)
+      Editor.restorePlace?.({ focus: false })
       await loadOutline()
     }
     // An open chapter still holds the old text and baselines; its next autosave would write
@@ -1750,6 +1754,7 @@ const App = (() => {
             restoreModal.classList.remove('show')
             document.getElementById('snapshot-modal').classList.remove('show')
             await Editor.openFile(_currentFile)
+            Editor.restorePlace?.({ focus: false })
           }
         }
       }
