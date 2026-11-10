@@ -7684,15 +7684,15 @@ wait $child
       }
       function create({ dataFile }) {
         let db2 = null;
-        let loadError = null;
+        let loggedError = false;
         function load2() {
-          if (db2 || loadError) return db2;
+          if (db2) return db2;
           try {
             const file = typeof dataFile === "function" ? dataFile() : dataFile;
             db2 = JSON.parse(fs.readFileSync(file, "utf8"));
           } catch (err2) {
-            loadError = err2;
-            console.error("[thesaurus] could not load index:", err2.message);
+            if (!loggedError) console.error("[thesaurus] could not load index:", err2.message);
+            loggedError = true;
           }
           return db2;
         }
@@ -7720,7 +7720,7 @@ wait $child
           const empty = { query, base: null, via: null, groups: [] };
           if (!query) return empty;
           const data = load2();
-          if (!data) return empty;
+          if (!data) return { ...empty, unavailable: true };
           const readings = resolve(query);
           if (!readings.length) return empty;
           const byPos = /* @__PURE__ */ new Map();
@@ -19109,6 +19109,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     require_main();
     init_overrides();
     const empty = !list("/Quill").some((name) => !name.startsWith("."));
+    waitForThesaurus();
     setReady();
     loadThesaurus();
     firstScreens(empty, stored);
@@ -19147,10 +19148,24 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     });
     if (response === 1) document.getElementById("recovery-archive-btn")?.click();
   }
+  var thesaurusFetch = null;
   function loadThesaurus() {
-    fetch("../data/thesaurus.json").then((r) => r.ok ? r.arrayBuffer() : null).then((buf) => {
-      if (buf) write("/app/data/thesaurus.json", new Uint8Array(buf), { silent: true });
-    }).catch(() => {
+    if (get("/app/data/thesaurus.json")) return Promise.resolve(true);
+    thesaurusFetch ||= fetch("../data/thesaurus.json").then((r) => r.ok ? r.arrayBuffer() : null).then((buf) => {
+      if (!buf) return false;
+      write("/app/data/thesaurus.json", new Uint8Array(buf), { silent: true });
+      return true;
+    }).catch(() => false).then((ok) => {
+      if (!ok) thesaurusFetch = null;
+      return ok;
+    });
+    return thesaurusFetch;
+  }
+  function waitForThesaurus() {
+    const lookup = handlerFor("thesaurus-lookup");
+    ipcMain.handle("thesaurus-lookup", async (...args) => {
+      await loadThesaurus();
+      return lookup(...args);
     });
   }
   function saveNow() {
@@ -19190,7 +19205,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-09T05:47:21.025Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-10T04:13:23.433Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

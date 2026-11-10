@@ -326,6 +326,9 @@ const Editor = (() => {
         }
         const rect = native.getRangeAt(0).getBoundingClientRect()
         saveSelection()
+        // Synonyms only make sense for one word.
+        const synonyms = document.getElementById('ct-synonyms-btn')
+        if (synonyms) synonyms.style.display = window.QuillEditor.wordAtCursor?.() ? '' : 'none'
         commentToolbar.style.display = 'flex'
         const left = Math.max(8, Math.min(rect.left + rect.width / 2 - commentToolbar.offsetWidth / 2,
           window.innerWidth - commentToolbar.offsetWidth - 8))
@@ -333,9 +336,21 @@ const Editor = (() => {
         commentToolbar.style.left = left + 'px'
       }, 10)
     })
-    document.getElementById('entry-body').addEventListener('click', e => {
+    // A tap on highlighted text shows its comment but leaves the caret where the tap put it, so
+    // the highlighted words can still be edited (on the iPad, focusing the note box was the only
+    // thing a tap there could do). Selecting inside a highlight shows the selection toolbar
+    // instead, and typing puts the popover away.
+    const body = document.getElementById('entry-body')
+    body.addEventListener('click', e => {
       const mark = e.target.closest('mark[data-cid]')
-      if (mark) CommentPopover.open(mark.dataset.cid, mark.getBoundingClientRect())
+      if (!mark) return
+      if (window.getSelection()?.isCollapsed === false) return
+      CommentPopover.open(mark.dataset.cid, mark.getBoundingClientRect(), { focus: false })
+    })
+    body.addEventListener('beforeinput', () => { if (CommentPopover.isOpen()) CommentPopover.close() })
+    document.getElementById('ct-synonyms-btn')?.addEventListener('click', () => {
+      commentToolbar.style.display = 'none'
+      ThesaurusPopover.open()
     })
   }
 
@@ -1379,7 +1394,9 @@ const CommentPopover = (() => {
     return null
   }
 
-  function open(cid, rect = null) {
+  // `focus` puts the caret in the note box: right for a comment just made, wrong for a tap on an
+  // existing highlight, where the writer may be placing the caret to edit the highlighted text.
+  function open(cid, rect = null, { focus = true } = {}) {
     const comment = Comments.get(cid)
     const root = el()
     if (!comment || !root) return
@@ -1396,8 +1413,10 @@ const CommentPopover = (() => {
     paintTypes(comment.type)
     place(rect || anchorRect(cid) || { left: window.innerWidth / 2, right: window.innerWidth / 2,
       top: window.innerHeight / 2, bottom: window.innerHeight / 2, width: 0, height: 0 })
-    note.focus()
-    note.setSelectionRange(note.value.length, note.value.length)
+    if (focus) {
+      note.focus()
+      note.setSelectionRange(note.value.length, note.value.length)
+    }
   }
 
   function close() {
@@ -1534,7 +1553,9 @@ const ThesaurusPopover = (() => {
     if (!result.groups.length) {
       groups.style.display = 'none'
       empty.style.display = ''
-      empty.textContent = `No synonyms for “${result.query}”.`
+      empty.textContent = result.unavailable
+        ? 'The thesaurus hasn’t loaded yet. Check your connection and try again.'
+        : `No synonyms for “${result.query}”.`
       return
     }
     groups.style.display = ''

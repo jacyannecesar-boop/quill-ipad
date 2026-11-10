@@ -2302,6 +2302,7 @@ body.project-workspace #toolbar[data-view="landing"] #read-btn{display:none!impo
 }
 .ct-fmt-btn:hover { background:var(--surface2); color:var(--accent); }
 .ct-fmt-btn svg   { pointer-events:none; }
+.ct-fmt-btn.ct-syn-btn { width:auto; padding:0 7px; white-space:nowrap; }
 .ct-fmt-sep {
   width:1px; height:16px; background:var(--border);
   margin:0 3px; flex-shrink:0;
