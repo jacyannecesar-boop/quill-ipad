@@ -6,7 +6,7 @@
  * ticked items. An unticked item is offered again by the next merge.
  */
 const MergeReview = (() => {
-  const HERE = document.documentElement.classList.contains('quill-web') ? 'iPad' : 'Mac'
+  const HERE = document.documentElement.classList.contains('quill-web') ? (window.__quillWeb?.deviceName || 'iPad') : 'Mac'
   let _review = null
   let _skip = new Set()
   let _busy = false

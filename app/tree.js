@@ -19,7 +19,7 @@ const Tree = (() => {
   // Shift+F10 or the context-menu key opens the row's menu.
   const ROW = '.folder-row, .file-row'
   // A scene kept twice by merging a backup from the other device (backup-merge.js copyName).
-  const SYNC_COPY = /\((?:Mac|iPad) copy(?: \d+)?\)\.md$/
+  const SYNC_COPY = /\((?:Mac|iPad|iPhone) copy(?: \d+)?\)\.md$/
 
   function initKeyboardRows() {
     const sidebar = document.getElementById('sidebar')

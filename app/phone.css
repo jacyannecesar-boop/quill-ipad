@@ -1,0 +1,105 @@
+/* phone.css — Quill on an iPhone (web/phone.js adds html.web-phone). Loaded after web.css.
+ *
+ * One pane at a time: the sidebar is a full-screen list over the page. The toolbar sits at the
+ * bottom, cut down to what writing needs, and the whole app ends where the keyboard begins.
+ * Nothing here applies on the iPad or the Mac. */
+
+/* ── The app ends at the keyboard (--web-kb, --web-vv-top from phone.js) ─────── */
+html.web-phone,html.web-phone body{overflow:hidden;overscroll-behavior:none}
+html.web-phone body{top:var(--web-vv-top,0px);bottom:var(--web-kb,0px)}
+/* The keyboard covers the home indicator, so its inset would only be a gap above the keys. */
+html.web-phone.web-kb-open body{padding-bottom:0}
+
+/* ── One pane: the sidebar is the library list, full screen ──── */
+html.web-phone{--sw:100vw}
+html.web-phone #sidebar{position:absolute;inset:0;width:auto;min-width:0;height:auto;border-right:0;z-index:20;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html.web-phone #sidebar.hidden{transform:translateX(-100%)}
+html.web-phone #sidebar-header{padding-top:14px}
+html.web-phone #drag-region,html.web-phone #footer-path{display:none}
+html.web-phone #main{width:100%}
+
+/* Rows a fingertip can hit, in text a phone can read. */
+html.web-phone .folder-row,html.web-phone .file-row{min-height:44px;align-items:center;font-size:16px;padding:6px 10px}
+html.web-phone .sidebar-flush-header,html.web-phone #practice-sidebar-section>*,html.web-phone #ideas-sidebar-section>*{min-height:40px}
+html.web-phone #sidebar .icon-btn{min-width:40px;min-height:40px}
+html.web-phone #sidebar-footer{justify-content:space-between}
+html.web-phone #all-projects-btn,html.web-phone #workspace-project-title{min-height:44px;font-size:15px}
+html.web-phone .workspace-nav-row{min-height:44px;font-size:16px}
+
+/* The phone is for writing and catching ideas. Planning and study stay on the iPad and the Mac:
+   a project keeps its Overview and Scraps, and the Board button leaves the chapter page. To
+   bring one back, take it out of this list. */
+html.web-phone .workspace-nav-row:is([data-workspace-section="outliner"],[data-workspace-section="timeline"],
+  [data-workspace-section="audit"],[data-workspace-section="outline"],[data-workspace-section="case"],
+  [data-workspace-section="characters"],[data-workspace-section="worldbible"],[data-workspace-section="novelboard"],
+  [data-workspace-section="read"],[data-workspace-section="freewrite"],[data-workspace-section="brainstorm"],
+  [data-workspace-section="concept"],[data-workspace-section="styleguide"]),
+html.web-phone #practice-sidebar-section,html.web-phone #ch-board-btn{display:none !important}
+
+/* ── The toolbar is the bottom bar, directly above the keyboard ─ */
+html.web-phone #toolbar{order:10;height:auto;min-height:52px;flex-wrap:nowrap;gap:2px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 8px !important;border-bottom:0;border-top:1px solid var(--border);scrollbar-width:none;
+  -webkit-overflow-scrolling:touch}
+html.web-phone #toolbar::-webkit-scrollbar{display:none}
+html.web-phone .tb-btn{height:44px;min-width:44px;font-size:17px;flex-shrink:0}
+html.web-phone .tb-btn svg{width:20px;height:20px}
+html.web-phone #tb-right{margin-left:auto;flex-shrink:0}
+/* Left to the iPad and the Mac: type settings, find, the side panels, Board, Read Draft, focus.
+   Block quote and the lists are in the More menu, so the bar fits the screen without scrolling. */
+html.web-phone #toolbar>[data-fmt="formatBlock,blockquote"],html.web-phone #toolbar>[data-fmt="insertUnorderedList"],
+html.web-phone #toolbar>[data-fmt="insertOrderedList"],
+html.web-phone #toolbar .tb-sep,html.web-phone #font-picker,html.web-phone #font-size-stepper,
+html.web-phone #find-btn,html.web-phone #notes-btn,html.web-phone #outline-btn,html.web-phone #split-btn,
+html.web-phone #board-btn,html.web-phone #read-btn,html.web-phone #focus-btn,html.web-phone #snapshot-btn,
+html.web-phone #more-shortcuts{display:none !important}
+
+/* The More menu opens upward from the bar. toolbar.js places it below the button, which here
+   is off the bottom of the screen. */
+html.web-phone #more-menu{top:auto !important;left:8px !important;right:8px;overflow-y:auto;
+  bottom:calc(var(--web-kb,0px) + 60px + env(safe-area-inset-bottom));
+  max-height:calc(100% - var(--web-kb,0px) - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+html.web-phone.web-kb-open #more-menu{bottom:calc(var(--web-kb,0px) + 60px);
+  max-height:calc(100% - var(--web-kb,0px) - 76px - env(safe-area-inset-top))}
+html.web-phone #more-menu button{min-height:44px;font-size:16px}
+/* Key combinations mean nothing on a touch keyboard. */
+html.web-phone #more-menu button::after{content:none}
+
+/* ── The page ───────────────────────────────────────────────── */
+html.web-phone #editor-inner{padding:20px 20px 50vh}
+html.web-phone #chapter-scroll>#chapter-body{padding-left:20px;padding-right:20px}
+html.web-phone #scene-outline,html.web-phone #split-panel,html.web-phone #split-divider,
+html.web-phone .web-rail,html.web-phone #focus-hint,html.web-phone #location-hint{display:none !important}
+
+/* ── Dialogs fill the screen ────────────────────────────────── */
+/* Fixed layers are placed against the screen, not the body, so they need the keyboard inset too. */
+html.web-phone .overlay{align-items:stretch;justify-content:stretch;padding:0;
+  top:var(--web-vv-top,0px);bottom:var(--web-kb,0px)}
+html.web-phone .overlay>.modal{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;overflow-y:auto;
+  padding-top:calc(var(--sp-5) + env(safe-area-inset-top));padding-bottom:calc(var(--sp-5) + env(safe-area-inset-bottom))}
+/* Settings: the tabs run across the top, the pane fills the rest. */
+html.web-phone .overlay>.settings-modal{width:100%;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+html.web-phone .settings-body{flex-direction:column}
+html.web-phone .settings-rail{width:auto;flex-direction:row;align-items:center;gap:4px;padding:10px 12px;overflow-x:auto;
+  border-right:0;border-bottom:1px solid var(--border);scrollbar-width:none}
+html.web-phone .settings-rail::-webkit-scrollbar{display:none}
+html.web-phone .settings-rail h3{display:none}
+html.web-phone .settings-tab{flex-shrink:0;min-height:40px;padding:8px 12px;font-size:15px;white-space:nowrap}
+html.web-phone .settings-pane{padding:18px 16px}
+html.web-phone .settings-row{flex-wrap:wrap;row-gap:8px}
+html.web-phone .settings-control{flex-shrink:1;flex-wrap:wrap;max-width:100%}
+html.web-phone .settings-control input[type=checkbox]{width:22px;height:22px}
+html.web-phone .settings-backup-actions{flex-wrap:wrap}
+html.web-phone .web-relay-control .settings-text{width:auto;flex:1;min-width:0}
+html.web-phone .modal-btns{flex-wrap:wrap}
+/* Recovery: the list of backups, then the preview under it. */
+html.web-phone .recovery-head{flex-wrap:wrap}
+html.web-phone .recovery-layout{grid-template-columns:1fr;grid-template-rows:minmax(120px,1fr) minmax(160px,1.4fr)}
+html.web-phone .web-sheet-backdrop{padding:var(--sp-4);bottom:var(--web-kb,0px)}
+html.web-phone .web-sheet-buttons{flex-direction:column-reverse}
+html.web-phone .web-sheet-buttons .btn{width:100%;min-height:44px}
+html.web-phone .btn{min-height:40px}
+
+/* ── Ideas: the name gets the full width, its buttons a row of their own ─ */
+html.web-phone .idea-head{flex-wrap:wrap;row-gap:var(--sp-2)}
+html.web-phone .idea-title-input{flex:1 0 100%;min-width:0}

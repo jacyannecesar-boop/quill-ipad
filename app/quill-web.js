@@ -1,4 +1,4 @@
-var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:"arm64",versions:{},cwd:()=>"/",nextTick:(f,...a)=>queueMicrotask(()=>f(...a)),on(){return this},once(){return this},off(){return this},removeListener(){return this},emitWarning(){}};
+var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(screen.width,screen.height)<600?"iPhone":"iPad"},pid:1,platform:"ios",arch:"arm64",versions:{},cwd:()=>"/",nextTick:(f,...a)=>queueMicrotask(()=>f(...a)),on(){return this},once(){return this},off(){return this},removeListener(){return this},emitWarning(){}};
 (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -22,8 +22,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     }
   };
   var __export = (target2, all) => {
-    for (var name in all)
-      __defProp(target2, name, { get: all[name], enumerable: true });
+    for (var name2 in all)
+      __defProp(target2, name2, { get: all[name2], enumerable: true });
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -110,10 +110,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       function tripletToBase64(num2) {
         return lookup[num2 >> 18 & 63] + lookup[num2 >> 12 & 63] + lookup[num2 >> 6 & 63] + lookup[num2 & 63];
       }
-      function encodeChunk(uint8, start5, end) {
+      function encodeChunk(uint8, start6, end) {
         var tmp;
         var output = [];
-        for (var i3 = start5; i3 < end; i3 += 3) {
+        for (var i3 = start6; i3 < end; i3 += 3) {
           tmp = (uint8[i3] << 16 & 16711680) + (uint8[i3 + 1] << 8 & 65280) + (uint8[i3 + 2] & 255);
           output.push(tripletToBase64(tmp));
         }
@@ -568,12 +568,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       }
       Buffer9.byteLength = byteLength;
-      function slowToString(encoding, start5, end) {
+      function slowToString(encoding, start6, end) {
         let loweredCase = false;
-        if (start5 === void 0 || start5 < 0) {
-          start5 = 0;
+        if (start6 === void 0 || start6 < 0) {
+          start6 = 0;
         }
-        if (start5 > this.length) {
+        if (start6 > this.length) {
           return "";
         }
         if (end === void 0 || end > this.length) {
@@ -583,30 +583,30 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           return "";
         }
         end >>>= 0;
-        start5 >>>= 0;
-        if (end <= start5) {
+        start6 >>>= 0;
+        if (end <= start6) {
           return "";
         }
         if (!encoding) encoding = "utf8";
         while (true) {
           switch (encoding) {
             case "hex":
-              return hexSlice(this, start5, end);
+              return hexSlice(this, start6, end);
             case "utf8":
             case "utf-8":
-              return utf8Slice(this, start5, end);
+              return utf8Slice(this, start6, end);
             case "ascii":
-              return asciiSlice(this, start5, end);
+              return asciiSlice(this, start6, end);
             case "latin1":
             case "binary":
-              return latin1Slice(this, start5, end);
+              return latin1Slice(this, start6, end);
             case "base64":
-              return base64Slice(this, start5, end);
+              return base64Slice(this, start6, end);
             case "ucs2":
             case "ucs-2":
             case "utf16le":
             case "utf-16le":
-              return utf16leSlice(this, start5, end);
+              return utf16leSlice(this, start6, end);
             default:
               if (loweredCase) throw new TypeError("Unknown encoding: " + encoding);
               encoding = (encoding + "").toLowerCase();
@@ -676,7 +676,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       if (customInspectSymbol) {
         Buffer9.prototype[customInspectSymbol] = Buffer9.prototype.inspect;
       }
-      Buffer9.prototype.compare = function compare(target2, start5, end, thisStart, thisEnd) {
+      Buffer9.prototype.compare = function compare(target2, start6, end, thisStart, thisEnd) {
         if (isInstance(target2, Uint8Array)) {
           target2 = Buffer9.from(target2, target2.offset, target2.byteLength);
         }
@@ -685,8 +685,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
             'The "target" argument must be one of type Buffer or Uint8Array. Received type ' + typeof target2
           );
         }
-        if (start5 === void 0) {
-          start5 = 0;
+        if (start6 === void 0) {
+          start6 = 0;
         }
         if (end === void 0) {
           end = target2 ? target2.length : 0;
@@ -697,28 +697,28 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         if (thisEnd === void 0) {
           thisEnd = this.length;
         }
-        if (start5 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
+        if (start6 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
           throw new RangeError("out of range index");
         }
-        if (thisStart >= thisEnd && start5 >= end) {
+        if (thisStart >= thisEnd && start6 >= end) {
           return 0;
         }
         if (thisStart >= thisEnd) {
           return -1;
         }
-        if (start5 >= end) {
+        if (start6 >= end) {
           return 1;
         }
-        start5 >>>= 0;
+        start6 >>>= 0;
         end >>>= 0;
         thisStart >>>= 0;
         thisEnd >>>= 0;
         if (this === target2) return 0;
         let x2 = thisEnd - thisStart;
-        let y = end - start5;
+        let y = end - start6;
         const len = Math.min(x2, y);
         const thisCopy = this.slice(thisStart, thisEnd);
-        const targetCopy = target2.slice(start5, end);
+        const targetCopy = target2.slice(start6, end);
         for (let i2 = 0; i2 < len; ++i2) {
           if (thisCopy[i2] !== targetCopy[i2]) {
             x2 = thisCopy[i2];
@@ -928,17 +928,17 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           data: Array.prototype.slice.call(this._arr || this, 0)
         };
       };
-      function base64Slice(buf, start5, end) {
-        if (start5 === 0 && end === buf.length) {
+      function base64Slice(buf, start6, end) {
+        if (start6 === 0 && end === buf.length) {
           return base64.fromByteArray(buf);
         } else {
-          return base64.fromByteArray(buf.slice(start5, end));
+          return base64.fromByteArray(buf.slice(start6, end));
         }
       }
-      function utf8Slice(buf, start5, end) {
+      function utf8Slice(buf, start6, end) {
         end = Math.min(buf.length, end);
         const res = [];
-        let i2 = start5;
+        let i2 = start6;
         while (i2 < end) {
           const firstByte = buf[i2];
           let codePoint = null;
@@ -1011,49 +1011,49 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
         return res;
       }
-      function asciiSlice(buf, start5, end) {
+      function asciiSlice(buf, start6, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start5; i2 < end; ++i2) {
+        for (let i2 = start6; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2] & 127);
         }
         return ret;
       }
-      function latin1Slice(buf, start5, end) {
+      function latin1Slice(buf, start6, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start5; i2 < end; ++i2) {
+        for (let i2 = start6; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2]);
         }
         return ret;
       }
-      function hexSlice(buf, start5, end) {
+      function hexSlice(buf, start6, end) {
         const len = buf.length;
-        if (!start5 || start5 < 0) start5 = 0;
+        if (!start6 || start6 < 0) start6 = 0;
         if (!end || end < 0 || end > len) end = len;
         let out = "";
-        for (let i2 = start5; i2 < end; ++i2) {
+        for (let i2 = start6; i2 < end; ++i2) {
           out += hexSliceLookupTable[buf[i2]];
         }
         return out;
       }
-      function utf16leSlice(buf, start5, end) {
-        const bytes = buf.slice(start5, end);
+      function utf16leSlice(buf, start6, end) {
+        const bytes = buf.slice(start6, end);
         let res = "";
         for (let i2 = 0; i2 < bytes.length - 1; i2 += 2) {
           res += String.fromCharCode(bytes[i2] + bytes[i2 + 1] * 256);
         }
         return res;
       }
-      Buffer9.prototype.slice = function slice(start5, end) {
+      Buffer9.prototype.slice = function slice(start6, end) {
         const len = this.length;
-        start5 = ~~start5;
+        start6 = ~~start6;
         end = end === void 0 ? len : ~~end;
-        if (start5 < 0) {
-          start5 += len;
-          if (start5 < 0) start5 = 0;
-        } else if (start5 > len) {
-          start5 = len;
+        if (start6 < 0) {
+          start6 += len;
+          if (start6 < 0) start6 = 0;
+        } else if (start6 > len) {
+          start6 = len;
         }
         if (end < 0) {
           end += len;
@@ -1061,8 +1061,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         } else if (end > len) {
           end = len;
         }
-        if (end < start5) end = start5;
-        const newBuf = this.subarray(start5, end);
+        if (end < start6) end = start6;
+        const newBuf = this.subarray(start6, end);
         Object.setPrototypeOf(newBuf, Buffer9.prototype);
         return newBuf;
       };
@@ -1492,41 +1492,41 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       Buffer9.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
         return writeDouble(this, value, offset, false, noAssert);
       };
-      Buffer9.prototype.copy = function copy(target2, targetStart, start5, end) {
+      Buffer9.prototype.copy = function copy(target2, targetStart, start6, end) {
         if (!Buffer9.isBuffer(target2)) throw new TypeError("argument should be a Buffer");
-        if (!start5) start5 = 0;
+        if (!start6) start6 = 0;
         if (!end && end !== 0) end = this.length;
         if (targetStart >= target2.length) targetStart = target2.length;
         if (!targetStart) targetStart = 0;
-        if (end > 0 && end < start5) end = start5;
-        if (end === start5) return 0;
+        if (end > 0 && end < start6) end = start6;
+        if (end === start6) return 0;
         if (target2.length === 0 || this.length === 0) return 0;
         if (targetStart < 0) {
           throw new RangeError("targetStart out of bounds");
         }
-        if (start5 < 0 || start5 >= this.length) throw new RangeError("Index out of range");
+        if (start6 < 0 || start6 >= this.length) throw new RangeError("Index out of range");
         if (end < 0) throw new RangeError("sourceEnd out of bounds");
         if (end > this.length) end = this.length;
-        if (target2.length - targetStart < end - start5) {
-          end = target2.length - targetStart + start5;
+        if (target2.length - targetStart < end - start6) {
+          end = target2.length - targetStart + start6;
         }
-        const len = end - start5;
+        const len = end - start6;
         if (this === target2 && typeof Uint8Array.prototype.copyWithin === "function") {
-          this.copyWithin(targetStart, start5, end);
+          this.copyWithin(targetStart, start6, end);
         } else {
           Uint8Array.prototype.set.call(
             target2,
-            this.subarray(start5, end),
+            this.subarray(start6, end),
             targetStart
           );
         }
         return len;
       };
-      Buffer9.prototype.fill = function fill(val, start5, end, encoding) {
+      Buffer9.prototype.fill = function fill(val, start6, end, encoding) {
         if (typeof val === "string") {
-          if (typeof start5 === "string") {
-            encoding = start5;
-            start5 = 0;
+          if (typeof start6 === "string") {
+            encoding = start6;
+            start6 = 0;
             end = this.length;
           } else if (typeof end === "string") {
             encoding = end;
@@ -1549,18 +1549,18 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         } else if (typeof val === "boolean") {
           val = Number(val);
         }
-        if (start5 < 0 || this.length < start5 || this.length < end) {
+        if (start6 < 0 || this.length < start6 || this.length < end) {
           throw new RangeError("Out of range index");
         }
-        if (end <= start5) {
+        if (end <= start6) {
           return this;
         }
-        start5 = start5 >>> 0;
+        start6 = start6 >>> 0;
         end = end === void 0 ? this.length : end >>> 0;
         if (!val) val = 0;
         let i2;
         if (typeof val === "number") {
-          for (i2 = start5; i2 < end; ++i2) {
+          for (i2 = start6; i2 < end; ++i2) {
             this[i2] = val;
           }
         } else {
@@ -1569,8 +1569,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (len === 0) {
             throw new TypeError('The value "' + val + '" is invalid for argument "value"');
           }
-          for (i2 = 0; i2 < end - start5; ++i2) {
-            this[i2 + start5] = bytes[i2 % len];
+          for (i2 = 0; i2 < end - start6; ++i2) {
+            this[i2 + start6] = bytes[i2 % len];
           }
         }
         return this;
@@ -1607,9 +1607,9 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       }
       E(
         "ERR_BUFFER_OUT_OF_BOUNDS",
-        function(name) {
-          if (name) {
-            return `${name} is outside of buffer bounds`;
+        function(name2) {
+          if (name2) {
+            return `${name2} is outside of buffer bounds`;
           }
           return "Attempt to access memory outside buffer bounds";
         },
@@ -1617,8 +1617,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       );
       E(
         "ERR_INVALID_ARG_TYPE",
-        function(name, actual) {
-          return `The "${name}" argument must be of type number. Received type ${typeof actual}`;
+        function(name2, actual) {
+          return `The "${name2}" argument must be of type number. Received type ${typeof actual}`;
         },
         TypeError
       );
@@ -1644,8 +1644,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       function addNumericalSeparator(val) {
         let res = "";
         let i2 = val.length;
-        const start5 = val[0] === "-" ? 1 : 0;
-        for (; i2 >= start5 + 4; i2 -= 3) {
+        const start6 = val[0] === "-" ? 1 : 0;
+        for (; i2 >= start6 + 4; i2 -= 3) {
           res = `_${val.slice(i2 - 3, i2)}${res}`;
         }
         return `${val.slice(0, i2)}${res}`;
@@ -1673,9 +1673,9 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
         checkBounds(buf, offset, byteLength2);
       }
-      function validateNumber(value, name) {
+      function validateNumber(value, name2) {
         if (typeof value !== "number") {
-          throw new errors.ERR_INVALID_ARG_TYPE(name, "number", value);
+          throw new errors.ERR_INVALID_ARG_TYPE(name2, "number", value);
         }
       }
       function boundsError(value, length, type) {
@@ -2063,7 +2063,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         basename: function basename(path5, ext) {
           if (ext !== void 0 && typeof ext !== "string") throw new TypeError('"ext" argument must be a string');
           assertPath(path5);
-          var start5 = 0;
+          var start6 = 0;
           var end = -1;
           var matchedSlash = true;
           var i2;
@@ -2075,7 +2075,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
               var code = path5.charCodeAt(i2);
               if (code === 47) {
                 if (!matchedSlash) {
-                  start5 = i2 + 1;
+                  start6 = i2 + 1;
                   break;
                 }
               } else {
@@ -2095,14 +2095,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
                 }
               }
             }
-            if (start5 === end) end = firstNonSlashEnd;
+            if (start6 === end) end = firstNonSlashEnd;
             else if (end === -1) end = path5.length;
-            return path5.slice(start5, end);
+            return path5.slice(start6, end);
           } else {
             for (i2 = path5.length - 1; i2 >= 0; --i2) {
               if (path5.charCodeAt(i2) === 47) {
                 if (!matchedSlash) {
-                  start5 = i2 + 1;
+                  start6 = i2 + 1;
                   break;
                 }
               } else if (end === -1) {
@@ -2111,7 +2111,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
               }
             }
             if (end === -1) return "";
-            return path5.slice(start5, end);
+            return path5.slice(start6, end);
           }
         },
         extname: function extname(path5) {
@@ -2162,12 +2162,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (path5.length === 0) return ret;
           var code = path5.charCodeAt(0);
           var isAbsolute = code === 47;
-          var start5;
+          var start6;
           if (isAbsolute) {
             ret.root = "/";
-            start5 = 1;
+            start6 = 1;
           } else {
-            start5 = 0;
+            start6 = 0;
           }
           var startDot = -1;
           var startPart = 0;
@@ -2175,7 +2175,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           var matchedSlash = true;
           var i2 = path5.length - 1;
           var preDotState = 0;
-          for (; i2 >= start5; --i2) {
+          for (; i2 >= start6; --i2) {
             code = path5.charCodeAt(i2);
             if (code === 47) {
               if (!matchedSlash) {
@@ -2336,7 +2336,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     p = norm(p);
     const node2 = nodes.get(p);
     if (!node2) return;
-    if (node2.dir) for (const name of [...children.get(p) || []]) remove(import_path_browserify.default.posix.join(p, name));
+    if (node2.dir) for (const name2 of [...children.get(p) || []]) remove(import_path_browserify.default.posix.join(p, name2));
     rememberBaseline(p);
     nodes.delete(p);
     children.delete(p);
@@ -2397,9 +2397,9 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       }
     }
   }
-  function walk(root) {
-    root = norm(root);
-    return [...nodes.keys()].filter((k) => k === root || k.startsWith(root + "/")).sort();
+  function walk(root2) {
+    root2 = norm(root2);
+    return [...nodes.keys()].filter((k) => k === root2 || k.startsWith(root2 + "/")).sort();
   }
   function changesSinceLastExport() {
     return changedSinceExport.size;
@@ -2539,7 +2539,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       BASE_PREFIX = "\0base:";
       BASELINE_MAX_BYTES = 2 * 1024 * 1024;
       textLike = (p) => /\.(md|json|txt)$/i.test(p) || p.endsWith("/.quill_meta");
-      isSaved = (p) => SAVED.some((root) => p === root || p.startsWith(root + "/"));
+      isSaved = (p) => SAVED.some((root2) => p === root2 || p.startsWith(root2 + "/"));
       norm = (p) => {
         const n = import_path_browserify.default.posix.resolve("/", String(p));
         return n.length > 1 && n.endsWith("/") ? n.slice(0, -1) : n;
@@ -2548,6 +2548,17 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       children.set("/", /* @__PURE__ */ new Set());
       META_KEY = "\0meta";
       meta = {};
+    }
+  });
+
+  // web/device.js
+  var onIOS, isPhone, name, system;
+  var init_device = __esm({
+    "web/device.js"() {
+      onIOS = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      isPhone = Math.min(screen.width, screen.height) < 600;
+      name = isPhone ? "iPhone" : "iPad";
+      system = isPhone ? "iOS" : "iPadOS";
     }
   });
 
@@ -2659,7 +2670,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     close = sheet([
       el("h3", { text: items.length ? `${items.length} change${items.length === 1 ? "" : "s"} since your last backup` : "Nothing changed since your last backup" }),
       items.length ? changesTotal(items) : null,
-      el("p", { class: "web-sheet-hint", text: "Made on this iPad and not yet in a backup or on the Mac. Files Bring In Changes brought over from the Mac aren\u2019t counted." }),
+      el("p", { class: "web-sheet-hint", text: `Made on this ${name} and not yet in a backup or on your other devices. Files Bring In Changes brought over from them aren\u2019t counted.` }),
       items.length ? el("div", { class: "web-changes" }, groups) : null,
       el("div", { class: "web-sheet-buttons" }, [el("button", { class: "btn", text: "Close", onclick: () => close() }), backUp])
     ]);
@@ -2683,7 +2694,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   }
   function openDialog({ title = "Choose a file", filters = [], properties = [] } = {}) {
     if (properties.includes("openDirectory")) {
-      return messageBox({ message: "Folders can\u2019t be chosen on iPad.", buttons: ["OK"] }).then(() => ({ canceled: true, filePaths: [] }));
+      return messageBox({ message: `Folders can\u2019t be chosen on ${name}.`, buttons: ["OK"] }).then(() => ({ canceled: true, filePaths: [] }));
     }
     const scripted = window.__quillWeb?.nextOpen;
     if (scripted) {
@@ -2728,8 +2739,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     mkdir("/exports", true);
     return Promise.resolve({ canceled: false, filePath: import_path_browserify2.default.posix.join("/exports", import_path_browserify2.default.posix.basename(defaultPath)) });
   }
-  function offerFile(name, data, { message = "Your file is ready.", detail = "Tap Save to Files, then choose a folder in iCloud Drive." } = {}) {
-    const file = new File([data], name, { type: mimeFor(name) });
+  function offerFile(name2, data, { message = "Your file is ready.", detail = "Tap Save to Files, then choose a folder in iCloud Drive." } = {}) {
+    const file = new File([data], name2, { type: mimeFor(name2) });
     return new Promise((resolve) => {
       let close;
       const status2 = el("p", { class: "web-sheet-status" });
@@ -2746,7 +2757,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       };
       close = sheet([
         el("h3", { text: message }),
-        el("p", { text: `${name} \xB7 ${sizeLabel(data.byteLength ?? data.size)}` }),
+        el("p", { text: `${name2} \xB7 ${sizeLabel(data.byteLength ?? data.size)}` }),
         el("p", { class: "web-sheet-hint", text: detail }),
         status2,
         el("div", { class: "web-sheet-buttons" }, [
@@ -2788,8 +2799,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         frame.srcdoc = get(p) ? new TextDecoder().decode(get(p).data) : "";
         return done;
       },
-      once(name, fn) {
-        if (name === "did-finish-load") frame.addEventListener("load", () => setTimeout(fn, 50), { once: true });
+      once(name2, fn) {
+        if (name2 === "did-finish-load") frame.addEventListener("load", () => setTimeout(fn, 50), { once: true });
         return contents;
       },
       on() {
@@ -2804,7 +2815,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       },
       executeJavaScript: async () => true,
       printToPDF: async () => {
-        throw new Error("Use Print to save a PDF on iPad.");
+        throw new Error(`Use Print to save a PDF on ${name}.`);
       },
       isDestroyed: () => !frame.isConnected,
       destroy() {
@@ -2877,6 +2888,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     "web/ui.js"() {
       import_path_browserify2 = __toESM(require_path_browserify());
       init_vfs();
+      init_device();
       CHANGE_GROUPS = [["edited", "Edited"], ["new", "New"], ["deleted", "Deleted"], ["settings", "Quill data (notes, order, stats)"]];
       num = (n) => Number(n || 0).toLocaleString();
       words = (n) => `${num(n)} word${n === 1 ? "" : "s"}`;
@@ -2892,7 +2904,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         jpeg: "image/jpeg",
         html: "text/html"
       };
-      mimeFor = (name) => MIME[import_path_browserify2.default.posix.extname(name).slice(1).toLowerCase()] || "application/octet-stream";
+      mimeFor = (name2) => MIME[import_path_browserify2.default.posix.extname(name2).slice(1).toLowerCase()] || "application/octet-stream";
       closeSignIn = null;
     }
   });
@@ -2910,12 +2922,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     const handlers2 = {};
     let port = 0;
     const server = {
-      on(name, fn) {
-        (handlers2[name] ||= []).push(fn);
+      on(name2, fn) {
+        (handlers2[name2] ||= []).push(fn);
         return server;
       },
-      once(name, fn) {
-        return server.on(name, fn);
+      once(name2, fn) {
+        return server.on(name2, fn);
       },
       listen(p, host, cb) {
         port = p || 1455;
@@ -3100,7 +3112,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     if (!meta2) return;
     const vv = window.visualViewport;
     const windowWidth = vv ? vv.width * vv.scale : window.innerWidth;
-    const content = uiZoom === 1 ? "width=device-width,initial-scale=1,viewport-fit=cover" : `width=${Math.round(windowWidth / uiZoom)},initial-scale=${uiZoom},minimum-scale=${uiZoom},maximum-scale=${uiZoom},viewport-fit=cover`;
+    const content = uiZoom === 1 ? `width=device-width,initial-scale=1,${isPhone ? "maximum-scale=1," : ""}viewport-fit=cover` : `width=${Math.round(windowWidth / uiZoom)},initial-scale=${uiZoom},minimum-scale=${uiZoom},maximum-scale=${uiZoom},viewport-fit=cover`;
     if (meta2.getAttribute("content") !== content) meta2.setAttribute("content", content);
   }
   var import_buffer, handlers, mainListeners, rendererListeners, markReady, ready, pendingFiles, clone, webContents, event, ipcMain, ipcRenderer, contextBridge, onIPad, uiZoom, webFrame, webUtils, win, BrowserWindow, app, dialog, shell, Menu, MenuItem, safeStorage, session, electron_default;
@@ -3110,6 +3122,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
       init_ui();
       init_vfs();
       init_signin();
+      init_device();
       handlers = /* @__PURE__ */ new Map();
       mainListeners = /* @__PURE__ */ new Map();
       rendererListeners = /* @__PURE__ */ new Map();
@@ -3193,15 +3206,16 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       };
       contextBridge = {
-        exposeInMainWorld(name, api) {
-          window[name] = api;
+        exposeInMainWorld(name2, api) {
+          window[name2] = api;
         }
       };
-      onIPad = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      onIPad = onIOS;
       uiZoom = 1;
       if (onIPad) window.addEventListener("resize", () => {
         if (uiZoom !== 1) fitViewport();
       });
+      if (isPhone) fitViewport();
       webFrame = {
         setZoomFactor(factor) {
           if (!onIPad) {
@@ -3296,7 +3310,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
           if (!opened(url)) window.open(url, "_blank", "noopener");
           return void 0;
         },
-        openPath: async () => "Folders cannot be opened on iPad.",
+        openPath: async () => `Folders cannot be opened on ${name}.`,
         showItemInFolder() {
         }
       };
@@ -3484,8 +3498,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         hatchIdeaCommit: (args) => ipcRenderer2.invoke("hatch-idea-commit", args),
         // trash
         getTrash: () => ipcRenderer2.invoke("get-trash"),
-        restoreTrash: (name) => ipcRenderer2.invoke("restore-trash", name),
-        deleteFromTrash: (name) => ipcRenderer2.invoke("delete-from-trash", name),
+        restoreTrash: (name2) => ipcRenderer2.invoke("restore-trash", name2),
+        deleteFromTrash: (name2) => ipcRenderer2.invoke("delete-from-trash", name2),
         emptyTrash: () => ipcRenderer2.invoke("empty-trash"),
         // snapshots
         saveSnapshot: (args) => ipcRenderer2.invoke("save-snapshot", args),
@@ -3659,7 +3673,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
     const names = list(p);
     if (!options?.withFileTypes) return names;
     const dir = norm2(p);
-    return names.map((name) => new Dirent(name, !!get(import_path_browserify3.default.posix.join(dir, name))?.dir, dir));
+    return names.map((name2) => new Dirent(name2, !!get(import_path_browserify3.default.posix.join(dir, name2))?.dir, dir));
   }
   function statSync(p, options) {
     const n = get(p);
@@ -3726,8 +3740,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   }
   function createReadStream(p) {
     const handlers2 = {};
-    const stream = { on(name, fn) {
-      (handlers2[name] ||= []).push(fn);
+    const stream = { on(name2, fn) {
+      (handlers2[name2] ||= []).push(fn);
       return stream;
     } };
     setTimeout(() => {
@@ -3770,8 +3784,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       };
       Dirent = class {
-        constructor(name, dir, parentPath) {
-          this.name = name;
+        constructor(name2, dir, parentPath) {
+          this.name = name2;
           this._dir = dir;
           this.parentPath = this.path = parentPath;
         }
@@ -3902,7 +3916,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
         }
       }).catch((err2) => {
         if (destroyed) return;
-        req.emit("error", err2.name === "TypeError" ? new Error(`Could not reach ${new URL(url).hostname}. Check the iPad's connection.`) : err2);
+        req.emit("error", err2.name === "TypeError" ? new Error(`Could not reach ${new URL(url).hostname}. Check the ${name}'s connection.`) : err2);
       });
       return req;
     };
@@ -3917,27 +3931,28 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   var init_https = __esm({
     "web/shim/https.js"() {
       import_buffer3 = __toESM(require_buffer());
+      init_device();
       Emitter = class {
         constructor() {
           this._on = {};
         }
-        on(name, fn) {
-          (this._on[name] ||= []).push(fn);
+        on(name2, fn) {
+          (this._on[name2] ||= []).push(fn);
           return this;
         }
-        once(name, fn) {
+        once(name2, fn) {
           const wrap = (...a) => {
-            this.off(name, wrap);
+            this.off(name2, wrap);
             fn(...a);
           };
-          return this.on(name, wrap);
+          return this.on(name2, wrap);
         }
-        off(name, fn) {
-          this._on[name] = (this._on[name] || []).filter((f) => f !== fn);
+        off(name2, fn) {
+          this._on[name2] = (this._on[name2] || []).filter((f) => f !== fn);
           return this;
         }
-        emit(name, ...args) {
-          for (const fn of [...this._on[name] || []]) fn(...args);
+        emit(name2, ...args) {
+          for (const fn of [...this._on[name2] || []]) fn(...args);
           return true;
         }
       };
@@ -4403,9 +4418,9 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill"},pid:1,platform:"ios",arch:
   function getRandomValues(arr) {
     return globalThis.crypto.getRandomValues(arr);
   }
-  function createHash(name) {
-    const fn = HASHES[String(name).toLowerCase()];
-    if (!fn) throw new Error(`Hash ${name} is not available on iPad.`);
+  function createHash(name2) {
+    const fn = HASHES[String(name2).toLowerCase()];
+    if (!fn) throw new Error(`Hash ${name2} is not available on iPad.`);
     const h = fn.create();
     const api = {
       update(data, encoding) {
@@ -4507,12 +4522,12 @@ ${fmLine(key, text)}---
 ${raw}` : raw;
         const { lines, close } = bounds;
         const eol = lines[0].endsWith("\r") ? "\r" : "";
-        let start5 = -1;
+        let start6 = -1;
         let end = -1;
         for (let i2 = 1; i2 < close; i2++) {
           const colon = lines[i2].indexOf(":");
           if (colon < 1 || lines[i2].slice(0, colon).trim() !== key) continue;
-          start5 = i2;
+          start6 = i2;
           end = i2 + 1;
           if (lines[i2].slice(colon + 1).trim() === "|") {
             while (end < close && /^ {2}/.test(lines[end])) end++;
@@ -4520,7 +4535,7 @@ ${raw}` : raw;
           break;
         }
         const replacement = text ? fmLine(key, text).slice(0, -1).split("\n").map((line) => line + eol) : [];
-        if (start5 >= 0) lines.splice(start5, end - start5, ...replacement);
+        if (start6 >= 0) lines.splice(start6, end - start6, ...replacement);
         else if (replacement.length) lines.splice(close, 0, ...replacement);
         return lines.join("\n");
       }
@@ -4534,10 +4549,10 @@ ${raw}` : raw;
   // words.js
   var require_words = __commonJS({
     "words.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillWords = api;
+        else root2.QuillWords = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const STUB_PATTERN = "\\[[^\\[\\]\\n]*\\]";
         function stubRegExp() {
@@ -4573,14 +4588,14 @@ ${raw}` : raw;
         }
         function diffWords(before, after, limit = 1e3) {
           const a = wordTokens(before), b = wordTokens(after);
-          let start5 = 0;
-          while (start5 < a.length && start5 < b.length && a[start5] === b[start5]) start5++;
+          let start6 = 0;
+          while (start6 < a.length && start6 < b.length && a[start6] === b[start6]) start6++;
           let endA = a.length, endB = b.length;
-          while (endA > start5 && endB > start5 && a[endA - 1] === b[endB - 1]) {
+          while (endA > start6 && endB > start6 && a[endA - 1] === b[endB - 1]) {
             endA--;
             endB--;
           }
-          const midA = a.slice(start5, endA), midB = b.slice(start5, endB);
+          const midA = a.slice(start6, endA), midB = b.slice(start6, endB);
           const edits = editDistance(midA, midB, limit);
           let kept2;
           if (edits !== null) kept2 = (midA.length + midB.length - edits) / 2;
@@ -4670,10 +4685,10 @@ ${raw}` : raw;
   // revisions.js
   var require_revisions = __commonJS({
     "revisions.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillRevisions = api;
+        else root2.QuillRevisions = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const NOTE_ID = /^rv_[A-Za-z0-9]{1,32}$/;
         const MAX_ARCHIVE = 2e3;
@@ -4837,10 +4852,10 @@ ${raw}` : raw;
   // achievements.js
   var require_achievements = __commonJS({
     "achievements.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillAchievements = api;
+        else root2.QuillAchievements = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const HOUR = 3600;
         const SCULPTOR_HOLD_MS = 5 * 60 * 1e3;
@@ -5279,8 +5294,8 @@ ${raw}` : raw;
         return words2;
       }
       var HONORIFICS = /^(madame|madam|mme|lady|lord|sir|dame|detective|det|captain|capt|dr|doctor|mr|mrs|ms|miss|agent|officer|sergeant|sgt|professor|prof|father|mother|sister|brother|king|queen|prince|princess)\.?$/i;
-      function characterKey(name) {
-        const words2 = String(name || "").trim().split(/\s+/).filter(Boolean);
+      function characterKey(name2) {
+        const words2 = String(name2 || "").trim().split(/\s+/).filter(Boolean);
         if (/^(the|a|an)$/i.test(words2[0] || "")) return words2.length > 1 ? words2.join(" ") : "";
         while (words2.length > 1 && HONORIFICS.test(words2[0])) words2.shift();
         return (words2[0] || "").length >= 3 ? words2[0] : "";
@@ -5429,10 +5444,10 @@ ${raw}` : raw;
   // journal-stats.js
   var require_journal_stats = __commonJS({
     "journal-stats.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillJournalStats = api;
+        else root2.QuillJournalStats = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -5591,10 +5606,10 @@ ${raw}` : raw;
   // structure.js
   var require_structure = __commonJS({
     "structure.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillStructure = api;
+        else root2.QuillStructure = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const rival = (prefix, act) => ({
           option: { id: `${prefix}_rival_option`, track: "rival", triangle: true, label: "A second option", hint: "The other person becomes a real possibility." },
@@ -5939,10 +5954,10 @@ ${raw}` : raw;
   // case.js
   var require_case = __commonJS({
     "case.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillCase = api;
+        else root2.QuillCase = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const KINDS = [
           { id: "physical", label: "Physical", example: "An object, a wound, residue: silver dust where there shouldn\u2019t be any." },
@@ -6057,7 +6072,7 @@ ${raw}` : raw;
           const clues = c.clues || [];
           const suspects = c.suspects || [];
           const warnings = [];
-          const name = (clue) => `\u201C${String(clue.text || "").trim() || "Untitled clue"}\u201D`;
+          const name2 = (clue) => `\u201C${String(clue.text || "").trim() || "Untitled clue"}\u201D`;
           const reveal = pos.reveal();
           if (!reveal && clues.length) warnings.push({
             kind: missingScene(c.revealSceneId) ? "missing-reveal-scene" : "no-reveal",
@@ -6070,11 +6085,11 @@ ${raw}` : raw;
             if (missingScene(clue.foundSceneId)) warnings.push({
               kind: "missing-clue-scene",
               clueId: clue.id,
-              text: `The scene assigned to key clue ${name(clue)} is missing. Relink it or build a replacement scene.`
+              text: `The scene assigned to key clue ${name2(clue)} is missing. Relink it or build a replacement scene.`
             });
-            else if (!at) warnings.push({ kind: "key-unplaced", clueId: clue.id, text: `Key clue ${name(clue)} isn\u2019t in a scene or a stop yet.` });
+            else if (!at) warnings.push({ kind: "key-unplaced", clueId: clue.id, text: `Key clue ${name2(clue)} isn\u2019t in a scene or a stop yet.` });
             else if (reveal && at.at > reveal.at) {
-              warnings.push({ kind: "key-late", clueId: clue.id, planned: at.planned || reveal.planned, text: at.planned || reveal.planned ? `Key clue ${name(clue)} is planned for after the reveal. The reader won\u2019t have seen it.` : `Key clue ${name(clue)} first appears after the reveal. The reader can\u2019t have seen it.` });
+              warnings.push({ kind: "key-late", clueId: clue.id, planned: at.planned || reveal.planned, text: at.planned || reveal.planned ? `Key clue ${name2(clue)} is planned for after the reveal. The reader won\u2019t have seen it.` : `Key clue ${name2(clue)} first appears after the reveal. The reader can\u2019t have seen it.` });
             }
           }
           for (const lead of c.leads || []) if (missingScene(lead.sceneId)) warnings.push({
@@ -6474,10 +6489,10 @@ ${raw}` : raw;
         0
       ]);
       clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
-      freb = function(eb, start5) {
+      freb = function(eb, start6) {
         var b = new u16(31);
         for (var i2 = 0; i2 < 31; ++i2) {
-          b[i2] = start5 += 1 << eb[i2 - 1];
+          b[i2] = start6 += 1 << eb[i2 - 1];
         }
         var r = new i32(b[30]);
         for (var i2 = 1; i2 < 30; ++i2) {
@@ -7237,10 +7252,10 @@ ${raw}` : raw;
     const entries = {};
     const now = /* @__PURE__ */ new Date();
     for (const [rel, data] of Object.entries(extra)) entries[rel] = [data, { mtime: now, level: 6, os: 3, attrs: 33188 << 16 >>> 0 }];
-    for (const name of names) {
-      const root = norm(import_path_browserify4.default.posix.join(cwd, name));
-      if (!get(root)) throw new Error(`zip: ${name} not found`);
-      for (const p of walk(root)) {
+    for (const name2 of names) {
+      const root2 = norm(import_path_browserify4.default.posix.join(cwd, name2));
+      if (!get(root2)) throw new Error(`zip: ${name2} not found`);
+      for (const p of walk(root2)) {
         const rel = import_path_browserify4.default.posix.relative(norm(cwd), p);
         if (!keep2(rel)) continue;
         const node2 = get(p);
@@ -7267,12 +7282,12 @@ ${raw}` : raw;
     }
     return zip;
   }
-  function zipName(name) {
-    if (!/[\u0080-ÿ]/.test(name) || /[^\u0000-ÿ]/.test(name)) return name;
+  function zipName(name2) {
+    if (!/[\u0080-ÿ]/.test(name2) || /[^\u0000-ÿ]/.test(name2)) return name2;
     try {
-      return utf8.decode(Uint8Array.from(name, (c) => c.charCodeAt(0)));
+      return utf8.decode(Uint8Array.from(name2, (c) => c.charCodeAt(0)));
     } catch {
-      return name;
+      return name2;
     }
   }
   function readZip(file) {
@@ -7285,13 +7300,13 @@ ${raw}` : raw;
       throw new Error(`unzip: ${import_path_browserify4.default.posix.basename(file)} is not a valid ZIP (${err2.message})`);
     }
     const named = {};
-    for (const [name, data] of Object.entries(entries)) named[zipName(name)] = data;
+    for (const [name2, data] of Object.entries(entries)) named[zipName(name2)] = data;
     return named;
   }
-  function zipinfoLine(name, data) {
-    const dir = name.endsWith("/");
+  function zipinfoLine(name2, data) {
+    const dir = name2.endsWith("/");
     const perm = dir ? "drwxr-xr-x" : "-rw-r--r--";
-    return `${perm}  3.0 unx ${String(data.length).padStart(8)} bx ${String(data.length).padStart(8)} defN 25-Jan-01 00:00 ${name}`;
+    return `${perm}  3.0 unx ${String(data.length).padStart(8)} bx ${String(data.length).padStart(8)} defN 25-Jan-01 00:00 ${name2}`;
   }
   function run(file, args, options) {
     const cwd = options?.cwd || "/";
@@ -7316,10 +7331,10 @@ ${raw}` : raw;
       }
       if (args[0] === "-q" && args[2] === "-d") {
         const dest = abs(args[3]);
-        for (const [name, data] of Object.entries(readZip(abs(args[1])))) {
-          const target2 = norm(import_path_browserify4.default.posix.join(dest, name));
+        for (const [name2, data] of Object.entries(readZip(abs(args[1])))) {
+          const target2 = norm(import_path_browserify4.default.posix.join(dest, name2));
           if (!target2.startsWith(dest + "/")) throw new Error("unzip: unsafe path in archive");
-          if (name.endsWith("/")) {
+          if (name2.endsWith("/")) {
             mkdir(target2, true);
             continue;
           }
@@ -7331,7 +7346,7 @@ ${raw}` : raw;
     }
     if (file === "zipinfo" && args[0] === "-l") {
       const entries = readZip(abs(args[1]));
-      return Object.entries(entries).map(([name, data]) => zipinfoLine(name, data)).join("\n") + "\n";
+      return Object.entries(entries).map(([name2, data]) => zipinfoLine(name2, data)).join("\n") + "\n";
     }
     throw unavailable2(file);
   }
@@ -7389,11 +7404,12 @@ ${raw}` : raw;
     spawn: () => spawn2
   });
   function unavailable3() {
-    throw new Error("This feature needs the Mac app; it is not available on iPad.");
+    throw new Error(`This feature needs the Mac app; it is not available on ${name}.`);
   }
   var spawn2, execFile2, exec2, createServer2, createConnection, connect2, request3, get4, Socket, unavailable_default;
   var init_unavailable = __esm({
     "web/shim/unavailable.js"() {
+      init_device();
       spawn2 = unavailable3;
       execFile2 = unavailable3;
       exec2 = unavailable3;
@@ -7598,7 +7614,7 @@ wait $child
           }
           if (!have || !have.equals(want)) fs.writeFileSync(p.customRules, want);
         }
-        async function start5() {
+        async function start6() {
           if (_server) return _server;
           if (_starting) return _starting;
           if (!isInstalled()) throw new Error("LanguageTool is not installed.");
@@ -7669,7 +7685,7 @@ wait $child
           if (!ENGLISH_LANGUAGES.has(language)) throw new TypeError("Unsupported LanguageTool dialect.");
           if (text.length > MAX_TEXT) throw new Error("This document is too long to check in one pass.");
           if (!text.trim()) return [];
-          const { port } = await start5();
+          const { port } = await start6();
           clearTimeout(_idleTimer);
           _idleTimer = setTimeout(() => {
             stop().catch(() => {
@@ -7989,20 +8005,20 @@ wait $child
           const extraLen = buf.readUInt16LE(p + 30);
           const commentLen = buf.readUInt16LE(p + 32);
           const localOffset = buf.readUInt32LE(p + 42);
-          const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
-          entries.set(name, { flags, method, compSize, localOffset });
+          const name2 = buf.toString("utf8", p + 46, p + 46 + nameLen);
+          entries.set(name2, { flags, method, compSize, localOffset });
           p += 46 + nameLen + extraLen + commentLen;
         }
         let total = 0;
-        function read(name) {
-          const e = entries.get(name);
+        function read(name2) {
+          const e = entries.get(name2);
           if (!e) return null;
           if (e.flags & 1) throw new EpubError("This EPUB is encrypted (DRM) and cannot be opened.");
           const lp = e.localOffset;
           if (lp + 30 > buf.length || buf.readUInt32LE(lp) !== 67324752) throw new EpubError("This EPUB is truncated or damaged.");
-          const start5 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
-          if (start5 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
-          const data = buf.subarray(start5, start5 + e.compSize);
+          const start6 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
+          if (start6 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
+          const data = buf.subarray(start6, start6 + e.compSize);
           const budget = Math.min(limits.maxEntryBytes, limits.maxTotalBytes - total);
           let out;
           if (e.method === 0) {
@@ -8021,7 +8037,7 @@ wait $child
           total += out.length;
           return out;
         }
-        return { names: () => [...entries.keys()], has: (name) => entries.has(name), read };
+        return { names: () => [...entries.keys()], has: (name2) => entries.has(name2), read };
       }
       var NAMED = {
         amp: "&",
@@ -8120,8 +8136,8 @@ wait $child
       function textOf(xml) {
         return decodeEntities(String(xml || "").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
       }
-      function firstElementText(xml, name) {
-        const m = new RegExp(`<(?:[a-z0-9_-]+:)?${name}\\b[^>]*>([\\s\\S]*?)</(?:[a-z0-9_-]+:)?${name}>`, "i").exec(xml);
+      function firstElementText(xml, name2) {
+        const m = new RegExp(`<(?:[a-z0-9_-]+:)?${name2}\\b[^>]*>([\\s\\S]*?)</(?:[a-z0-9_-]+:)?${name2}>`, "i").exec(xml);
         return m ? textOf(m[1]) : "";
       }
       function dirOf(p) {
@@ -8243,8 +8259,8 @@ wait $child
             text += chunk;
           }
         }
-        function ownItalic(name, a) {
-          let v = ITALIC.has(name) ? true : void 0;
+        function ownItalic(name2, a) {
+          let v = ITALIC.has(name2) ? true : void 0;
           for (const cls of String(a.class || "").split(/\s+/)) if (cls && cls in italicClasses) v = italicClasses[cls];
           const inline = /font-style\s*:\s*(italic|oblique|normal)/i.exec(a.style || "");
           if (inline) v = inline[1].toLowerCase() !== "normal";
@@ -8261,10 +8277,10 @@ wait $child
             continue;
           }
           if (!m[1]) continue;
-          const name = localName(m[1]);
+          const name2 = localName(m[1]);
           const closing = tok[1] === "/";
-          const selfClosing = /\/\s*>$/.test(tok) || VOID.has(name);
-          if (SKIP.has(name)) {
+          const selfClosing = /\/\s*>$/.test(tok) || VOID.has(name2);
+          if (SKIP.has(name2)) {
             if (closing) skipDepth = Math.max(0, skipDepth - 1);
             else if (!selfClosing) skipDepth++;
             continue;
@@ -8272,25 +8288,25 @@ wait $child
           if (skipDepth) continue;
           if (!closing) {
             const a = attrs(m[2] || "");
-            if (BLOCK.has(name)) flush2();
+            if (BLOCK.has(name2)) flush2();
             const isPageMark = a.id && PAGE_ANCHOR.test(a.id) || /\bpagebreak\b/.test(a["epub:type"] || "");
             if (isPageMark && !text) pageBreak = true;
             if (a.id) {
-              if (BLOCK.has(name) || !text) pendingAnchors.push(a.id);
+              if (BLOCK.has(name2) || !text) pendingAnchors.push(a.id);
               else anchors[a.id] = blocks.length;
             }
-            if (name === "br") {
+            if (name2 === "br") {
               text = text.replace(/ +$/, "");
               if (text) text += "\n";
               pendingSpace = false;
               continue;
             }
             if (selfClosing) continue;
-            const own = ownItalic(name, a);
-            stack.push({ name, italic: own === void 0 ? top().italic : own, heading: /^h[1-6]$/.test(name) });
+            const own = ownItalic(name2, a);
+            stack.push({ name: name2, italic: own === void 0 ? top().italic : own, heading: /^h[1-6]$/.test(name2) });
           } else {
-            if (BLOCK.has(name)) flush2();
-            const at = stack.map((e) => e.name).lastIndexOf(name);
+            if (BLOCK.has(name2)) flush2();
+            const at = stack.map((e) => e.name).lastIndexOf(name2);
             if (at > 0) stack.length = at;
           }
         }
@@ -8452,10 +8468,10 @@ wait $child
   // study.js
   var require_study = __commonJS({
     "study.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillStudy = api;
+        else root2.QuillStudy = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const STUDY_ID = /^st_[A-Za-z0-9]{6,32}$/;
         const CONTEXT_CHARS = 40;
@@ -8482,8 +8498,8 @@ wait $child
           }
           return { t, i: i2 };
         }
-        function makeAnchor(text, start5, end) {
-          const s = Math.max(0, Math.min(start5, end)), e = Math.min(text.length, Math.max(start5, end));
+        function makeAnchor(text, start6, end) {
+          const s = Math.max(0, Math.min(start6, end)), e = Math.min(text.length, Math.max(start6, end));
           return {
             start: s,
             end: e,
@@ -8674,8 +8690,8 @@ wait $child
           if (scored.length > 1 && scored[0].score < scored[1].score + 5) return { status: "ambiguous", chapterIndex: ci, count: scored.length };
           return { status: "ok", chapterIndex: ci, start: scored[0].start, end: scored[0].end };
         }
-        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start5, end) {
-          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start5, end) };
+        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start6, end) {
+          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start6, end) };
         }
         function splitSentences(text) {
           const out = [];
@@ -9082,10 +9098,10 @@ wait $child
   // aicontext.js
   var require_aicontext = __commonJS({
     "aicontext.js"(exports, module) {
-      (function(root, factory) {
+      (function(root2, factory) {
         const api = factory();
         if (typeof module !== "undefined" && module.exports) module.exports = api;
-        else root.QuillAIContext = api;
+        else root2.QuillAIContext = api;
       })(typeof self !== "undefined" ? self : globalThis, function() {
         const KINDS = ["character", "world", "chapter", "scene", "selection", "note"];
         const SOURCES = ["canon", "reference", "noncanon"];
@@ -9157,10 +9173,10 @@ ${str(e.text).trim()}
           if (!lower.trim()) return [];
           return (items || []).filter((it) => {
             if (!it || it.kind !== "character") return false;
-            const name = str(it.title).toLowerCase().trim();
-            if (name.length < 2) return false;
-            if (new RegExp(`\\b${escapeRe(name)}\\b`).test(lower)) return true;
-            return name.split(/\s+/).filter((w) => w.length >= 3).some((w) => new RegExp(`\\b${escapeRe(w)}\\b`).test(lower));
+            const name2 = str(it.title).toLowerCase().trim();
+            if (name2.length < 2) return false;
+            if (new RegExp(`\\b${escapeRe(name2)}\\b`).test(lower)) return true;
+            return name2.split(/\s+/).filter((w) => w.length >= 3).some((w) => new RegExp(`\\b${escapeRe(w)}\\b`).test(lower));
           });
         }
         function resolveTitles(titles, items) {
@@ -9566,8 +9582,8 @@ ${str(e.text).trim()}
         const dot = file.lastIndexOf(".");
         const stem = dot > 0 ? file.slice(0, dot) : file, ext = dot > 0 ? file.slice(dot) : "";
         for (let n = 1; ; n++) {
-          const name = `${dir}${stem} (${deviceName} copy${n > 1 ? ` ${n}` : ""})${ext}`;
-          if (!taken.has(name)) return name;
+          const name2 = `${dir}${stem} (${deviceName} copy${n > 1 ? ` ${n}` : ""})${ext}`;
+          if (!taken.has(name2)) return name2;
         }
       }
       function planMerge({ local, remote, base = null, since = null, localName = "this device", remoteName = "other device" }) {
@@ -9758,10 +9774,10 @@ ${body}
       }
       function orderWithCopies(order, copies, present) {
         const out = [];
-        for (const name of order || []) {
-          if (!present.has(name)) continue;
-          out.push(name);
-          for (const c of copies) if (c.of === name && !out.includes(c.name)) out.push(c.name);
+        for (const name2 of order || []) {
+          if (!present.has(name2)) continue;
+          out.push(name2);
+          for (const c of copies) if (c.of === name2 && !out.includes(c.name)) out.push(c.name);
         }
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
@@ -9821,7 +9837,7 @@ ${body}
         }
         const dir = path5.dirname(file);
         const base = path5.basename(file);
-        let aside = fs.readdirSync(dir).find((name) => name.startsWith(`${base}.unreadable-`) && fs.readFileSync(path5.join(dir, name), "utf8") === raw);
+        let aside = fs.readdirSync(dir).find((name2) => name2.startsWith(`${base}.unreadable-`) && fs.readFileSync(path5.join(dir, name2), "utf8") === raw);
         if (!aside) {
           aside = `${base}.unreadable-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}`;
           atomicWriteFileSync(path5.join(dir, aside), raw, "utf8");
@@ -9861,8 +9877,8 @@ ${body}
         return lastFound;
       }
       function safeName(s) {
-        const name = String(s || "").replace(/[\/\\:*?"<>|\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().replace(/^\.+/, "").trim();
-        return name.slice(0, 120) || "Untitled";
+        const name2 = String(s || "").replace(/[\/\\:*?"<>|\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().replace(/^\.+/, "").trim();
+        return name2.slice(0, 120) || "Untitled";
       }
       function atomicWriteFileSync(filePath, data, encoding = "utf8") {
         const tmp = `${filePath}.quill-tmp-${__quillProcess.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -9901,8 +9917,8 @@ ${body}
         if (!stat) return;
         const existing = safeChildStat(to);
         if (stat.isDirectory() && existing?.isDirectory()) {
-          for (const name of fs.readdirSync(from)) {
-            if (!fs.existsSync(path5.join(to, name))) fs.renameSync(path5.join(from, name), path5.join(to, name));
+          for (const name2 of fs.readdirSync(from)) {
+            if (!fs.existsSync(path5.join(to, name2))) fs.renameSync(path5.join(from, name2), path5.join(to, name2));
           }
           if (!fs.readdirSync(from).length) fs.rmdirSync(from);
           return;
@@ -9926,8 +9942,8 @@ ${body}
         }
         writeMeta(folderPath, { [key]: order });
       }
-      function slug(name, prefix) {
-        let s = (name || "").toLowerCase().replace(/[^\w\s-]/g, "").trim();
+      function slug(name2, prefix) {
+        let s = (name2 || "").toLowerCase().replace(/[^\w\s-]/g, "").trim();
         s = s.replace(/[\s_-]+/g, "-").slice(0, 48).replace(/^-|-$/g, "");
         return prefix && s ? `${prefix}_${s}` : s || prefix || "entry";
       }
@@ -10380,11 +10396,11 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         });
         return { ok: true, word_count: wordCount(outBody), scene_id: sid };
       });
-      function insertBefore(order, present, name, before) {
-        const full = order.filter((n) => n !== name && present.includes(n));
-        present.filter((n) => n !== name && !full.includes(n)).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).forEach((n) => full.push(n));
+      function insertBefore(order, present, name2, before) {
+        const full = order.filter((n) => n !== name2 && present.includes(n));
+        present.filter((n) => n !== name2 && !full.includes(n)).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).forEach((n) => full.push(n));
         const at = full.indexOf(before);
-        full.splice(at >= 0 ? at : full.length, 0, name);
+        full.splice(at >= 0 ? at : full.length, 0, name2);
         return full;
       }
       function nextStructureName(parent, ft) {
@@ -10473,12 +10489,12 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           }
         }
         const pre = localDateKey(now);
-        let name = slug(resolvedTitle, pre) + ".md";
-        let full = path5.join(dir, name);
+        let name2 = slug(resolvedTitle, pre) + ".md";
+        let full = path5.join(dir, name2);
         let c = 1;
         while (fs.existsSync(full)) {
-          name = slug(resolvedTitle, pre) + `-${c}.md`;
-          full = path5.join(dir, name);
+          name2 = slug(resolvedTitle, pre) + `-${c}.md`;
+          full = path5.join(dir, name2);
           c++;
         }
         const contextType = folderTypeForFile(full);
@@ -10489,10 +10505,10 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         let fileOrder = folderMeta.file_order || [];
         if (before) {
           const present = fs.readdirSync(dir).filter((f) => f.endsWith(".md") && !f.startsWith("."));
-          fileOrder = insertBefore(fileOrder, present, name, before);
-        } else if (!fileOrder.includes(name)) fileOrder.push(name);
+          fileOrder = insertBefore(fileOrder, present, name2, before);
+        } else if (!fileOrder.includes(name2)) fileOrder.push(name2);
         writeMeta(dir, { file_order: fileOrder });
-        const rel = folder ? `${folder}/${name}` : name;
+        const rel = folder ? `${folder}/${name2}` : name2;
         return { path: rel, date, title: resolvedTitle, scene_id: sid };
       });
       ipcMain2.handle("duplicate-scene", (_, { rel, outlineOnly = false } = {}) => {
@@ -10543,7 +10559,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           if (fs.existsSync(companion)) fs.copyFileSync(companion, path5.join(dir, destBase + suffix));
         }
         const folderMeta = readMeta(dir);
-        const order = (folderMeta.file_order || []).filter((name) => name !== filename);
+        const order = (folderMeta.file_order || []).filter((name2) => name2 !== filename);
         const srcIndex = order.indexOf(path5.basename(src));
         order.splice(srcIndex >= 0 ? srcIndex + 1 : order.length, 0, filename);
         writeMeta(dir, { file_order: order });
@@ -10567,55 +10583,55 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         }
         return { ok: true, path: path5.relative(ROOT, dest).replace(/\\/g, "/"), title };
       });
-      ipcMain2.handle("new-folder", (_, { parent, name, folder_type, auto_name, before }) => {
+      ipcMain2.handle("new-folder", (_, { parent, name: name2, folder_type, auto_name, before }) => {
         let ft = folder_type || "novel";
         if (auto_name) {
           const parentDir = inRoot(parent);
           const siblings = fs.existsSync(parentDir) ? fs.readdirSync(parentDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
           if (ft === "act" || ft === "novel" && parent) {
-            name = nextStructureName(parent, ft);
+            name2 = nextStructureName(parent, ft);
           } else if (ft === "journal") {
             const months = MONTH_NAMES;
             const now = /* @__PURE__ */ new Date();
             const base = `${months[now.getMonth()]} ${now.getFullYear()}`;
             if (!siblings.includes(base)) {
-              name = base;
+              name2 = base;
             } else {
               let found = false;
               for (let i2 = 1; i2 <= 12; i2++) {
                 const d = new Date(now.getFullYear(), now.getMonth() + i2, 1);
                 const candidate = `${months[d.getMonth()]} ${d.getFullYear()}`;
                 if (!siblings.includes(candidate)) {
-                  name = candidate;
+                  name2 = candidate;
                   found = true;
                   break;
                 }
               }
-              if (!found) name = base;
+              if (!found) name2 = base;
             }
           }
         }
-        const typedName = auto_name ? "" : String(name || "").trim();
-        name = safeName(name);
-        const dir = inRoot(parent || "", name);
-        if (!auto_name && fs.existsSync(dir)) return { ok: false, error: `\u201C${name}\u201D already exists here. Pick another name.` };
+        const typedName = auto_name ? "" : String(name2 || "").trim();
+        name2 = safeName(name2);
+        const dir = inRoot(parent || "", name2);
+        if (!auto_name && fs.existsSync(dir)) return { ok: false, error: `\u201C${name2}\u201D already exists here. Pick another name.` };
         fs.mkdirSync(dir, { recursive: true });
         writeMeta(dir, { folder_type: ft });
-        if (typedName && typedName !== name && (ft === "act" || ft === "novel" && parent)) writeMeta(dir, { folder_title: typedName });
+        if (typedName && typedName !== name2 && (ft === "act" || ft === "novel" && parent)) writeMeta(dir, { folder_title: typedName });
         if (parent) {
           const parentDir = inRoot(parent);
           const parentMeta = readMeta(parentDir);
           let order = parentMeta.folder_order || [];
           if (before) {
             const present = fs.readdirSync(parentDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith(".")).map((d) => d.name);
-            order = insertBefore(order, present, name, before);
-          } else if (!order.includes(name)) {
+            order = insertBefore(order, present, name2, before);
+          } else if (!order.includes(name2)) {
             if (ft === "act") {
               const wbIdx = order.indexOf("World Bible");
-              if (wbIdx >= 0) order.splice(wbIdx, 0, name);
-              else order.push(name);
+              if (wbIdx >= 0) order.splice(wbIdx, 0, name2);
+              else order.push(name2);
             } else {
-              order.push(name);
+              order.push(name2);
             }
           }
           writeMeta(parentDir, { folder_order: order });
@@ -10650,7 +10666,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           if (!novelOrder.includes("World Bible")) novelOrder.push("World Bible");
           writeMeta(dir, { folder_order: novelOrder });
         }
-        const rel = parent ? `${parent}/${name}` : name;
+        const rel = parent ? `${parent}/${name2}` : name2;
         return { ok: true, path: rel, folder_type: ft };
       });
       ipcMain2.handle("rename", (_, { rel, newName }) => {
@@ -10900,7 +10916,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const snapDir = timelineSnapshotDirectory(projectDir);
         if (!fs.existsSync(snapDir)) return [];
         if (!safeChildStat(snapDir)?.isDirectory()) return [];
-        return fs.readdirSync(snapDir).filter((name) => name.endsWith(".json") && safeChildStat(path5.join(snapDir, name))?.isFile()).sort();
+        return fs.readdirSync(snapDir).filter((name2) => name2.endsWith(".json") && safeChildStat(path5.join(snapDir, name2))?.isFile()).sort();
       }
       function writeTimelineSnapshot(projectDir, raw, { force = false } = {}) {
         if (typeof raw !== "string" || !raw.trim()) return null;
@@ -10921,7 +10937,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const filename = `${stamp2}_${sequence}__Auto_${crypto2.randomBytes(2).toString("hex")}.json`;
         atomicWriteFileSync(path5.join(snapDir, filename), raw, "utf8");
         const all = timelineSnapshotFiles(projectDir);
-        all.slice(0, Math.max(0, all.length - MAX_TIMELINE_SNAPSHOTS)).forEach((name) => fs.unlinkSync(path5.join(snapDir, name)));
+        all.slice(0, Math.max(0, all.length - MAX_TIMELINE_SNAPSHOTS)).forEach((name2) => fs.unlinkSync(path5.join(snapDir, name2)));
         return filename;
       }
       function writeTimelineData(projectDir, timeline) {
@@ -10940,9 +10956,9 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         atomicWriteFileSync(destination, next, "utf8");
         return true;
       }
-      function snapshotFilename(snapDir, name = "") {
+      function snapshotFilename(snapDir, name2 = "") {
         const stamp2 = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 23);
-        const suffix = name ? `__${name}` : "";
+        const suffix = name2 ? `__${name2}` : "";
         let file = `${stamp2}${suffix}.md`;
         for (let n = 2; fs.existsSync(path5.join(snapDir, file)); n++) file = `${stamp2}-${n}${suffix}.md`;
         return file;
@@ -10953,7 +10969,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         atomicWriteFileSync(path5.join(snapDir, snapshotFilename(snapDir, "Safety_large_deletion")), raw, "utf8");
         pruneSnapshots(snapDir);
       }
-      function writeSnapshot(full, { name = "", auto = false } = {}) {
+      function writeSnapshot(full, { name: name2 = "", auto = false } = {}) {
         if (!fs.existsSync(full)) return { ok: false, error: "File not found" };
         const snapDir = snapshotDirectory(full);
         if (auto) {
@@ -10967,13 +10983,13 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           }
         }
         if (!fs.existsSync(snapDir)) fs.mkdirSync(snapDir, { recursive: true });
-        const safeName2 = auto ? AUTO_SNAPSHOT_NAME : (name || "").replace(/[^a-zA-Z0-9 _-]/g, "").trim().replace(/\s+/g, "_").slice(0, 60);
+        const safeName2 = auto ? AUTO_SNAPSHOT_NAME : (name2 || "").replace(/[^a-zA-Z0-9 _-]/g, "").trim().replace(/\s+/g, "_").slice(0, 60);
         const filename = snapshotFilename(snapDir, safeName2);
         fs.copyFileSync(full, path5.join(snapDir, filename));
         pruneSnapshots(snapDir);
         return { ok: true, stamp: filename.split("__")[0].replace(/\.md$/, "") };
       }
-      ipcMain2.handle("save-snapshot", (_, { rel, name, auto = false }) => writeSnapshot(inRoot(rel), { name, auto }));
+      ipcMain2.handle("save-snapshot", (_, { rel, name: name2, auto = false }) => writeSnapshot(inRoot(rel), { name: name2, auto }));
       ipcMain2.handle("get-snapshots", (_, rel) => {
         const full = inRoot(rel);
         const snapDir = snapshotDirectory(full);
@@ -11062,8 +11078,8 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           return null;
         }
       }
-      function segment(name) {
-        const s = String(name ?? "").trim();
+      function segment(name2) {
+        const s = String(name2 ?? "").trim();
         if (!s || s === "." || s === ".." || path5.basename(s) !== s || /[\\/]/.test(s)) {
           throw new Error(`Invalid name: ${s}`);
         }
@@ -11115,10 +11131,10 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           return null;
         }
         if (projectDir === path5.resolve(ROOT) || path5.dirname(projectDir) !== path5.resolve(ROOT) || readMeta(projectDir).folder_type !== "novel") return null;
-        const name = String(filename || "");
-        if (!name.endsWith(".json") || path5.basename(name) !== name) return null;
+        const name2 = String(filename || "");
+        if (!name2.endsWith(".json") || path5.basename(name2) !== name2) return null;
         const snapDir = timelineSnapshotDirectory(projectDir);
-        const snapshot = path5.resolve(snapDir, name);
+        const snapshot = path5.resolve(snapDir, name2);
         if (!isInside(snapDir, snapshot) || !safeChildStat(snapshot)?.isFile()) return null;
         return { projectDir, snapshot, current: path5.join(projectDir, ".timeline.json") };
       }
@@ -11179,13 +11195,13 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
               }
               let files = [];
               try {
-                files = fs.readdirSync(full).filter((name) => name.endsWith(".md")).sort().reverse();
+                files = fs.readdirSync(full).filter((name2) => name2.endsWith(".md")).sort().reverse();
               } catch {
               }
               for (const filename of files) {
                 const raw = filename.slice(0, -3);
                 const separator = raw.indexOf("__");
-                const name = separator >= 0 ? raw.slice(separator + 2).replace(/_/g, " ") : "";
+                const name2 = separator >= 0 ? raw.slice(separator + 2).replace(/_/g, " ") : "";
                 const stat = safeChildStat(path5.join(full, filename));
                 if (!stat?.isFile()) continue;
                 items.push({
@@ -11193,7 +11209,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
                   rel: sceneRel,
                   filename,
                   title,
-                  name,
+                  name: name2,
                   project: sceneRel.split("/")[0] || "Loose files",
                   createdAt: stat.mtime.toISOString()
                 });
@@ -11398,8 +11414,8 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const full = inRoot(rel);
         const destDir = inRoot(destFolder);
         if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-        let name = path5.basename(full);
-        let dest = path5.join(destDir, name);
+        let name2 = path5.basename(full);
+        let dest = path5.join(destDir, name2);
         let c = 1;
         while (fs.existsSync(dest)) {
           dest = path5.join(destDir, path5.basename(full, ".md") + `-${c}.md`);
@@ -11431,8 +11447,8 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         if (!sourceRel.length || sourceRel[0] !== destinationRel[0]) {
           return { ok: false, error: "Scenes can only move within the same project." };
         }
-        const name = path5.basename(source);
-        const destination = path5.join(destinationDir, name);
+        const name2 = path5.basename(source);
+        const destination = path5.join(destinationDir, name2);
         const moves = [{ from: source, to: destination }];
         const destinationCompanions = sceneCompanionPaths(destinationDir, path5.basename(destination, ".md"));
         sceneCompanionPaths(sourceDir, path5.basename(source, ".md")).forEach((companion, index) => {
@@ -11453,13 +11469,13 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const moved = [];
         try {
           const sceneMeta = parseFM(fs.readFileSync(source, "utf8")).meta;
-          const sourceOrder = orderedSceneFiles(sourceDir).filter((item) => item !== name);
-          const destinationOrder = orderedSceneFiles(destinationDir).filter((item) => item !== name);
+          const sourceOrder = orderedSceneFiles(sourceDir).filter((item) => item !== name2);
+          const destinationOrder = orderedSceneFiles(destinationDir).filter((item) => item !== name2);
           const index = Math.max(0, Math.min(
             Number.isInteger(destIndex) ? destIndex : destinationOrder.length,
             destinationOrder.length
           ));
-          destinationOrder.splice(index, 0, name);
+          destinationOrder.splice(index, 0, name2);
           const sourceMeta = readJsonForUpdate(sourceMetaPath);
           const destinationMeta = readJsonForUpdate(destinationMetaPath);
           sourceMeta.file_order = sourceOrder;
@@ -11468,7 +11484,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           const destinationBoard = readBoardFile(destinationDir);
           const sourceCards = Array.isArray(sourceBoard.cards) ? sourceBoard.cards.slice() : [];
           const destinationCards = Array.isArray(destinationBoard.cards) ? destinationBoard.cards.slice() : [];
-          const title = String(sceneMeta.title || path5.basename(name, ".md")).trim().toLowerCase();
+          const title = String(sceneMeta.title || path5.basename(name2, ".md")).trim().toLowerCase();
           const cardIndex = sourceCards.findIndex((card2) => sceneMeta.scene_id && card2.scene_id === sceneMeta.scene_id || !card2.scene_id && String(card2.title || "").trim().toLowerCase() === title);
           const card = cardIndex >= 0 ? sourceCards.splice(cardIndex, 1)[0] : null;
           if (card) destinationCards.push(card);
@@ -11515,7 +11531,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
       function orderedChildFolders(dir) {
         const meta2 = readMeta(dir);
         const order = Array.isArray(meta2.folder_order) ? meta2.folder_order : [];
-        const index = Object.fromEntries(order.map((name, i2) => [name, i2]));
+        const index = Object.fromEntries(order.map((name2, i2) => [name2, i2]));
         return fs.readdirSync(dir).filter((entry) => !entry.startsWith(".") && !entry.startsWith("_") && safeChildStat(path5.join(dir, entry))?.isDirectory()).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).sort((a, b) => (index[a] ?? 9999) - (index[b] ?? 9999));
       }
       function remapPathKeys(object, from, to) {
@@ -11596,10 +11612,10 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         }
         if (path5.dirname(actDir) !== novelDir) return { ok: false, error: "Chapters can only move between acts of the same novel." };
         if (actDir === sourceAct) return { ok: false, error: "Chapter is already in this act." };
-        const name = path5.basename(source);
-        const destination = path5.join(actDir, name);
+        const name2 = path5.basename(source);
+        const destination = path5.join(actDir, name2);
         if (fs.existsSync(destination)) {
-          return { ok: false, error: `\u201C${path5.basename(actDir)}\u201D already has a chapter named \u201C${name}\u201D.` };
+          return { ok: false, error: `\u201C${path5.basename(actDir)}\u201D already has a chapter named \u201C${name2}\u201D.` };
         }
         const relOf = (full) => path5.relative(ROOT, full).replace(/\\/g, "/");
         const oldRel = relOf(source);
@@ -11611,14 +11627,14 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const before = new Map(watched.map((file) => [file, fs.existsSync(file) ? fs.readFileSync(file) : null]));
         let moved = false;
         try {
-          const sourceIndex = orderedChildFolders(sourceAct).indexOf(name);
-          const sourceOrder = orderedChildFolders(sourceAct).filter((item) => item !== name);
+          const sourceIndex = orderedChildFolders(sourceAct).indexOf(name2);
+          const sourceOrder = orderedChildFolders(sourceAct).filter((item) => item !== name2);
           const destinationOrder = orderedChildFolders(actDir);
           const index = Math.max(0, Math.min(
             Number.isInteger(destIndex) ? destIndex : destinationOrder.length,
             destinationOrder.length
           ));
-          destinationOrder.splice(index, 0, name);
+          destinationOrder.splice(index, 0, name2);
           const sourceMeta = readJsonForUpdate(sourceMetaPath);
           const destinationMeta = readJsonForUpdate(destinationMetaPath);
           const drafts = readJsonForUpdate(draftsPath);
@@ -11988,10 +12004,10 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         return dir;
       }
       function novelDirForScene(full) {
-        const root = path5.resolve(ROOT);
+        const root2 = path5.resolve(ROOT);
         let dir = path5.dirname(full);
-        while (dir !== root && dir !== path5.dirname(dir)) {
-          if (path5.dirname(dir) === root) return readMeta(dir).folder_type === "novel" ? dir : null;
+        while (dir !== root2 && dir !== path5.dirname(dir)) {
+          if (path5.dirname(dir) === root2) return readMeta(dir).folder_type === "novel" ? dir : null;
           dir = path5.dirname(dir);
         }
         return null;
@@ -12418,7 +12434,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const cards = Array.isArray(board.cards) ? board.cards : [];
         const scenes = sceneRecordsForBoard(dir);
         const orderedScenes = (fileOrder || []).map(
-          (name) => scenes.find((scene) => path5.basename(scene.full) === name)
+          (name2) => scenes.find((scene) => path5.basename(scene.full) === name2)
         ).filter(Boolean);
         const linkedSlots = [];
         const linkedCards = [];
@@ -12500,11 +12516,11 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         writeMeta(dir, data);
         return { ok: true };
       });
-      ipcMain2.handle("sync-case-character", (_, { novelRel, characterId = "", name = "" } = {}) => {
+      ipcMain2.handle("sync-case-character", (_, { novelRel, characterId = "", name: name2 = "" } = {}) => {
         try {
           const dir = timelineProjectDir(novelRel);
           if (!dir) return { ok: false, error: "Characters belong to a novel folder." };
-          const cleanName = String(name).trim().slice(0, 200);
+          const cleanName = String(name2).trim().slice(0, 200);
           if (!cleanName) return { ok: false, error: "Character name is required." };
           const meta2 = readMeta(dir);
           const characters = Array.isArray(meta2.characters) ? meta2.characters.slice() : [];
@@ -12963,14 +12979,14 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           if (!existing.has(badgeId)) earned.seen = true;
         }
       }
-      function noteFeature(name) {
-        const cap = Math.max(0, ...Achievements.CATALOG.filter((badge) => badge.feature === name).map((badge) => badge.target));
+      function noteFeature(name2) {
+        const cap = Math.max(0, ...Achievements.CATALOG.filter((badge) => badge.feature === name2).map((badge) => badge.target));
         try {
           const stats = readStats();
           stats.featureUse = stats.featureUse || {};
-          if ((Number(stats.featureUse[name]) || 0) >= cap) return;
+          if ((Number(stats.featureUse[name2]) || 0) >= cap) return;
           catchUpAchievements(stats);
-          stats.featureUse[name] = (Number(stats.featureUse[name]) || 0) + 1;
+          stats.featureUse[name2] = (Number(stats.featureUse[name2]) || 0) + 1;
           const fresh2 = refreshAchievements(stats);
           atomicWriteFileSync(STATS_FILE, JSON.stringify(stats), "utf8");
           if (fresh2.length) win2?.webContents.send("achievements-earned", fresh2);
@@ -13002,7 +13018,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           while (words2.length > 1 && honorifics.test(words2[0])) words2.shift();
           if ((words2[0] || "").length >= 3) names.add(words2[0]);
         }
-        const escaped = [...names].filter(Boolean).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+        const escaped = [...names].filter(Boolean).map((name2) => name2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
         if (!escaped.length) return empty;
         const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])(${escaped.join("|")})(?=$|[^\\p{L}\\p{N}])`, "u");
         const pages = [];
@@ -13241,12 +13257,12 @@ ${tags}`);
           } catch {
             return;
           }
-          for (const name of names) {
-            if (name.startsWith(".")) continue;
-            const rel = prefix ? `${prefix}/${name}` : name;
-            const stat = safeChildStat(path5.join(dir, name));
-            if (stat?.isDirectory()) walk2(path5.join(dir, name), rel);
-            else if (stat?.isFile() && name.endsWith(".md")) files.push(rel);
+          for (const name2 of names) {
+            if (name2.startsWith(".")) continue;
+            const rel = prefix ? `${prefix}/${name2}` : name2;
+            const stat = safeChildStat(path5.join(dir, name2));
+            if (stat?.isDirectory()) walk2(path5.join(dir, name2), rel);
+            else if (stat?.isFile() && name2.endsWith(".md")) files.push(rel);
           }
         };
         walk2(ROOT, "");
@@ -13712,17 +13728,17 @@ ${tags}`);
           if (!match.targetHash || currentHash !== match.targetHash) {
             throw new Error(`\u201C${match.fileTitle || "A result"}\u201D changed since the search. Search again before replacing.`);
           }
-          const start5 = Number(match.matchStart);
+          const start6 = Number(match.matchStart);
           const end = Number(match.matchEnd);
-          if (!Number.isInteger(start5) || !Number.isInteger(end) || start5 < 0 || end <= start5 || end > value.length || value.slice(start5, end) !== match.matchedText || value.slice(start5, end).toLowerCase() !== term.toLowerCase()) {
+          if (!Number.isInteger(start6) || !Number.isInteger(end) || start6 < 0 || end <= start6 || end > value.length || value.slice(start6, end) !== match.matchedText || value.slice(start6, end).toLowerCase() !== term.toLowerCase()) {
             throw new Error("A selected match is stale. Search again before replacing.");
           }
           if (!targets.has(key)) targets.set(key, { value, ref, occurrences: [] });
           const target2 = targets.get(key);
           if (target2.value !== value) throw new Error("A replacement target changed during validation.");
-          if (target2.occurrences.some((item) => item.start === start5 && item.end === end)) return;
+          if (target2.occurrences.some((item) => item.start === start6 && item.end === end)) return;
           target2.occurrences.push({
-            start: start5,
+            start: start6,
             end,
             lineNumber: Number(match.lineNumber),
             lineMatchStart: Number(match.lineMatchStart)
@@ -13944,10 +13960,10 @@ ${tags}`);
               let nextQuote = quote;
               let delta = 0;
               for (const occurrence of inside2.sort((a, b) => b.start - a.start)) {
-                const start5 = occurrence.start - quoteStart;
+                const start6 = occurrence.start - quoteStart;
                 const end = occurrence.end - quoteStart;
-                nextQuote = nextQuote.slice(0, start5) + String(replacement) + nextQuote.slice(end);
-                delta += String(replacement).length - (end - start5);
+                nextQuote = nextQuote.slice(0, start6) + String(replacement) + nextQuote.slice(end);
+                delta += String(replacement).length - (end - start6);
               }
               comment.text = nextQuote;
               if (comment.anchor && Number.isInteger(comment.anchor.end)) comment.anchor.end += delta;
@@ -14046,10 +14062,10 @@ ${tags}`);
         }
         return dir;
       }
-      ipcMain2.handle("save-project-search", (_, { projectPath, id, name, query } = {}) => {
+      ipcMain2.handle("save-project-search", (_, { projectPath, id, name: name2, query } = {}) => {
         const dir = savedSearchProjectDir(projectPath);
         const cleanQuery = String(query || "").trim();
-        const cleanName = String(name || cleanQuery).trim().slice(0, 80);
+        const cleanName = String(name2 || cleanQuery).trim().slice(0, 80);
         if (!dir) return { ok: false, error: "Project not found." };
         if (cleanQuery.length < 2) return { ok: false, error: "Search for at least 2 characters." };
         if (!cleanName) return { ok: false, error: "Give the saved search a name." };
@@ -14077,9 +14093,9 @@ ${tags}`);
         writeMeta(dir, { saved_searches: next });
         return { ok: true };
       });
-      ipcMain2.handle("save-project-collection", (_, { projectPath, id, name } = {}) => {
+      ipcMain2.handle("save-project-collection", (_, { projectPath, id, name: name2 } = {}) => {
         const dir = savedSearchProjectDir(projectPath);
-        const cleanName = String(name || "").trim().slice(0, 80);
+        const cleanName = String(name2 || "").trim().slice(0, 80);
         if (!dir) return { ok: false, error: "Project not found." };
         if (!cleanName) return { ok: false, error: "Give the collection a name." };
         const meta2 = readMeta(dir);
@@ -14259,9 +14275,9 @@ ${raw}`;
         if (result.scope === "folder" && stats.month) {
           const parent = path5.dirname(dir);
           let best = null;
-          for (const name of sortedDirEntries(parent)) {
-            if (name.startsWith(".") || name === path5.basename(dir)) continue;
-            const full = path5.join(parent, name);
+          for (const name2 of sortedDirEntries(parent)) {
+            if (name2.startsWith(".") || name2 === path5.basename(dir)) continue;
+            const full = path5.join(parent, name2);
             if (!safeChildStat(full)?.isDirectory()) continue;
             const entries = journalEntries(full, "");
             const month = JournalStats.dominantMonth(entries);
@@ -14269,7 +14285,7 @@ ${raw}`;
             best = {
               month,
               label: JournalStats.monthLabel(month),
-              title: readMeta(full).folder_title || name,
+              title: readMeta(full).folder_title || name2,
               entries: entries.length,
               words: entries.reduce((sum, entry) => sum + entry.wordCount, 0)
             };
@@ -14610,7 +14626,7 @@ ${raw}`;
       function orderedSceneFiles(dir) {
         const meta2 = readMeta(dir);
         const order = Array.isArray(meta2.file_order) ? meta2.file_order : [];
-        const index = Object.fromEntries(order.map((name, i2) => [name, i2]));
+        const index = Object.fromEntries(order.map((name2, i2) => [name2, i2]));
         return fs.readdirSync(dir).filter((entry) => entry.endsWith(".md") && !entry.startsWith(".") && safeChildStat(path5.join(dir, entry))?.isFile()).sort((a, b) => (index[a] ?? 9999) - (index[b] ?? 9999) || a.localeCompare(b));
       }
       ipcMain2.handle("get-chapter-scenes", (_, folderRel) => {
@@ -14619,16 +14635,16 @@ ${raw}`;
           return { ok: false, error: "Chapter not found" };
         }
         const meta2 = readMeta(dir);
-        const scenes = orderedSceneFiles(dir).map((name) => {
-          const full = path5.join(dir, name);
+        const scenes = orderedSceneFiles(dir).map((name2) => {
+          const full = path5.join(dir, name2);
           const raw = fs.readFileSync(full, "utf8");
           const { meta: sceneMeta, body } = parseFM(raw);
           writeSnapshot(full, { auto: true });
           return {
-            path: `${folderRel}/${name}`,
-            name,
+            path: `${folderRel}/${name2}`,
+            name: name2,
             scene_id: sceneMeta.scene_id || "",
-            title: sceneMeta.title || name.replace(/\.md$/, ""),
+            title: sceneMeta.title || name2.replace(/\.md$/, ""),
             body,
             word_count: wordCount(body)
           };
@@ -14712,7 +14728,7 @@ ${raw}`;
             const board = readSyncedBoard(full);
             const files = fs.readdirSync(full).filter((e) => e.endsWith(".md") && !e.startsWith(".") && safeChildStat(path5.join(full, e))?.isFile());
             const order = Array.isArray(meta2.file_order) ? meta2.file_order : [];
-            const index = Object.fromEntries(order.map((name, i2) => [name, i2]));
+            const index = Object.fromEntries(order.map((name2, i2) => [name2, i2]));
             files.sort((a, b) => (index[a] ?? index[a.replace(/\.md$/, "")] ?? 9999) - (index[b] ?? index[b.replace(/\.md$/, "")] ?? 9999) || a.localeCompare(b));
             const draft = files.map((file) => {
               try {
@@ -14850,8 +14866,8 @@ ${body.trim()}`;
       });
       ipcMain2.handle("new-wb-card", (_, { sectionPath, sectionType, cardName }) => {
         const dir = inRoot(sectionPath);
-        const name = cardName || "Untitled";
-        const safe = name.replace(/[^a-z0-9\s\-_]/gi, "").trim() || "entry";
+        const name2 = cardName || "Untitled";
+        const safe = name2.replace(/[^a-z0-9\s\-_]/gi, "").trim() || "entry";
         const now = (/* @__PURE__ */ new Date()).toISOString().slice(0, 16).replace("T", " ");
         const templates = {
           "Locations": ["name", "type", "atmosphere", "significance", "inhabitants"],
@@ -14864,7 +14880,7 @@ ${body.trim()}`;
           "Religion & Mythology": ["name", "beliefs", "practices", "symbols", "role_in_story"]
         };
         const fields = templates[sectionType] || ["name", "description"];
-        let fm = "---\n" + fmLine("title", name) + fmLine("date", now);
+        let fm = "---\n" + fmLine("title", name2) + fmLine("date", now);
         for (const f of fields) {
           if (f !== "name") fm += `${f}: 
 `;
@@ -14966,13 +14982,13 @@ ${body.trim()}`;
                     try {
                       const raw = fs.readFileSync(path5.join(subFull, cardFile), "utf8");
                       const { meta: cardMeta, body } = parseFM(raw);
-                      const name = cardMeta.title || cardFile.replace(/\.md$/, "");
-                      if (!name || name === "undefined") continue;
+                      const name2 = cardMeta.title || cardFile.replace(/\.md$/, "");
+                      if (!name2 || name2 === "undefined") continue;
                       const skip = /* @__PURE__ */ new Set(["title", "date", "tags", "mood", "word_goal", "font"]);
                       const details = Object.entries(cardMeta).filter(([k, v]) => !skip.has(k) && v && v.trim()).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(" | ");
                       const bodySnip = body?.trim().slice(0, 120);
                       const summary = [details, bodySnip].filter(Boolean).join(" | ");
-                      wbSummary.push(`[${sectionName}] ${name}${summary ? ": " + summary : ""}`);
+                      wbSummary.push(`[${sectionName}] ${name2}${summary ? ": " + summary : ""}`);
                     } catch {
                     }
                   }
@@ -15008,10 +15024,10 @@ ${body.trim()}`;
       function structureScenes(folderPath, folderRel) {
         const meta2 = readMeta(folderPath);
         const fileOrder = Array.isArray(meta2.file_order) ? meta2.file_order : [];
-        const index = Object.fromEntries(fileOrder.map((name, i2) => [name, i2]));
+        const index = Object.fromEntries(fileOrder.map((name2, i2) => [name2, i2]));
         let files = [];
         try {
-          files = fs.readdirSync(folderPath).filter((name) => name.endsWith(".md") && !name.startsWith(".") && safeChildStat(path5.join(folderPath, name))?.isFile());
+          files = fs.readdirSync(folderPath).filter((name2) => name2.endsWith(".md") && !name2.startsWith(".") && safeChildStat(path5.join(folderPath, name2))?.isFile());
         } catch {
         }
         files.sort((a, b) => (index[a] ?? 9999) - (index[b] ?? 9999) || a.localeCompare(b));
@@ -15132,13 +15148,13 @@ ${body.trim()}`;
           const dir = topNovelDir(novelRel);
           let found = unsortedDir(dir);
           if (!found) {
-            let name = UNSORTED_FOLDER, n = 2;
-            while (fs.existsSync(path5.join(dir, name))) name = `${UNSORTED_FOLDER} ${n++}`;
-            found = path5.join(dir, name);
+            let name2 = UNSORTED_FOLDER, n = 2;
+            while (fs.existsSync(path5.join(dir, name2))) name2 = `${UNSORTED_FOLDER} ${n++}`;
+            found = path5.join(dir, name2);
             fs.mkdirSync(found);
             writeMeta(found, { folder_type: "unsorted", folder_title: "Unsorted", file_order: [] });
             const order = Array.isArray(readMeta(dir).folder_order) ? readMeta(dir).folder_order : [];
-            if (!order.includes(name)) writeMeta(dir, { folder_order: [...order, name] });
+            if (!order.includes(name2)) writeMeta(dir, { folder_order: [...order, name2] });
           }
           return { ok: true, path: path5.relative(ROOT, found).replace(/\\/g, "/") };
         } catch (error) {
@@ -15195,11 +15211,11 @@ ${body.trim()}`;
         const items = [];
         const add = (it) => items.push(AIContext.makeItem({ novelId: novelRel, ...it }));
         for (const c of meta2.characters || []) {
-          const name = String(c.name || "").trim();
-          if (!name) continue;
+          const name2 = String(c.name || "").trim();
+          if (!name2) continue;
           const lines = SEARCH_CHAR_FIELDS.filter((k) => k !== "name" && String(c[k] || "").trim()).map((k) => `${k === "desc" ? "description" : k.replace(/_/g, " ")}: ${String(c[k]).trim()}`);
           if (c.role) lines.unshift(`role: ${c.role}`);
-          add({ id: `char:${name}`, kind: "character", source: "reference", group: "Characters", title: name, text: lines.join("\n") });
+          add({ id: `char:${name2}`, kind: "character", source: "reference", group: "Characters", title: name2, text: lines.join("\n") });
         }
         const skip = /* @__PURE__ */ new Set(["title", "date", "tags", "mood", "word_goal", "font"]);
         for (const entry of sortedDirEntries(dir)) {
@@ -15306,12 +15322,12 @@ ${sc.text}`);
       ipcMain2.handle("list-whatif-reps", () => {
         const dir = whatIfDir();
         const reps = [];
-        for (const name of sortedDirEntries(dir).filter((n) => n.endsWith(".md"))) {
+        for (const name2 of sortedDirEntries(dir).filter((n) => n.endsWith(".md"))) {
           try {
-            const { meta: meta2 } = parseFM(fs.readFileSync(path5.join(dir, name), "utf8"));
+            const { meta: meta2 } = parseFM(fs.readFileSync(path5.join(dir, name2), "utf8"));
             reps.push({
-              path: `Style Lab/What If/${name}`,
-              title: meta2.title || name.replace(/\.md$/, ""),
+              path: `Style Lab/What If/${name2}`,
+              title: meta2.title || name2.replace(/\.md$/, ""),
               date: meta2.date || "",
               time: meta2.time || "",
               novel: meta2.novel || "",
@@ -15464,18 +15480,18 @@ ${sc.text}`);
           }
           for (const fact of event2.continuity_facts || []) {
             const subject = String(fact.subject || "").trim();
-            const name = String(fact.fact || "").trim();
+            const name2 = String(fact.fact || "").trim();
             const before = String(fact.before || "").trim();
             const after = String(fact.after || "").trim();
-            if (!subject || !name || !before && !after) continue;
-            const key = `${normalize2(subject)}\0${normalize2(name)}`;
+            if (!subject || !name2 || !before && !after) continue;
+            const key = `${normalize2(subject)}\0${normalize2(name2)}`;
             const previous = states.get(key);
             if (before && previous && normalize2(before) !== normalize2(previous.value)) {
               add(
                 "continuity-conflict",
                 "Continuity",
                 "attention",
-                `${subject} \xB7 ${name} conflicts at ${event2.title}`,
+                `${subject} \xB7 ${name2} conflicts at ${event2.title}`,
                 `This event expects \u201C${before}\u201D, but \u201C${previous.eventTitle}\u201D last recorded \u201C${previous.value}\u201D.`,
                 { ...eventTarget, factId: fact.id, eventIndex }
               );
@@ -15773,9 +15789,9 @@ ${sc.text}`);
           } else {
             entries.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
           }
-          return entries.map((name) => ({
-            name,
-            full: path5.join(folderPath, name)
+          return entries.map((name2) => ({
+            name: name2,
+            full: path5.join(folderPath, name2)
           }));
         }
         function readScene(full) {
@@ -15970,21 +15986,21 @@ ${sc.text}`);
       function cloudBackupName(folder) {
         const stamp2 = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 23);
         let sequence = _cloudBackupSequence++ % 1e4;
-        let name = `Quill-Library-${stamp2}-${String(sequence).padStart(4, "0")}.zip`;
-        while (fs.existsSync(path5.join(folder, name)) || fs.existsSync(iCloudPlaceholderPath(folder, name))) {
+        let name2 = `Quill-Library-${stamp2}-${String(sequence).padStart(4, "0")}.zip`;
+        while (fs.existsSync(path5.join(folder, name2)) || fs.existsSync(iCloudPlaceholderPath(folder, name2))) {
           sequence = (sequence + 1) % 1e4;
-          name = `Quill-Library-${stamp2}-${String(sequence).padStart(4, "0")}.zip`;
+          name2 = `Quill-Library-${stamp2}-${String(sequence).padStart(4, "0")}.zip`;
         }
-        return name;
+        return name2;
       }
       function pruneCloudBackups(folder, retention) {
         const byName = /* @__PURE__ */ new Map();
         fs.readdirSync(folder).forEach((entry) => {
           const cloudMatch = entry.match(/^\.(Quill-Library-.*\.zip)\.icloud$/);
-          const name = cloudMatch?.[1] || entry;
-          if (!CLOUD_BACKUP_PATTERN.test(name) || !safeChildStat(path5.join(folder, entry))?.isFile()) return;
-          if (!byName.has(name)) byName.set(name, { name, entries: [] });
-          byName.get(name).entries.push(entry);
+          const name2 = cloudMatch?.[1] || entry;
+          if (!CLOUD_BACKUP_PATTERN.test(name2) || !safeChildStat(path5.join(folder, entry))?.isFile()) return;
+          if (!byName.has(name2)) byName.set(name2, { name: name2, entries: [] });
+          byName.get(name2).entries.push(entry);
         });
         const archives = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
         for (const archive of archives.slice(0, Math.max(0, archives.length - retention))) {
@@ -16180,9 +16196,9 @@ ${sc.text}`);
       });
       var inspectedRestoreArchives = /* @__PURE__ */ new Map();
       var _restoreBackupPromise = null;
-      function safeArchiveEntry(name) {
-        if (!name || name.includes("\\") || name.includes("\0") || name.startsWith("/")) return false;
-        const withoutSlash = name.endsWith("/") ? name.slice(0, -1) : name;
+      function safeArchiveEntry(name2) {
+        if (!name2 || name2.includes("\\") || name2.includes("\0") || name2.startsWith("/")) return false;
+        const withoutSlash = name2.endsWith("/") ? name2.slice(0, -1) : name2;
         if (!withoutSlash) return false;
         const parts = withoutSlash.split("/");
         return parts.every((part) => part && part !== "." && part !== "..") && path5.posix.normalize(withoutSlash) === withoutSlash;
@@ -16238,7 +16254,7 @@ ${sc.text}`);
         if (roots.size !== 1) throw new Error("A Quill backup must contain one top-level folder.");
         const rootName = [...roots][0];
         const rootMetaKey = `${rootName}/.quill_meta`.normalize("NFC").toLowerCase();
-        const rootKey = (name) => `${rootName}/${name}`.normalize("NFC").toLowerCase();
+        const rootKey = (name2) => `${rootName}/${name2}`.normalize("NFC").toLowerCase();
         const rootMeta = folded.has(rootMetaKey) ? await archiveJson(filePath, `${rootName}/.quill_meta`) : null;
         const childHasMeta = entries.some((entry) => /^[^/]+\/[^/.][^/]*\/\.quill_meta$/.test(entry));
         const libraryRoot = folded.has(rootKey(".quill_stats.json")) || rootMeta && typeof rootMeta.folder_type !== "string" && childHasMeta;
@@ -16248,15 +16264,15 @@ ${sc.text}`);
           return parts.length > 2 && parts[1] && !parts[1].startsWith(".") ? [parts[1]] : [];
         }))].sort((a, b) => a.localeCompare(b));
         const projects = [];
-        for (const name of childNames) {
-          const prefix = projectArchive ? rootName : `${rootName}/${name}`;
+        for (const name2 of childNames) {
+          const prefix = projectArchive ? rootName : `${rootName}/${name2}`;
           const metaKey = `${prefix}/.quill_meta`.normalize("NFC").toLowerCase();
           if (!projectArchive && !folded.has(metaKey)) continue;
           const meta2 = folded.has(metaKey) ? await archiveJson(filePath, `${prefix}/.quill_meta`) : {};
           const projectEntries = entries.filter((entry) => entry === prefix || entry.startsWith(`${prefix}/`));
           projects.push({
-            id: name,
-            name,
+            id: name2,
+            name: name2,
             type: typeof meta2.folder_type === "string" ? meta2.folder_type : "general",
             files: projectEntries.filter((entry) => !entry.endsWith("/")).length,
             artwork: projectEntries.filter((entry) => /\/(?:\.concept-art|\.char-images)\/[^/]+$/.test(entry) && !entry.endsWith("/manifest.json")).length,
@@ -16449,7 +16465,7 @@ ${sc.text}`);
           _restoreBackupPromise = null;
         }
       });
-      var DEVICE_NAME = __quillProcess.platform === "ios" ? "iPad" : "Mac";
+      var DEVICE_NAME = __quillProcess.platform === "ios" ? __quillProcess.env.QUILL_DEVICE_NAME || "iPad" : "Mac";
       var syncStateFile = () => path5.join(app2.getPath("userData"), "sync-state.json");
       function readSyncState() {
         let state = {};
@@ -16471,10 +16487,10 @@ ${sc.text}`);
       function hashTree(dir) {
         const out = {};
         const walk2 = (current2, prefix) => {
-          for (const name of fs.readdirSync(current2)) {
-            const rel = prefix ? `${prefix}/${name}` : name;
+          for (const name2 of fs.readdirSync(current2)) {
+            const rel = prefix ? `${prefix}/${name2}` : name2;
             if (BackupMerge.IGNORED(rel)) continue;
-            const full = path5.join(current2, name);
+            const full = path5.join(current2, name2);
             const stat = safeChildStat(full);
             if (!stat) continue;
             if (stat.isDirectory()) walk2(full, rel);
@@ -16601,16 +16617,16 @@ ${sc.text}`);
           for (let d = path5.posix.dirname(rel); d !== "."; d = path5.posix.dirname(d)) {
             const dir = path5.join(ROOT, d);
             if (remoteDirs.has(d) || !safeChildStat(dir)?.isDirectory()) break;
-            if (fs.readdirSync(dir).some((name) => name !== ".DS_Store")) break;
+            if (fs.readdirSync(dir).some((name2) => name2 !== ".DS_Store")) break;
             fs.rmSync(dir, { recursive: true, force: true });
           }
         }
       }
       function sceneOwnerOf(rel) {
-        const dir = path5.posix.dirname(rel), name = path5.posix.basename(rel);
+        const dir = path5.posix.dirname(rel), name2 = path5.posix.basename(rel);
         const prefix = dir === "." ? "" : `${dir}/`;
-        const suffix = SCENE_COMPANION_SUFFIXES.find((s) => name.endsWith(s) && name.length > s.length);
-        if (suffix) return `${prefix}${name.slice(0, -suffix.length)}.md`;
+        const suffix = SCENE_COMPANION_SUFFIXES.find((s) => name2.endsWith(s) && name2.length > s.length);
+        if (suffix) return `${prefix}${name2.slice(0, -suffix.length)}.md`;
         const snap = path5.posix.basename(dir).match(/^\.(.+)\.snapshots$/);
         if (snap) {
           const parent = path5.posix.dirname(dir);
@@ -16714,7 +16730,7 @@ ${sc.text}`);
         ".revisions.json": "Revision notes",
         ".brainstorm-history.json": "Brainstorm conversations"
       };
-      var dataFileName = (name) => DATA_FILE_NAMES[name] || name;
+      var dataFileName = (name2) => DATA_FILE_NAMES[name2] || name2;
       var COMPANION_LABELS = { ".notes.json": "Notes", ".outline.json": "Outline", ".comments.json": "Comments", ".board.json": "Board card", ".brief.json": "Brief" };
       var SCENE_FIELD_LABELS = {
         scene_status: "Status",
@@ -17077,10 +17093,10 @@ ${sc.text}`);
       }
       function ideaImagePath(ideaId, file) {
         const dir = ideaImageDir(ideaId);
-        const name = String(file || "");
-        const ext = path5.extname(name).toLowerCase();
-        if (!dir || !SAFE_ID.test(path5.basename(name, ext)) || !CHARACTER_IMAGE_EXTENSIONS.has(ext)) return null;
-        return path5.join(dir, name);
+        const name2 = String(file || "");
+        const ext = path5.extname(name2).toLowerCase();
+        if (!dir || !SAFE_ID.test(path5.basename(name2, ext)) || !CHARACTER_IMAGE_EXTENSIONS.has(ext)) return null;
+        return path5.join(dir, name2);
       }
       function newIdeaImageFile(ext) {
         return "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8) + ext;
@@ -17685,8 +17701,8 @@ Rules:
           return { ok: false, error: err2.message };
         }
       });
-      ipcMain2.handle("hatch-idea-commit", (_, { novel, characters, wbCards, beats, beatTemplate, name }) => {
-        const folderPath = inRoot(segment(name));
+      ipcMain2.handle("hatch-idea-commit", (_, { novel, characters, wbCards, beats, beatTemplate, name: name2 }) => {
+        const folderPath = inRoot(segment(name2));
         if (fs.existsSync(folderPath)) return { ok: false, error: "A project with that name already exists." };
         fs.mkdirSync(folderPath, { recursive: true });
         const beatsObj = {};
@@ -17696,7 +17712,7 @@ Rules:
         const n = novel || {};
         writeMeta(folderPath, {
           folder_type: "novel",
-          folder_title: name,
+          folder_title: name2,
           logline: n.logline || "",
           genre: n.genre || "",
           themes: n.themes || "",
@@ -17783,15 +17799,15 @@ ${card.body || ""}`;
         writeMeta(act1Path, { folder_type: "act", folder_title: "Act 1", folder_order: [] });
         writeMeta(folderPath, { folder_order: ["Act 1", "World Bible"] });
         noteFeature("hatch");
-        return { ok: true, path: name };
+        return { ok: true, path: name2 };
       });
       function importFolderName(title, fallback, taken) {
         const base = String(title ?? "").replace(/[\/\\:\u0000-\u001f]+/g, "-").replace(/^[.\s]+/, "").trim().slice(0, 120) || fallback;
         if (!base) return "";
-        let name = base;
-        for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} ${n}`;
-        taken.add(name.toLowerCase());
-        return name;
+        let name2 = base;
+        for (let n = 2; taken.has(name2.toLowerCase()); n++) name2 = `${base} ${n}`;
+        taken.add(name2.toLowerCase());
+        return name2;
       }
       ipcMain2.handle("import-novel", async () => {
         const { filePaths, canceled } = await dialog2.showOpenDialog({
@@ -17807,10 +17823,10 @@ ${card.body || ""}`;
           return { ok: false, error: `Could not parse JSON: ${err2.message}` };
         }
         if (!data || typeof data !== "object") return { ok: false, error: "The import file must hold a JSON object." };
-        const name = importFolderName(data.project_name, "", /* @__PURE__ */ new Set());
-        if (!name) return { ok: false, error: "project_name is required." };
-        const finalPath = inRoot(name);
-        if (fs.existsSync(finalPath)) return { ok: false, error: `A project called "${name}" already exists.` };
+        const name2 = importFolderName(data.project_name, "", /* @__PURE__ */ new Set());
+        if (!name2) return { ok: false, error: "project_name is required." };
+        const finalPath = inRoot(name2);
+        if (fs.existsSync(finalPath)) return { ok: false, error: `A project called "${name2}" already exists.` };
         const folderPath = inRoot(`.import-${crypto2.randomBytes(6).toString("hex")}`);
         fs.mkdirSync(folderPath);
         const list2 = (value) => Array.isArray(value) ? value : [];
@@ -18020,7 +18036,7 @@ ${card.notes || card.body || ""}`;
           }
           writeMeta(folderPath, {
             folder_type: "novel",
-            folder_title: name,
+            folder_title: name2,
             logline: n.logline || "",
             genre: n.genre || "",
             setting: n.setting || "",
@@ -18040,14 +18056,14 @@ ${card.notes || card.body || ""}`;
             characters: chars,
             folder_order: novelFolderOrder
           });
-          if (fs.existsSync(finalPath)) throw new Error(`A project called "${name}" appeared while importing.`);
+          if (fs.existsSync(finalPath)) throw new Error(`A project called "${name2}" appeared while importing.`);
           fs.renameSync(folderPath, finalPath);
           const sceneCount = acts.reduce((sum, a) => sum + list2(obj(a).chapters).reduce((s, c) => s + list2(obj(c).scenes).length, 0), 0);
           const chapterCount = acts.reduce((sum, a) => sum + list2(obj(a).chapters).length, 0);
           const wbCount = Object.values(wb).reduce((sum, arr) => sum + list2(arr).filter((c) => c?.name).length, 0);
           return {
             ok: true,
-            path: name,
+            path: name2,
             summary: {
               acts: acts.length,
               chapters: chapterCount,
@@ -18116,8 +18132,8 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         const locals = [];
         const central = [];
         let offset = 0;
-        for (const [name, content] of Object.entries(entries)) {
-          const nameBuf = Buffer.from(name, "utf8");
+        for (const [name2, content] of Object.entries(entries)) {
+          const nameBuf = Buffer.from(name2, "utf8");
           const raw = Buffer.from(content, "utf8");
           const deflated = zlib.deflateRawSync(raw);
           const useStore = deflated.length >= raw.length;
@@ -18323,10 +18339,10 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         const repsDir = path5.join(ROOT, "Style Lab", "Recent reps");
         if (studyId !== void 0 && !Study.STUDY_ID.test(String(studyId))) return { ok: false, error: "Bad study id." };
         if (studyId) {
-          for (const name of fs.readdirSync(repsDir).filter((n) => n.endsWith(".md"))) {
+          for (const name2 of fs.readdirSync(repsDir).filter((n) => n.endsWith(".md"))) {
             try {
-              const head = fs.readFileSync(path5.join(repsDir, name), "utf8").slice(0, 2e3);
-              if (new RegExp(`^study_id:\\s*${studyId}\\s*$`, "m").test(head)) return { ok: true, existing: true, path: `Style Lab/Recent reps/${name}` };
+              const head = fs.readFileSync(path5.join(repsDir, name2), "utf8").slice(0, 2e3);
+              if (new RegExp(`^study_id:\\s*${studyId}\\s*$`, "m").test(head)) return { ok: true, existing: true, path: `Style Lab/Recent reps/${name2}` };
             } catch {
             }
           }
@@ -18710,9 +18726,9 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
           names = fs.readdirSync(studiesDir()).filter((n) => n.endsWith(".json"));
         } catch {
         }
-        for (const name of names) {
+        for (const name2 of names) {
           try {
-            const s = Study.cleanStudy(JSON.parse(fs.readFileSync(path5.join(studiesDir(), name), "utf8")));
+            const s = Study.cleanStudy(JSON.parse(fs.readFileSync(path5.join(studiesDir(), name2), "utf8")));
             if (!s) continue;
             const focal = s.excerpts.find((e) => e.role === "focal") || s.excerpts[0];
             out.push({
@@ -18755,11 +18771,11 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
           writeMeta(dir, { folder_type: "stylelab", folder_title: "Study exports" });
         }
         const base = safeName(`${Study.studyTitle(study).slice(0, 80)} \xB7 ${localDateKey()}`);
-        let name = `${base}.md`;
-        for (let n = 2; fs.existsSync(path5.join(dir, name)); n++) name = `${base} (${n}).md`;
+        let name2 = `${base}.md`;
+        for (let n = 2; fs.existsSync(path5.join(dir, name2)); n++) name2 = `${base} (${n}).md`;
         const fm = ["---", fmLine("title", base.replace(/\n/g, " ")).trimEnd(), "kind: stylelab_study_export", "study_id: " + study.id, "date: " + localDateKey(), "---", ""].join("\n");
-        fs.writeFileSync(path5.join(dir, name), fm + "\n" + Study.toMarkdown(study), { encoding: "utf8", flag: "wx" });
-        return { ok: true, path: `Style Lab/Study exports/${name}` };
+        fs.writeFileSync(path5.join(dir, name2), fm + "\n" + Study.toMarkdown(study), { encoding: "utf8", flag: "wx" });
+        return { ok: true, path: `Style Lab/Study exports/${name2}` };
       });
       ipcMain2.handle("stylelab-rep-study-ids", () => {
         const dir = path5.join(ROOT, "Style Lab", "Recent reps");
@@ -18769,9 +18785,9 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
           names = fs.readdirSync(dir).filter((n) => n.endsWith(".md"));
         } catch {
         }
-        for (const name of names) {
+        for (const name2 of names) {
           try {
-            const head = fs.readFileSync(path5.join(dir, name), "utf8").slice(0, 2e3);
+            const head = fs.readFileSync(path5.join(dir, name2), "utf8").slice(0, 2e3);
             const m = /^study_id:\s*(st_[A-Za-z0-9]+)\s*$/m.exec(head);
             if (m) ids.push(m[1]);
           } catch {
@@ -18838,7 +18854,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   }
   async function exportLibrary() {
     await flush();
-    const file = `Quill-iPad-${stamp()}.zip`;
+    const file = `Quill-${name}-${stamp()}.zip`;
     let data;
     try {
       data = await libraryZip();
@@ -18858,7 +18874,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   function pruneSafetyArchives() {
     if (!get(SAFETY_DIR)) return;
     const names = list(SAFETY_DIR).filter((n) => n.endsWith(".zip")).sort();
-    for (const name of names.slice(0, Math.max(0, names.length - KEEP_SAFETY))) remove(`${SAFETY_DIR}/${name}`);
+    for (const name2 of names.slice(0, Math.max(0, names.length - KEEP_SAFETY))) remove(`${SAFETY_DIR}/${name2}`);
   }
   var SAFETY_DIR, KEEP_SAFETY, status, restore, LT_OFF;
   var init_overrides = __esm({
@@ -18868,6 +18884,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       init_child_process();
       init_vfs();
       init_ui();
+      init_device();
       SAFETY_DIR = "/Quill Recovery Backups";
       KEEP_SAFETY = 2;
       status = () => backupStatus();
@@ -18884,8 +18901,8 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
         const changes = (await libraryChanges().catch(() => null))?.length ?? changesSinceLastExport();
         if (args.scope === "library" && changes > 0) {
           const { response } = await messageBox({
-            message: `${changes} change${changes === 1 ? "" : "s"} on this iPad ${changes === 1 ? "hasn\u2019t" : "haven\u2019t"} been backed up.`,
-            detail: "Replacing the library discards that work. Bring In Changes keeps it. Quill keeps a safety copy on this iPad either way, but a backup in iCloud Drive is safer.",
+            message: `${changes} change${changes === 1 ? "" : "s"} on this ${name} ${changes === 1 ? "hasn\u2019t" : "haven\u2019t"} been backed up.`,
+            detail: `Replacing the library discards that work. Bring In Changes keeps it. Quill keeps a safety copy on this ${name} either way, but a backup in iCloud Drive is safer.`,
             buttons: ["Back Up First", "Replace Anyway", "Cancel"],
             defaultId: 0,
             cancelId: 2
@@ -19083,6 +19100,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
 
   // web/relay.js
   init_vfs();
+  init_device();
   var FILE = "/userData/chatgpt-relay.json";
   var OPENAI = "https://api.openai.com/v1/";
   function address() {
@@ -19105,7 +19123,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const url = new URL(text);
     const local = ["127.0.0.1", "localhost"].includes(url.hostname);
     if (url.protocol !== "https:" && !local) throw new Error("The relay address must start with https://.");
-    if (!local && !url.hostname.endsWith(".val.run")) throw new Error("Quill for iPad connects only to a Val Town relay: an address ending in .val.run.");
+    if (!local && !url.hostname.endsWith(".val.run")) throw new Error(`Quill for ${name} connects only to a Val Town relay: an address ending in .val.run.`);
     return url.origin + url.pathname.replace(/\/+$/, "");
   }
   function reroute(url) {
@@ -19113,7 +19131,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const relay = address();
     return relay ? relay + url.slice("https://api.openai.com".length) : null;
   }
-  var missingMessage = "On the iPad, ChatGPT needs your relay. Add its address in Settings \u2192 AI \u2192 ChatGPT relay.";
+  var missingMessage = `On the ${name}, ChatGPT needs your relay. Add its address in Settings \u2192 AI \u2192 ChatGPT relay.`;
   async function check(url) {
     const res = await fetch(`${url}/health`).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
@@ -19131,7 +19149,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       status2.textContent = text;
       status2.classList.toggle("error", error);
     };
-    if (address()) show2("Saved. ChatGPT requests from this iPad go through it.");
+    if (address()) show2(`Saved. ChatGPT requests from this ${name} go through it.`);
     button.addEventListener("click", async () => {
       let url;
       try {
@@ -19142,7 +19160,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       }
       if (!url) {
         await save("");
-        show2("Cleared. ChatGPT models won\u2019t load on this iPad until a relay is added.");
+        show2(`Cleared. ChatGPT models won\u2019t load on this ${name} until a relay is added.`);
         return;
       }
       show2("Checking the relay\u2026");
@@ -19153,7 +19171,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       }
       await save(url);
       input.value = url;
-      show2("Connected. ChatGPT requests from this iPad go through your relay.");
+      show2(`Connected. ChatGPT requests from this ${name} go through your relay.`);
       document.dispatchEvent(new CustomEvent("quill-models-changed"));
     });
   }
@@ -19163,6 +19181,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   // web/storage.js
   init_vfs();
   init_ui();
+  init_device();
   var current = null;
   async function check2() {
     const s = navigator.storage;
@@ -19178,7 +19197,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const line = document.getElementById("web-storage");
     if (!line || !current) return;
     const used = current.usage ? ` \xB7 ${sizeLabel(current.usage)} used` : "";
-    line.textContent = current.persisted ? `iPad storage: kept by iPadOS${used}` : `iPad storage: iPadOS may clear it when space runs low, so back up often${used}`;
+    line.textContent = current.persisted ? `${name} storage: kept by ${system}${used}` : `${name} storage: ${system} may clear it when space runs low, so back up often${used}`;
     line.classList.toggle("web-storage-warn", !current.persisted);
   }
   async function warnIfRefused() {
@@ -19189,8 +19208,10 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     if (localMeta("storageWarned")) return;
     localMeta("storageWarned", true);
     const { response } = await messageBox({
-      message: "Back up this iPad\u2019s library often",
-      detail: "iPadOS hasn\u2019t agreed to keep Quill\u2019s storage, so it may clear the library if the iPad runs low on space.\n\nTap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.",
+      message: `Back up this ${name}\u2019s library often`,
+      detail: `${system} hasn\u2019t agreed to keep Quill\u2019s storage, so it may clear the library if the ${name} runs low on space.
+
+Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
       buttons: ["OK", "Back Up Now"],
       defaultId: 1,
       cancelId: 0
@@ -19256,23 +19277,110 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
 
   // web/editorzoom.js
   function start3() {
-    const root = document.documentElement;
-    root.classList.add("web-ipad");
+    const root2 = document.documentElement;
+    root2.classList.add("web-ipad");
     const badge = document.getElementById("selection-wc");
     const view = document.getElementById("view-editor");
     if (badge && view && badge.parentElement !== view) view.appendChild(badge);
     let shown = null;
     const update = () => {
-      const editorZoom = parseFloat(root.style.getPropertyValue("--editor-zoom")) || 1;
-      const uiScale = parseFloat(root.style.getPropertyValue("--ui-scale")) || 1;
+      const editorZoom = parseFloat(root2.style.getPropertyValue("--editor-zoom")) || 1;
+      const uiScale = parseFloat(root2.style.getPropertyValue("--ui-scale")) || 1;
       const scale = Math.round(editorZoom / uiScale * 1e3) / 1e3;
       if (scale === shown) return;
       shown = scale;
-      root.classList.toggle("web-page-scaled", scale !== 1);
-      root.style.setProperty("--web-page-scale", String(scale));
+      root2.classList.toggle("web-page-scaled", scale !== 1);
+      root2.style.setProperty("--web-page-scale", String(scale));
     };
     update();
-    new MutationObserver(update).observe(root, { attributes: true, attributeFilter: ["style"] });
+    new MutationObserver(update).observe(root2, { attributes: true, attributeFilter: ["style"] });
+  }
+
+  // web/boot.js
+  init_device();
+
+  // web/phone.js
+  init_device();
+  var root = document.documentElement;
+  function trackKeyboard() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+      const top = Math.max(0, Math.round(vv.offsetTop));
+      const keyboard = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      root.style.setProperty("--web-vv-top", `${top}px`);
+      root.style.setProperty("--web-kb", `${keyboard}px`);
+      const open = keyboard > 120;
+      if (open !== root.classList.contains("web-kb-open")) {
+        root.classList.toggle("web-kb-open", open);
+        if (open) keepCaretInView();
+      }
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    vv.addEventListener("resize", schedule);
+    vv.addEventListener("scroll", schedule);
+    window.addEventListener("orientationchange", schedule);
+    measure();
+  }
+  function keepCaretInView() {
+    setTimeout(() => {
+      const selection = window.getSelection();
+      if (!selection?.rangeCount) return;
+      const node2 = selection.focusNode;
+      const el2 = node2?.nodeType === 1 ? node2 : node2?.parentElement;
+      if (!el2?.closest?.('[contenteditable="true"]')) return;
+      const rect = selection.getRangeAt(0).getBoundingClientRect();
+      const box = rect.height ? rect : el2.getBoundingClientRect();
+      const scroller = el2.closest("#editor-wrap, #chapter-scroll");
+      if (!scroller) return;
+      const view = scroller.getBoundingClientRect();
+      const over = box.bottom + 24 - view.bottom;
+      if (over > 0) scroller.scrollTop += over;
+    }, 60);
+  }
+  var sidebar = () => document.getElementById("sidebar");
+  var sidebarOpen = () => !sidebar()?.classList.contains("hidden");
+  function showSidebar(show2) {
+    if (typeof App === "undefined" || sidebarOpen() === show2) return;
+    App.toggleSidebar();
+  }
+  var LIST_VIEWS = /* @__PURE__ */ new Set(["empty", "landing"]);
+  function onePane() {
+    const toolbar = document.getElementById("toolbar");
+    if (!toolbar || !sidebar()) return;
+    const view = () => toolbar.dataset.view || "empty";
+    new MutationObserver(() => {
+      if (!LIST_VIEWS.has(view())) showSidebar(false);
+    }).observe(toolbar, { attributes: true, attributeFilter: ["data-view"] });
+    sidebar().addEventListener("click", (event2) => {
+      if (event2.target.closest(".workspace-nav-row")) return void setTimeout(() => showSidebar(false), 0);
+      const row = event2.target.closest(".file-row, #idea-list-sidebar > *");
+      if (!row || event2.target.closest("button, .file-actions, .idea-sidebar-actions")) return;
+      setTimeout(() => {
+        if (!LIST_VIEWS.has(view())) showSidebar(false);
+      }, 0);
+    });
+    showSidebar(LIST_VIEWS.has(view()));
+  }
+  function nameTheDevice() {
+    const settings = document.querySelector(".settings-modal");
+    if (!settings) return;
+    const walker = document.createTreeWalker(settings, NodeFilter.SHOW_TEXT);
+    for (let node2 = walker.nextNode(); node2; node2 = walker.nextNode()) {
+      if (node2.nodeValue.includes("iPad")) node2.nodeValue = node2.nodeValue.replace(/\biPadOS\b/g, "iOS").replace(/\biPad\b/g, "iPhone");
+    }
+  }
+  function start4() {
+    if (!isPhone) return;
+    root.classList.add("web-phone");
+    nameTheDevice();
+    trackKeyboard();
+    setTimeout(onePane, 0);
   }
 
   // web/boot.js
@@ -19300,7 +19408,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     };
   }
   document.documentElement.classList.add("quill-web");
-  window.__quillWeb = { vfs: vfs_exports, ui: ui_exports };
+  window.__quillWeb = { vfs: vfs_exports, ui: ui_exports, deviceName: name };
   var OIDC = "https://auth.openai.com/.well-known/openid-configuration";
   var JWKS = "https://auth.openai.com/.well-known/jwks.json";
   var realFetch = globalThis.fetch.bind(globalThis);
@@ -19317,11 +19425,11 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     return realFetch(input, init);
   };
   require_preload();
-  async function start4() {
+  async function start5() {
     try {
       await load();
     } catch (error) {
-      await messageBox({ message: "Quill could not open its storage on this iPad.", detail: error.message, buttons: ["Reload"] });
+      await messageBox({ message: `Quill could not open its storage on this ${name}.`, detail: error.message, buttons: ["Reload"] });
       location.reload();
       return;
     }
@@ -19330,16 +19438,17 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     mkdir("/app/data", true);
     require_main();
     init_overrides();
-    const empty = !list("/Quill").some((name) => !name.startsWith("."));
+    const empty = !list("/Quill").some((name2) => !name2.startsWith("."));
     waitForThesaurus();
     setReady();
     loadThesaurus();
     firstScreens(empty, stored);
   }
-  var onIPad2 = /iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  var onIPad2 = onIOS;
   var fromHomeScreen = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   async function firstScreens(empty, stored) {
     if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
+    start4();
     start();
     start2();
     if (onIPad2) start3();
@@ -19410,12 +19519,12 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   onChange((p, kind) => {
     if (kind !== "write" || !p.startsWith("/exports/")) return;
-    const name = p.slice("/exports/".length);
-    if (!name || name.includes("/") || name.startsWith(".")) return;
+    const name2 = p.slice("/exports/".length);
+    if (!name2 || name2.includes("/") || name2.startsWith(".")) return;
     setTimeout(() => {
       const node2 = get(p);
       if (!node2 || node2.dir) return;
-      offerFile(name, node2.data, { message: "Export ready" }).finally(() => remove(p));
+      offerFile(name2, node2.data, { message: "Export ready" }).finally(() => remove(p));
     }, 0);
   });
   navigator.serviceWorker?.addEventListener("message", (event2) => {
@@ -19427,7 +19536,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for iPad \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-10T23:30:20.536Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-11T16:01:10.572Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
@@ -19449,7 +19558,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
       location.reload();
     }, { once: true });
   }
-  start4();
+  start5();
 })();
 /*! Bundled license information:
 
