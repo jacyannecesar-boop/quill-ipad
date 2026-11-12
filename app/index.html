@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob: https://openrouter.ai https://api.openai.com https://auth.openai.com https://*.val.run; frame-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob: https://openrouter.ai https://api.openai.com https://auth.openai.com https://*.workers.dev https://*.val.run; frame-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Quill</title>
 <link rel="stylesheet" href="ui.css">
 <link rel="stylesheet" href="style.css">
@@ -1558,7 +1558,7 @@
         <div class="settings-cg-usage" id="settings-cg-usage-box" hidden></div>
         <div class="settings-row">
           <div><span class="settings-label">ChatGPT relay</span><span class="settings-hint">Safari can’t read ChatGPT’s replies directly, so on the iPad they pass through your own relay. Paste its address once.</span></div>
-          <div class="settings-control web-relay-control"><input type="url" id="web-cg-relay" class="settings-text" placeholder="your-relay.val.run" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" id="web-cg-relay-save">Save</button></div>
+          <div class="settings-control web-relay-control"><input type="url" id="web-cg-relay" class="settings-text" placeholder="quill-relay.you.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" id="web-cg-relay-save">Save</button></div>
         </div>
         <div class="settings-backup-status" id="web-cg-relay-status" aria-live="polite"></div>
         <div class="settings-section">OpenRouter</div>

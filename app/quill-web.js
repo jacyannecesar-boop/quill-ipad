@@ -19116,6 +19116,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     return flush().catch(() => {
     });
   }
+  var HOSTS = [".workers.dev", ".val.run"];
   function normalize(input) {
     let text = String(input || "").trim();
     if (!text) return "";
@@ -19123,7 +19124,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     const url = new URL(text);
     const local = ["127.0.0.1", "localhost"].includes(url.hostname);
     if (url.protocol !== "https:" && !local) throw new Error("The relay address must start with https://.");
-    if (!local && !url.hostname.endsWith(".val.run")) throw new Error(`Quill for ${name} connects only to a Val Town relay: an address ending in .val.run.`);
+    if (!local && !HOSTS.some((host) => url.hostname.endsWith(host))) throw new Error(`Quill for ${name} connects only to a Cloudflare Workers relay: an address ending in .workers.dev.`);
     return url.origin + url.pathname.replace(/\/+$/, "");
   }
   function reroute(url) {
@@ -19135,7 +19136,7 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
   async function check(url) {
     const res = await fetch(`${url}/health`).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
-    if (!body?.quillRelay) return "Quill couldn\u2019t reach a relay at that address. Check it matches the val\u2019s address.";
+    if (!body?.quillRelay) return "Quill couldn\u2019t reach a relay at that address. Check it matches the Worker\u2019s address.";
     if (!body.origin) return "The relay answered, but it doesn\u2019t accept this page. Check ORIGINS in the relay script.";
     return "";
   }
@@ -19365,7 +19366,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
         if (!LIST_VIEWS.has(view())) showSidebar(false);
       }, 0);
     });
-    showSidebar(LIST_VIEWS.has(view()));
+    showSidebar(false);
   }
   function nameTheDevice() {
     const settings = document.querySelector(".settings-modal");
@@ -19536,7 +19537,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-11T16:01:10.572Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-12T17:20:10.013Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
