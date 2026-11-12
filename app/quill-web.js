@@ -19358,6 +19358,19 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
     new MutationObserver(() => {
       if (!LIST_VIEWS.has(view())) showSidebar(false);
     }).observe(toolbar, { attributes: true, attributeFilter: ["data-view"] });
+    const header = document.getElementById("sidebar-header");
+    if (header && !document.getElementById("web-sidebar-close")) {
+      const close = document.createElement("button");
+      close.type = "button";
+      close.id = "web-sidebar-close";
+      close.className = "icon-btn";
+      close.title = "Close";
+      close.setAttribute("aria-label", "Close the list");
+      close.innerHTML = '<svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+      close.addEventListener("click", () => showSidebar(false));
+      header.appendChild(close);
+    }
+    document.getElementById("quill-logo")?.addEventListener("click", () => setTimeout(() => showSidebar(false), 0));
     sidebar().addEventListener("click", (event2) => {
       if (event2.target.closest(".workspace-nav-row")) return void setTimeout(() => showSidebar(false), 0);
       const row = event2.target.closest(".file-row, #idea-list-sidebar > *");
@@ -19537,7 +19550,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-12T17:20:10.013Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-12T17:45:08.709Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

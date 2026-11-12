@@ -23,6 +23,7 @@ html.web-phone #main{width:100%}
 html.web-phone .folder-row,html.web-phone .file-row{min-height:44px;align-items:center;font-size:16px;padding:6px 10px}
 html.web-phone .sidebar-flush-header,html.web-phone #practice-sidebar-section>*,html.web-phone #ideas-sidebar-section>*{min-height:40px}
 html.web-phone #sidebar .icon-btn{min-width:40px;min-height:40px}
+html.web-phone #web-sidebar-close svg{width:20px;height:20px}
 html.web-phone #sidebar-footer{justify-content:space-between}
 html.web-phone #all-projects-btn,html.web-phone #workspace-project-title{min-height:44px;font-size:15px}
 html.web-phone .workspace-nav-row{min-height:44px;font-size:16px}
