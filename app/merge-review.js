@@ -19,6 +19,7 @@ const MergeReview = (() => {
   function groups(there) {
     return [
       { id:'edited', title:`Edited on the ${there}`, hint:`Replaces the version on this ${HERE}.` },
+      { id:'moved', title:`Moved or renamed on the ${there}`, hint:`Moves here too, with its notes, history and time. Any edits made on the ${there} come with it.` },
       { id:'new', title:`New on the ${there}`, hint:'Added here.' },
       { id:'restored', title:`Deleted on this ${HERE}, edited on the ${there}`, hint:`Comes back, with the ${there}’s edits.` },
       { id:'both', title:'Edited on both', hint:`This ${HERE}’s version stays. The ${there}’s is added right after it as a copy, so you can compare and keep what you want.` },
@@ -120,6 +121,9 @@ const MergeReview = (() => {
     const words = wordsLabel(item)
     const extra = [
       item.group === 'both' ? `adds “${esc(`${item.name} (${there} copy)`)}”` : '',
+      item.fromWhere && item.fromWhere !== item.where ? `from ${esc(item.fromWhere)}` : '',
+      item.fromName ? `renamed from “${esc(item.fromName)}”` : '',
+      item.edited ? `with the ${there}’s edits` : '',
       item.companions ? 'with its notes and history' : '',
       item.op === 'combine' ? 'combined' : '',
     ].filter(Boolean).join(' · ')
@@ -288,13 +292,14 @@ const MergeReview = (() => {
     const s = result.summary
     const there = result.remoteName || 'other device'
     const parts = [
+      s.moved?.length ? `${n(s.moved.length, 'scene')} moved to match the ${there}` : '',
       s.taken.length + s.restored.length ? `${n(s.taken.length + s.restored.length, 'file')} brought in from the ${there}` : '',
       s.copies.length ? `${n(s.copies.length, 'scene')} kept in both versions` : '',
       s.combined.length ? `${n(s.combined.length, 'settings file')} combined` : '',
       s.trashed.length ? `${n(s.trashed.length, 'file')} moved to Trash` : '',
       result.skipped ? `${n(result.skipped, 'item')} left as ${result.skipped === 1 ? 'it was' : 'they were'} (offered again next time)` : '',
     ].filter(Boolean)
-    _applied = s.taken.length + s.restored.length + s.copies.length + s.combined.length + s.trashed.length > 0
+    _applied = s.taken.length + s.restored.length + s.copies.length + s.combined.length + s.trashed.length + (s.moved?.length || 0) > 0
     const items = new Map((_review?.items || []).map(item => [item.id, item]))
     _review = null
     $('merge-review-list').innerHTML = s.copies.length

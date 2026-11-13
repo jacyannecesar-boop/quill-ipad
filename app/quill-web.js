@@ -9586,9 +9586,102 @@ ${str(e.text).trim()}
           if (!taken.has(name2)) return name2;
         }
       }
-      function planMerge({ local, remote, base = null, since = null, localName = "this device", remoteName = "other device" }) {
+      function detectMoves(local, remote, base, ownerOf = () => null) {
+        if (!base) return [];
+        const dirOf = (rel) => {
+          const i2 = rel.lastIndexOf("/");
+          return i2 < 0 ? "" : rel.slice(0, i2);
+        };
+        const bySceneId = (files, other) => {
+          const out = /* @__PURE__ */ new Map();
+          for (const [rel, entry] of Object.entries(files)) {
+            if (!entry.s || other[rel] || rel.startsWith(".trash/") || !/\.md$/i.test(rel) || ownerOf(rel)) continue;
+            out.set(entry.s, out.has(entry.s) ? null : rel);
+          }
+          return out;
+        };
+        const here = bySceneId(local, remote), there = bySceneId(remote, local);
+        const moves = [], usedL = /* @__PURE__ */ new Set(), usedR = /* @__PURE__ */ new Set();
+        const add = (lp, rp, isThere) => {
+          if (usedL.has(lp) || usedR.has(rp) || !local[lp] || remote[lp] || !remote[rp] || local[rp]) return false;
+          usedL.add(lp);
+          usedR.add(rp);
+          moves.push({ lp, rp, there: isThere });
+          return true;
+        };
+        const scenes = [];
+        for (const [id, lp] of here) {
+          const rp = there.get(id);
+          if (!lp || !rp) continue;
+          const movedThere = base[lp] !== void 0 && base[rp] === void 0;
+          const movedHere = base[rp] !== void 0 && base[lp] === void 0;
+          if ((movedThere || movedHere) && add(lp, rp, movedThere)) scenes.push({ lp, rp, there: movedThere });
+        }
+        const swap = (rel, from, to) => {
+          const f = from.replace(/\.md$/i, ""), t = to.replace(/\.md$/i, "");
+          const fd2 = dirOf(f), td2 = dirOf(t), fs = f.slice(fd2.length ? fd2.length + 1 : 0), ts = t.slice(td2.length ? td2.length + 1 : 0);
+          const pre = (d) => d ? `${d}/` : "";
+          if (rel.startsWith(`${f}.`)) return `${t}.${rel.slice(f.length + 1)}`;
+          const snap = `${pre(fd2)}.${fs}.snapshots/`;
+          if (rel.startsWith(snap)) return `${pre(td2)}.${ts}.snapshots/${rel.slice(snap.length)}`;
+          return null;
+        };
+        const sceneByLocal = new Map(scenes.map((m) => [m.lp, m]));
+        for (const rel of Object.keys(local)) {
+          if (remote[rel] || usedL.has(rel)) continue;
+          const m = sceneByLocal.get(ownerOf(rel));
+          const to = m && swap(rel, m.lp, m.rp);
+          if (to) add(rel, to, m.there);
+        }
+        const dirsOf = (files) => {
+          const s = /* @__PURE__ */ new Set();
+          for (const rel of Object.keys(files)) for (let d = dirOf(rel); d; d = dirOf(d)) s.add(d);
+          return s;
+        };
+        const localDirs = dirsOf(local), remoteDirs = dirsOf(remote);
+        const dirMoves = [];
+        for (const m of scenes) {
+          for (let a = dirOf(m.lp), b = dirOf(m.rp); a && b && a !== b; a = dirOf(a), b = dirOf(b)) {
+            if (localDirs.has(a) && !remoteDirs.has(a) && remoteDirs.has(b) && !localDirs.has(b) && !dirMoves.some((d) => d.a === a)) dirMoves.push({ a, b, there: m.there });
+          }
+        }
+        dirMoves.sort((x2, y) => y.a.length - x2.a.length);
+        for (const rel of Object.keys(local)) {
+          if (remote[rel] || usedL.has(rel)) continue;
+          const d = dirMoves.find((d2) => rel.startsWith(`${d2.a}/`));
+          if (d) add(rel, d.b + rel.slice(d.a.length), d.there);
+        }
+        return moves;
+      }
+      function planMerge({ local, remote, base = null, since = null, localName = "this device", remoteName = "other device", ownerOf, retitled = () => false }) {
+        const moves = detectMoves(local, remote, base, ownerOf);
+        const moveActions = [], sourceOf = {}, keepTitle = /* @__PURE__ */ new Set();
+        if (moves.length) {
+          const oldBase = base;
+          local = { ...local };
+          remote = { ...remote };
+          base = { ...base };
+          for (const m of moves) {
+            const titleOnly = /\.md$/i.test(m.lp) && retitled(m);
+            const [from, to, side] = m.there ? [m.lp, m.rp, local] : [m.rp, m.lp, remote];
+            side[to] = side[from];
+            delete side[from];
+            if (base[from] !== void 0) base[to] = base[from];
+            delete base[from];
+            if (m.there) {
+              if (titleOnly) remote[m.rp] = { ...remote[m.rp], h: oldBase[m.lp] };
+              moveActions.push({ op: "move", rel: m.rp, from: m.lp, ...titleOnly ? { retitle: true } : {} });
+            } else {
+              if (titleOnly) {
+                local[m.lp] = { ...local[m.lp], h: oldBase[m.rp] };
+                keepTitle.add(m.lp);
+              }
+              sourceOf[m.lp] = m.rp;
+            }
+          }
+        }
         const actions = [];
-        const summary = { taken: [], kept: [], trashed: [], copies: [], combined: [], restored: [] };
+        const summary = { taken: [], kept: [], trashed: [], copies: [], combined: [], restored: [], moved: [] };
         const changedAfter = (entry) => since != null && entry.m > since + SLACK_MS;
         const taken = /* @__PURE__ */ new Set([...Object.keys(local), ...Object.keys(remote)]);
         const paths = [...taken].filter((rel) => !IGNORED(rel)).sort();
@@ -9646,15 +9739,22 @@ ${str(e.text).trim()}
           actions.push({ op: "copy", rel, as });
           summary.copies.push({ rel, as });
         }
-        const order = { take: 0, combine: 1, copy: 2, trash: 3 };
+        for (const action of actions) {
+          if (sourceOf[action.rel]) action.src = sourceOf[action.rel];
+          if (keepTitle.has(action.rel)) action.keepTitle = true;
+        }
+        actions.push(...moveActions);
+        summary.moved = moveActions.map((a) => a.rel);
+        const order = { move: -1, take: 0, combine: 1, copy: 2, trash: 3 };
         actions.sort((a, b) => order[a.op] - order[b.op]);
-        return { actions, summary };
+        return { actions, summary, moves };
       }
       function planItems(actions, { local, restored = [], ownerOf = () => null }) {
         const items = /* @__PURE__ */ new Map();
         const restoredSet = new Set(restored);
         const groupOf = (action) => {
           if (isData(action.rel) || action.rel.startsWith(".trash/")) return "settings";
+          if (action.op === "move") return "moved";
           if (action.op === "copy") return "both";
           if (action.op === "trash") return "deleted";
           if (local[action.rel]) return "edited";
@@ -9668,7 +9768,23 @@ ${str(e.text).trim()}
             companions.push({ owner, action });
             continue;
           }
-          items.set(action.rel, { id: action.rel, rel: action.rel, group: groupOf(action), op: action.op, as: action.as, actions: [action], companions: 0 });
+          const item = items.get(action.rel);
+          if (item) {
+            item.actions.push(action);
+            if (action.op === "copy") item.as = action.as;
+            continue;
+          }
+          items.set(action.rel, {
+            id: action.rel,
+            rel: action.rel,
+            group: groupOf(action),
+            op: action.op,
+            as: action.as,
+            from: action.from,
+            src: action.src,
+            actions: [action],
+            companions: 0
+          });
         }
         for (const { owner, action } of companions) {
           const item = items.get(owner);
@@ -9679,11 +9795,21 @@ ${str(e.text).trim()}
       }
       function nextBase(remote, oldBase, local, skipped) {
         const out = Object.fromEntries(Object.entries(remote).map(([rel, entry]) => [rel, entry.h]));
+        const unmoved = /* @__PURE__ */ new Set();
         for (const action of skipped) {
-          const prev = oldBase ? oldBase[action.rel] : void 0;
+          if (action.op !== "move") continue;
+          unmoved.add(action.rel);
+          delete out[action.rel];
+          const prev = oldBase ? oldBase[action.from] : void 0;
+          if (prev !== void 0) out[action.from] = prev;
+        }
+        for (const action of skipped) {
+          if (action.op === "move" || unmoved.has(action.rel)) continue;
+          const key = action.src || action.rel;
+          const prev = oldBase ? oldBase[key] : void 0;
           const keep2 = prev !== void 0 ? prev : action.op === "take" || action.op === "trash" ? local[action.rel]?.h : void 0;
-          if (keep2 === void 0) delete out[action.rel];
-          else out[action.rel] = keep2;
+          if (keep2 === void 0) delete out[key];
+          else out[key] = keep2;
         }
         return out;
       }
@@ -9771,6 +9897,11 @@ ${str(e.text).trim()}
           out.wordsCutByDay[today] = (Number(out.wordsCutByDay[today]) || 0) + cut;
           broughtIn.wordsCutByDay[today] = (Number(broughtIn.wordsCutByDay[today]) || 0) + cut;
         }
+        const secs = { ...isPlain(mine.sceneSeconds) ? mine.sceneSeconds : {} };
+        for (const [rel, n] of Object.entries(isPlain(theirs.sceneSeconds) ? theirs.sceneSeconds : {})) {
+          if ((Number(n) || 0) > (Number(secs[rel]) || 0)) secs[rel] = Number(n);
+        }
+        if (Object.keys(secs).length) out.sceneSeconds = secs;
         const time = combineProjectTime(
           mine.projectProgress,
           theirs.projectProgress,
@@ -9846,7 +9977,7 @@ ${body}
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
       }
-      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, combineStats, combineAchievements, combineProjectTime, retitleScene, orderWithCopies };
+      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, detectMoves, planMerge, planItems, nextBase, combineJson, combineStats, combineAchievements, combineProjectTime, retitleScene, orderWithCopies };
     }
   });
 
@@ -13490,7 +13621,7 @@ ${tags}`);
           source,
           field,
           filePath,
-          fileTitle,
+          fileTitle: fileTitle2,
           folderPath,
           folderType: folderType2 = null,
           itemId = null,
@@ -13513,7 +13644,7 @@ ${tags}`);
                 source,
                 field,
                 filePath: filePath || null,
-                fileTitle,
+                fileTitle: fileTitle2,
                 folderPath,
                 folderType: folderType2,
                 lineNumber: i2 + 1,
@@ -13607,20 +13738,20 @@ ${tags}`);
             try {
               const raw = fs.readFileSync(full, "utf8");
               const { meta: meta2, body } = parseFM(raw);
-              const fileTitle = meta2.title || entry.replace(/\.md$/, "");
+              const fileTitle2 = meta2.title || entry.replace(/\.md$/, "");
               const scene = {
                 filePath: rel,
-                fileTitle,
+                fileTitle: fileTitle2,
                 sceneId: meta2.scene_id || null,
                 synopsis: meta2.scene_synopsis || ""
               };
               scenes.push(scene);
               addTextMatches({
-                value: fileTitle,
+                value: fileTitle2,
                 source: "title",
                 field: "title",
                 filePath: rel,
-                fileTitle,
+                fileTitle: fileTitle2,
                 folderPath
               });
               addTextMatches({
@@ -13628,7 +13759,7 @@ ${tags}`);
                 source: "body",
                 field: "body",
                 filePath: rel,
-                fileTitle,
+                fileTitle: fileTitle2,
                 folderPath,
                 contextLines: true
               });
@@ -13637,7 +13768,7 @@ ${tags}`);
                 source: "synopsis",
                 field: "scene_synopsis",
                 filePath: rel,
-                fileTitle,
+                fileTitle: fileTitle2,
                 folderPath
               });
               addTextMatches({
@@ -13645,7 +13776,7 @@ ${tags}`);
                 source: "purpose",
                 field: "scene_purpose",
                 filePath: rel,
-                fileTitle,
+                fileTitle: fileTitle2,
                 folderPath
               });
               for (const key of Object.keys(meta2)) {
@@ -13655,7 +13786,7 @@ ${tags}`);
                   source: "frontmatter",
                   field: key,
                   filePath: rel,
-                  fileTitle,
+                  fileTitle: fileTitle2,
                   folderPath
                 });
               }
@@ -13666,7 +13797,7 @@ ${tags}`);
                 source: "notes",
                 field: "content",
                 filePath: rel,
-                fileTitle,
+                fileTitle: fileTitle2,
                 folderPath,
                 contextLines: true
               });
@@ -13675,7 +13806,7 @@ ${tags}`);
                 const common = {
                   source: "beat",
                   filePath: rel,
-                  fileTitle,
+                  fileTitle: fileTitle2,
                   folderPath,
                   itemId: typeof beat === "object" ? beat?.id || null : null,
                   itemIndex: beatIndex
@@ -16559,6 +16690,7 @@ ${sc.text}`);
         fs.mkdirSync(path5.dirname(syncStateFile()), { recursive: true });
         atomicWriteFileSync(syncStateFile(), JSON.stringify(state), "utf8");
       }
+      var SCENE_ID_LINE = /^---\r?\n(?:(?!^---)[\s\S])*?^scene_id:[ \t]*(\S+)/m;
       function hashTree(dir) {
         const out = {};
         const walk2 = (current2, prefix) => {
@@ -16569,7 +16701,12 @@ ${sc.text}`);
             const stat = safeChildStat(full);
             if (!stat) continue;
             if (stat.isDirectory()) walk2(full, rel);
-            else if (stat.isFile()) out[rel] = { h: BackupMerge.sha256(fs.readFileSync(full)), m: stat.mtimeMs };
+            else if (stat.isFile()) {
+              const data = fs.readFileSync(full);
+              out[rel] = { h: BackupMerge.sha256(data), m: stat.mtimeMs };
+              const id = /\.md$/i.test(name2) && data.subarray(0, 4096).toString("utf8").match(SCENE_ID_LINE)?.[1];
+              if (id) out[rel].s = id;
+            }
           }
         };
         walk2(dir, "");
@@ -16611,10 +16748,11 @@ ${sc.text}`);
         if (peer !== state.deviceId) state.bases[peer] = { files: hashesOf(hashTree(ROOT)), at: (/* @__PURE__ */ new Date()).toISOString(), name: manifest?.deviceName || "" };
         writeSyncState(state);
       }
-      function mergeStatsFile(target2, source, theirsNewer) {
+      function mergeStatsFile(target2, source, theirsNewer, renames = []) {
         try {
           const mine = fs.existsSync(target2) ? JSON.parse(fs.readFileSync(target2, "utf8")) : {};
           const theirs = JSON.parse(fs.readFileSync(source, "utf8"));
+          if (renames.length) theirs.sceneSeconds = remapPathKeysAll(theirs.sceneSeconds, renames) || theirs.sceneSeconds;
           const combined = BackupMerge.combineStats(mine, theirs, localDateKey(), theirsNewer);
           dropMistakenBadges(combined);
           atomicWriteFileSync(target2, JSON.stringify(combined), "utf8");
@@ -16646,17 +16784,51 @@ ${sc.text}`);
         } catch {
         }
       }
-      function applyMergeActions(actions, sourceRoot, remoteName, remotePaths) {
+      var fileTitle = (full) => {
+        try {
+          return parseFM(fs.readFileSync(full, "utf8")).meta.title ?? null;
+        } catch {
+          return null;
+        }
+      };
+      function setSceneTitle(full, title) {
+        if (title == null) return;
+        const raw = fs.readFileSync(full, "utf8");
+        if ((parseFM(raw).meta.title ?? null) !== title) atomicWriteFileSync(full, setFrontmatterField(raw, "title", title), "utf8");
+      }
+      function applyMergeActions(actions, sourceRoot, remoteName, remotePaths, moves = []) {
         const copies = /* @__PURE__ */ new Map();
         const trashed = [];
+        const moved = [];
         for (const action of actions) {
+          if (action.op !== "move") continue;
+          const from = path5.join(ROOT, action.from), to = path5.join(ROOT, action.rel);
+          if (!safeChildStat(from)?.isFile() || fs.existsSync(to)) continue;
+          fs.mkdirSync(path5.dirname(to), { recursive: true });
+          fs.renameSync(from, to);
+          moved.push({ from: action.from, to: action.rel });
+          if (action.retitle) setSceneTitle(to, fileTitle(path5.join(sourceRoot, action.rel)));
+        }
+        remapRenamedPaths(moved.filter((m) => /\.md$/i.test(m.from)));
+        for (const { from } of moved) {
+          for (let d = path5.posix.dirname(from); d !== "."; d = path5.posix.dirname(d)) {
+            const dir = path5.join(ROOT, d);
+            if (!safeChildStat(dir)?.isDirectory() || fs.readdirSync(dir).some((name2) => name2 !== ".DS_Store")) break;
+            fs.rmSync(dir, { recursive: true, force: true });
+          }
+        }
+        const renamedHere = moves.filter((m) => !m.there && /\.md$/i.test(m.lp)).map((m) => ({ from: m.rp, to: m.lp }));
+        for (const action of actions) {
+          if (action.op === "move") continue;
           const target2 = path5.join(ROOT, action.rel);
-          const source = path5.join(sourceRoot, action.rel);
+          const source = path5.join(sourceRoot, action.src || action.rel);
           if (action.rel === BackupMerge.STATS && (action.op === "take" || action.op === "combine")) {
-            mergeStatsFile(target2, source, action.op === "take" || action.newer === "remote");
+            mergeStatsFile(target2, source, action.op === "take" || action.newer === "remote", renamedHere);
           } else if (action.op === "take") {
+            const title = action.keepTitle ? fileTitle(target2) : null;
             fs.mkdirSync(path5.dirname(target2), { recursive: true });
             atomicWriteFileSync(target2, fs.readFileSync(source), null);
+            if (title != null) setSceneTitle(target2, title);
           } else if (action.op === "combine") {
             let combined = null;
             try {
@@ -16724,17 +16896,30 @@ ${sc.text}`);
       app2.on?.("will-quit", () => {
         for (const token of [...mergePreviews.keys()]) discardMergePreview(token);
       });
+      function renamedOnly(m, preview) {
+        try {
+          const here = fs.readFileSync(path5.join(ROOT, m.lp), "utf8");
+          const there = fs.readFileSync(path5.join(preview.extractedRoot, m.rp), "utf8");
+          const [mover, other, baseRel] = m.there ? [there, here, m.lp] : [here, there, m.rp];
+          const title = parseFM(other).meta.title || "";
+          return BackupMerge.sha256(setFrontmatterField(mover, "title", title)) === preview.base?.[baseRel];
+        } catch {
+          return false;
+        }
+      }
       function planMergeFor(preview) {
         const local = hashTree(ROOT);
-        const { actions, summary } = BackupMerge.planMerge({
+        const { actions, summary, moves } = BackupMerge.planMerge({
           local,
           remote: preview.remote,
           base: preview.base,
           since: preview.since,
           localName: DEVICE_NAME,
-          remoteName: preview.remoteName
+          remoteName: preview.remoteName,
+          ownerOf: sceneOwnerOf,
+          retitled: (m) => renamedOnly(m, preview)
         });
-        return { local, actions, summary };
+        return { local, actions, summary, moves };
       }
       async function compareArchive(token) {
         const { inspection, error } = inspectedArchive(token);
@@ -16779,9 +16964,11 @@ ${sc.text}`);
       }
       function describeMergeItems(preview) {
         return BackupMerge.planItems(preview.actions, { local: preview.local, restored: preview.summary.restored, ownerOf: sceneOwnerOf }).map((item) => {
-          const here = path5.join(ROOT, item.rel), there = path5.join(preview.extractedRoot, item.rel);
+          const hereRel = item.from || item.rel, thereRel = item.src || item.rel;
+          const here = path5.join(ROOT, hereRel), there = path5.join(preview.extractedRoot, thereRel);
           const scene = /\.md$/i.test(item.rel);
           const parts = item.rel.split("/");
+          const changed = item.actions.some((a) => a.op !== "move");
           return {
             id: item.id,
             rel: item.rel,
@@ -16789,10 +16976,13 @@ ${sc.text}`);
             op: item.op,
             as: item.as || "",
             companions: item.companions,
-            name: scene ? sceneTitle(preview.local[item.rel] ? here : there) || parts.at(-1).replace(/\.md$/i, "") : parts.at(-1),
+            name: scene ? sceneTitle(preview.local[hereRel] ? here : there) || parts.at(-1).replace(/\.md$/i, "") : parts.at(-1),
             where: parts.slice(0, -1).join(" \u203A "),
+            fromWhere: item.from ? item.from.split("/").slice(0, -1).join(" \u203A ") : "",
+            fromName: item.from && scene && path5.posix.basename(item.from) !== path5.posix.basename(item.rel) ? sceneTitle(here) : "",
+            edited: item.group === "moved" && changed,
             scene,
-            words: scene ? { here: preview.local[item.rel] ? fileWords(here) : null, there: preview.remote[item.rel] ? fileWords(there) : null } : null
+            words: scene ? { here: preview.local[hereRel] ? fileWords(here) : null, there: preview.remote[thereRel] ? fileWords(there) : null } : null
           };
         });
       }
@@ -17015,7 +17205,8 @@ ${sc.text}`);
       });
       ipcMain2.handle("merge-preview-diff", (_, { token, id } = {}) => {
         const preview = mergePreviews.get(token);
-        if (!preview || !preview.actions.some((a) => a.rel === id)) return { ok: false, error: "That comparison has closed." };
+        const actions = preview?.actions.filter((a) => a.rel === id) || [];
+        if (!actions.length) return { ok: false, error: "That comparison has closed." };
         const read = (full) => {
           try {
             return parseFM(fs.readFileSync(full, "utf8")).body.slice(0, 4e5);
@@ -17023,10 +17214,11 @@ ${sc.text}`);
             return null;
           }
         };
+        const hereRel = actions.find((a) => a.from)?.from || id, thereRel = actions.find((a) => a.src)?.src || id;
         return {
           ok: true,
-          here: preview.local[id] ? read(path5.join(ROOT, id)) : null,
-          there: preview.remote[id] ? read(path5.join(preview.extractedRoot, id)) : null
+          here: preview.local[hereRel] ? read(path5.join(ROOT, hereRel)) : null,
+          there: preview.remote[thereRel] ? read(path5.join(preview.extractedRoot, thereRel)) : null
         };
       });
       ipcMain2.handle("discard-merge-preview", (_, { token } = {}) => {
@@ -17045,7 +17237,7 @@ ${sc.text}`);
         for (const item of items) (skip.has(item.id) ? skipped : chosen).push(...item.actions);
         const safetyArchive = chosen.length ? await createPreRestoreSafetyArchive() : "";
         const censusBefore = manuscriptProjectCensus();
-        applyMergeActions(chosen, preview.extractedRoot, preview.remoteName, Object.keys(preview.remote));
+        applyMergeActions(chosen, preview.extractedRoot, preview.remoteName, Object.keys(preview.remote), preview.moves || []);
         rebaselineAfterMerge(censusBefore, manuscriptProjectCensus());
         const state = readSyncState();
         state.bases[preview.peer] = {
@@ -17062,7 +17254,8 @@ ${sc.text}`);
           trashed: s.trashed.filter((r) => ops.has(r)),
           combined: s.combined.filter((r) => ops.has(r)),
           copies: s.copies.filter((c) => ops.has(c.rel)),
-          kept: s.kept
+          kept: s.kept,
+          moved: (s.moved || []).filter((r) => ops.has(r) && /\.md$/i.test(r) && !sceneOwnerOf(r))
         };
         return { ok: true, remoteName: preview.remoteName, firstMerge: !preview.base, summary, skipped: skip.size, safetyArchive };
       }
@@ -19627,7 +19820,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-13T21:42:37.667Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-13T22:11:10.773Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
