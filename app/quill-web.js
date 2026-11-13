@@ -9709,7 +9709,6 @@ ${str(e.text).trim()}
         return newer;
       }
       var STATS_DEVICE_ONLY = [
-        "achievements",
         "featureUse",
         "totalSessions",
         "longestSprint",
@@ -9757,7 +9756,36 @@ ${str(e.text).trim()}
           out[key] = [...have, ...fresh2].sort();
           broughtIn[key] = [.../* @__PURE__ */ new Set([...before[key] || [], ...fresh2])];
         }
+        const ownToday = (key) => Math.max(0, (Number(theirs[key]?.[today]) || 0) - (Number(theirs.broughtIn?.[key]?.[today]) || 0));
+        const credit = (key) => Math.max(0, ownToday(key) - (Number(before[key]?.[today]) || 0));
+        const added = credit("wordsAddedByDay"), cut = credit("wordsCutByDay");
+        const start6 = Number.isFinite(mine.sceneDayBaselines?.[today]) ? mine.sceneDayBaselines[today] : Number.isFinite(mine.lastSceneCensusTotal) ? mine.lastSceneCensusTotal : null;
+        if (added && start6 !== null) {
+          out.sceneDayBaselines = { ...mine.sceneDayBaselines, [today]: start6 - added };
+          out.wordsAddedByDay[today] = (Number(out.wordsAddedByDay[today]) || 0) + added;
+          out.wordsByDay[today] = out.wordsAddedByDay[today];
+          broughtIn.wordsAddedByDay[today] = (Number(broughtIn.wordsAddedByDay[today]) || 0) + added;
+        }
+        if (cut) {
+          out.censusCutByDay = { ...mine.censusCutByDay, [today]: (Number(mine.censusCutByDay?.[today]) || 0) + cut };
+          out.wordsCutByDay[today] = (Number(out.wordsCutByDay[today]) || 0) + cut;
+          broughtIn.wordsCutByDay[today] = (Number(broughtIn.wordsCutByDay[today]) || 0) + cut;
+        }
         out.broughtIn = broughtIn;
+        out.achievements = combineAchievements(mine.achievements, theirs.achievements);
+        return out;
+      }
+      function combineAchievements(mine, theirs) {
+        const out = { ...isPlain(mine) ? mine : {} };
+        for (const [id, got] of Object.entries(isPlain(theirs) ? theirs : {})) {
+          if (!isPlain(got)) continue;
+          const have = out[id];
+          if (!have) {
+            out[id] = { ...got, seen: true };
+            continue;
+          }
+          if (got.date && (!have.date || got.date < have.date)) out[id] = { ...have, date: got.date };
+        }
         return out;
       }
       function retitleScene(text, deviceName) {
@@ -9782,7 +9810,7 @@ ${body}
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
       }
-      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, combineStats, retitleScene, orderWithCopies };
+      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, combineStats, combineAchievements, retitleScene, orderWithCopies };
     }
   });
 
@@ -12967,6 +12995,9 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
       function removeMistakenBadges(stats) {
         if (stats.mistakenBadgesRemoved) return;
         stats.mistakenBadgesRemoved = true;
+        dropMistakenBadges(stats);
+      }
+      function dropMistakenBadges(stats) {
         for (const badgeId of ["day-2500", "day-5k", "sculptor"]) {
           if (stats.achievements?.[badgeId]?.date === "2026-11-08") delete stats.achievements[badgeId];
         }
@@ -13147,6 +13178,14 @@ ${tags}`);
         const days = new Set(stats.writeDays || []);
         if (delta > 0 || stats.wordsCutByDay[today] > 0 || stats.wordsAddedByDay[today] > 0) days.add(today);
         stats.writeDays = Array.from(days).slice(-365);
+        if (stats.broughtIn && days.has(today)) {
+          const here = (key) => (Number(stats[key][today]) || 0) - (Number(stats.broughtIn[key]?.[today]) || 0);
+          const own = delta > 0 || here("wordsAddedByDay") > 0 || here("wordsCutByDay") > 0;
+          const brought = new Set(stats.broughtIn.writeDays || []);
+          if (own) brought.delete(today);
+          else if (stats.broughtIn.wordsAddedByDay?.[today] || stats.broughtIn.wordsCutByDay?.[today]) brought.add(today);
+          stats.broughtIn.writeDays = [...brought];
+        }
         if (delta > 0) {
           stats.writingHours = stats.writingHours || {};
           const hour = (/* @__PURE__ */ new Date()).getHours();
@@ -16540,7 +16579,9 @@ ${sc.text}`);
         try {
           const mine = fs.existsSync(target2) ? JSON.parse(fs.readFileSync(target2, "utf8")) : {};
           const theirs = JSON.parse(fs.readFileSync(source, "utf8"));
-          atomicWriteFileSync(target2, JSON.stringify(BackupMerge.combineStats(mine, theirs, localDateKey(), theirsNewer)), "utf8");
+          const combined = BackupMerge.combineStats(mine, theirs, localDateKey(), theirsNewer);
+          dropMistakenBadges(combined);
+          atomicWriteFileSync(target2, JSON.stringify(combined), "utf8");
         } catch {
         }
       }
@@ -19550,7 +19591,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-12T17:45:08.709Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-13T21:22:25.725Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

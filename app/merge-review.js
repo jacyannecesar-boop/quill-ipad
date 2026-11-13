@@ -264,6 +264,24 @@ const MergeReview = (() => {
     }
     if (!result?.ok) { setStatus(result?.error || 'The merge failed. Nothing in your library was changed.', true); syncChecks(); return }
     finish(result)
+    if (_applied) await backUpMergedLibrary()
+  }
+
+  // On the Mac, the library now holds the other device's work, so the cloud backup is saved again
+  // right away and the dashboard's backup age starts over. The iPad saves its ZIP through Save to
+  // Files, which needs the writer, so it is left to them there.
+  async function backUpMergedLibrary() {
+    const config = await window.quill.getCloudBackupSettings?.().catch(() => null)
+    if (!config || config.web || !config.configured || !config.folderAvailable) return
+    const summary = $('merge-review-status')?.textContent || ''
+    _busy = true
+    $('merge-review-cancel').disabled = true
+    setStatus(`${summary} Saving a fresh cloud backup…`)
+    const backup = await window.quill.backupCloudLibrary().catch(error => ({ ok:false, error:error.message }))
+    _busy = false
+    $('merge-review-cancel').disabled = false
+    if (backup?.ok) window.dispatchEvent(new CustomEvent('quill-cloud-backup-status', { detail:backup }))
+    setStatus(backup?.ok ? `${summary} Cloud backup saved.` : `${summary} The cloud backup failed: ${backup?.error || 'unknown error'}.`, !backup?.ok)
   }
 
   function finish(result) {
