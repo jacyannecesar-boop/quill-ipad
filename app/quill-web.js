@@ -9771,9 +9771,45 @@ ${str(e.text).trim()}
           out.wordsCutByDay[today] = (Number(out.wordsCutByDay[today]) || 0) + cut;
           broughtIn.wordsCutByDay[today] = (Number(broughtIn.wordsCutByDay[today]) || 0) + cut;
         }
+        const time = combineProjectTime(
+          mine.projectProgress,
+          theirs.projectProgress,
+          today,
+          before.timeSecondsByDay,
+          theirs.broughtIn?.timeSecondsByDay
+        );
+        out.projectProgress = time.projectProgress;
+        broughtIn.timeSecondsByDay = time.brought;
         out.broughtIn = broughtIn;
         out.achievements = combineAchievements(mine.achievements, theirs.achievements);
         return out;
+      }
+      function combineProjectTime(mine = {}, theirs = {}, today, broughtBefore = {}, theirBrought = {}) {
+        const projectProgress = { ...isPlain(mine) ? mine : {} };
+        const brought = {};
+        for (const [id, prev] of Object.entries(isPlain(broughtBefore) ? broughtBefore : {})) brought[id] = { ...prev };
+        for (const [id, them] of Object.entries(isPlain(theirs) ? theirs : {})) {
+          if (!isPlain(them) || !isPlain(them.timeSecondsByDay)) continue;
+          const have = isPlain(projectProgress[id]) ? projectProgress[id] : { id };
+          const days = { ...isPlain(have.timeSecondsByDay) ? have.timeSecondsByDay : {} };
+          const got = brought[id] = brought[id] || {};
+          let added = 0;
+          for (const [day, secs] of Object.entries(them.timeSecondsByDay)) {
+            const mineNow = Number(days[day]) || 0;
+            const more = day === today ? (Number(secs) || 0) - (Number(theirBrought?.[id]?.[day]) || 0) - (Number(got[day]) || 0) : (Number(secs) || 0) - mineNow;
+            if (more <= 0) continue;
+            days[day] = mineNow + more;
+            got[day] = (Number(got[day]) || 0) + more;
+            added += more;
+          }
+          const listed = Object.values(days).reduce((sum, secs) => sum + (Number(secs) || 0), 0);
+          projectProgress[id] = {
+            ...have,
+            timeSecondsByDay: days,
+            totalTimeSeconds: Math.max((Number(have.totalTimeSeconds) || 0) + added, listed)
+          };
+        }
+        return { projectProgress, brought };
       }
       function combineAchievements(mine, theirs) {
         const out = { ...isPlain(mine) ? mine : {} };
@@ -9810,7 +9846,7 @@ ${body}
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
       }
-      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, combineStats, combineAchievements, retitleScene, orderWithCopies };
+      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, planMerge, planItems, nextBase, combineJson, combineStats, combineAchievements, combineProjectTime, retitleScene, orderWithCopies };
     }
   });
 
@@ -19591,7 +19627,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-13T21:22:25.725Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-13T21:42:37.667Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
