@@ -50,6 +50,20 @@
         function stripStubs(text) {
           return String(text || "").replace(stubRegExp(), " ");
         }
+        function removeStubs(md) {
+          const stub = new RegExp(`([ \\t]*)${STUB_PATTERN}([ \\t]*)`, "g");
+          const lines = String(md || "").split("\n").map((line) => {
+            if (!stubRegExp().test(line)) return line;
+            const out = line.replace(stub, (m, before, after, off, str) => {
+              const rest = str.slice(off + m.length);
+              if (!str.slice(0, off).trim()) return "";
+              if (!rest || /^[.,;:!?…)\]”’"'—–-]/.test(rest)) return "";
+              return before || after ? " " : "";
+            }).replace(/[ \t]+$/, "");
+            return /^\s*(?:>\s*)*(?:[-*+]|\d+[.)])?\s*$/.test(out) ? null : out;
+          });
+          return lines.filter((line) => line !== null).join("\n").replace(/\n{3,}/g, "\n\n");
+        }
         const WORD_BREAK = /[\s\u2014\u2E3A\u2E3B]+/;
         function countWords(text) {
           return String(text || "").split(WORD_BREAK).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
@@ -154,6 +168,7 @@
           STUB_PATTERN,
           stubRegExp,
           stripStubs,
+          removeStubs,
           countWords,
           countPlain,
           wordTokens,

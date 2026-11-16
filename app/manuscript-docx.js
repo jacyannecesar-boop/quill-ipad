@@ -167,8 +167,11 @@ const ManuscriptDocx = (() => {
         continue
       }
       if (section.type !== 'scene' || !section.body) continue
+      // Stubs are placeholders, not manuscript; a scene of nothing else is left out.
+      const prose = QuillWords.removeStubs(section.body)
+      if (!QuillWords.countPlain(prose)) continue
       if (sceneInChapter++ > 0) body += text('#', { align: 'center' })
-      const doc = window.QuillMd.parseMarkdown(section.body)
+      const doc = window.QuillMd.parseMarkdown(prose)
       for (const node of doc.content || []) body += block(node)
       first = false
     }

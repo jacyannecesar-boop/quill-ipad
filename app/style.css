@@ -2735,6 +2735,8 @@ body.project-workspace #toolbar[data-view="landing"] #read-btn{display:none!impo
 .ms-text ul, .ms-text ol { margin:0; padding-left:48px; }
 .ms-text li p { text-indent:0; }
 .ms-text em { font-style:italic; }
+/* Stubs stay in the DOM for comment offsets (read-draft.js hideStubs) but are never shown */
+.ms-text .ms-stub, .ms-text .ms-stub-only { display:none; }
 .ms-text strong { font-weight:700; }
 .ms-break { text-align:center; }
 .ms-end { text-align:center; margin-top:32px; }

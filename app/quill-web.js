@@ -4585,6 +4585,20 @@ ${raw}` : raw;
         function stripStubs(text) {
           return String(text || "").replace(stubRegExp(), " ");
         }
+        function removeStubs(md) {
+          const stub = new RegExp(`([ \\t]*)${STUB_PATTERN}([ \\t]*)`, "g");
+          const lines = String(md || "").split("\n").map((line) => {
+            if (!stubRegExp().test(line)) return line;
+            const out = line.replace(stub, (m, before, after, off, str) => {
+              const rest = str.slice(off + m.length);
+              if (!str.slice(0, off).trim()) return "";
+              if (!rest || /^[.,;:!?…)\]”’"'—–-]/.test(rest)) return "";
+              return before || after ? " " : "";
+            }).replace(/[ \t]+$/, "");
+            return /^\s*(?:>\s*)*(?:[-*+]|\d+[.)])?\s*$/.test(out) ? null : out;
+          });
+          return lines.filter((line) => line !== null).join("\n").replace(/\n{3,}/g, "\n\n");
+        }
         const WORD_BREAK = /[\s\u2014\u2E3A\u2E3B]+/;
         function countWords(text) {
           return String(text || "").split(WORD_BREAK).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
@@ -4689,6 +4703,7 @@ ${raw}` : raw;
           STUB_PATTERN,
           stubRegExp,
           stripStubs,
+          removeStubs,
           countWords,
           countPlain,
           wordTokens,
@@ -10016,7 +10031,7 @@ ${body}
       var http = (init_http(), __toCommonJS(http_exports));
       var crypto2 = (init_crypto(), __toCommonJS(crypto_exports));
       var { fmLine, parseFM, frontmatterBounds, frontmatterPrefix, setFrontmatterField, cleanTag } = require_frontmatter();
-      var { countWords, diffWords, stripStubs, stubRegExp, stripRevisionNotes, findNotes, parseNoteLine, noteLine, mintNoteId } = require_words();
+      var { countWords, diffWords, stripStubs, removeStubs, stubRegExp, stripRevisionNotes, findNotes, parseNoteLine, noteLine, mintNoteId } = require_words();
       var Revisions = require_revisions();
       var Achievements = require_achievements();
       var FunFacts = require_funfacts();
@@ -16103,7 +16118,7 @@ ${sc.text}`);
           filters: [{ name: "Markdown", extensions: ["md"] }]
         });
         if (canceled || !filePath) return { ok: false, canceled: true };
-        const prose = stripRevisionNotes(String(content || "")).replace(/\n{3,}/g, "\n\n");
+        const prose = removeStubs(stripRevisionNotes(String(content || ""))).replace(/\n{3,}/g, "\n\n");
         fs.writeFileSync(filePath, prose, "utf8");
         noteFeature("export");
         return { ok: true, filePath };
@@ -19844,7 +19859,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-16T23:21:54.392Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-16T23:38:00.398Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

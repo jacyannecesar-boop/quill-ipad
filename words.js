@@ -20,6 +20,25 @@
 
   function stripStubs(text) { return String(text || '').replace(stubRegExp(), ' ') }
 
+  // Stubs out of Markdown meant for a reader (exports): unlike stripStubs, which only has to
+  // keep words apart for counting, this leaves the prose as if the stub had never been typed.
+  // The space before a stub goes when punctuation or the line's end follows it, and a line
+  // left with nothing but its Markdown marker (`> `, `- `, `1. `) goes entirely.
+  function removeStubs(md) {
+    const stub = new RegExp(`([ \\t]*)${STUB_PATTERN}([ \\t]*)`, 'g')
+    const lines = String(md || '').split('\n').map(line => {
+      if (!stubRegExp().test(line)) return line
+      const out = line.replace(stub, (m, before, after, off, str) => {
+        const rest = str.slice(off + m.length)
+        if (!str.slice(0, off).trim()) return ''
+        if (!rest || /^[.,;:!?…)\]”’"'—–-]/.test(rest)) return ''
+        return before || after ? ' ' : ''
+      }).replace(/[ \t]+$/, '')
+      return /^\s*(?:>\s*)*(?:[-*+]|\d+[.)])?\s*$/.test(out) ? null : out
+    })
+    return lines.filter(line => line !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+  }
+
   // Splits on whitespace and em dashes, so `anything—an` is two words whichever dash style
   // the writer uses, and drops tokens with no letter or digit, so a spaced ` — ` or a lone
   // `…` is not a word.
@@ -146,7 +165,7 @@
   }
 
   return {
-    STUB_PATTERN, stubRegExp, stripStubs, countWords, countPlain, wordTokens, diffWords,
+    STUB_PATTERN, stubRegExp, stripStubs, removeStubs, countWords, countPlain, wordTokens, diffWords,
     NOTE_LINE, encodeNoteText, decodeNoteText, noteLine, parseNoteLine, findNotes,
     stripRevisionNotes, mintNoteId,
   }

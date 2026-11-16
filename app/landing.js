@@ -3579,7 +3579,7 @@ const Landing = (() => {
         if (act !== null)     { md += `${md ? '---\n\n' : ''}# ${act}\n\n`; act = null }
         if (chapter !== null) { md += `## ${chapter}\n\n`; chapter = null }
         else if (sceneInChapter) md += '* * *\n\n'
-        md += s.body.trim() + '\n\n'
+        md += QuillWords.removeStubs(s.body).trim() + '\n\n'
         sceneInChapter = true
       }
     })

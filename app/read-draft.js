@@ -186,9 +186,55 @@ const ReadDraft = (() => {
     place(state, tail)
   }
 
+  // Stubs (`[they look at the footage]`, words.js) are the writer's placeholders, not
+  // manuscript, so the pages hide them. They stay in the DOM, wrapped in .ms-stub, because
+  // comment anchors are offsets into the block's full text, the same text the editor counts.
+  // The space before a stub hides with it when punctuation or the block's end follows, and a
+  // block left with nothing else is hidden whole.
+  function hideStubs(holder) {
+    for (const block of holder.querySelectorAll('[data-b]')) {
+      const text = blockText(block)
+      const ranges = []
+      for (const m of text.matchAll(QuillWords.stubRegExp())) {
+        let start = m.index, end = m.index + m[0].length
+        const rest = text.slice(end)
+        if (!text.slice(0, start).trim()) { while (/[ \t]/.test(text[end] || '')) end++ }
+        else if (!rest.trim() || /^[.,;:!?…)\]”’"'—–-]/.test(rest)) { while (/[ \t]/.test(text[start - 1] || '')) start-- }
+        ranges.push([start, end])
+      }
+      if (!ranges.length) continue
+      if (!QuillWords.stripStubs(text).trim()) { block.classList.add('ms-stub-only'); continue }
+      // Back to front, so wrapping one stub leaves the offsets of those before it intact.
+      for (const [start, end] of ranges.reverse()) wrapRange(block, start, end)
+    }
+  }
+
+  function wrapRange(block, start, end) {
+    const nodes = []
+    let pos = 0
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const len = n.nodeType === Node.TEXT_NODE ? n.data.length : n.nodeName === 'BR' ? 1 : 0
+      if (n.nodeType === Node.TEXT_NODE && pos < end && pos + len > start) {
+        nodes.push({ node: n, from: Math.max(0, start - pos), to: Math.min(len, end - pos) })
+      }
+      pos += len
+    }
+    for (const { node, from, to } of nodes) {
+      let target = node
+      if (to < target.data.length) target.splitText(to)
+      if (from > 0) target = target.splitText(from)
+      const span = document.createElement('span')
+      span.className = 'ms-stub'
+      target.replaceWith(span)
+      span.appendChild(target)
+    }
+  }
+
   function sceneBlocks(scene, showNotes = false) {
     const holder = document.createElement('div')
     holder.innerHTML = window.QuillMd.renderMarkdownHtml(scene.body, { blockAttrs: true, showNotes })
+    hideStubs(holder)
     const out = []
     for (const child of [...holder.children]) {
       if (child.matches('hr, .scene-break')) { out.push(breakEl()); continue }
@@ -256,6 +302,8 @@ const ReadDraft = (() => {
       if (s.type === 'act') { openingPage(state, 'act', ++actNo, s.title); continue }
       if (s.type === 'chapter') { openingPage(state, 'chapter', ++chapterNo, s.title); sceneInChapter = 0; continue }
       if (s.type !== 'scene' || !s.body) continue
+      // A scene of nothing but stubs has no page to show, nor a break before it.
+      if (!plainWords(s.body) && !(state.showNotes && /quill:revise/.test(s.body))) continue
       if (sceneInChapter++ > 0) place(state, breakEl())
       state.sceneTitles.set(s.path, s.title || s.path.split('/').pop().replace(/\.md$/, ''))
       for (const el of sceneBlocks(s, state.showNotes)) {
@@ -717,7 +765,7 @@ const ReadDraft = (() => {
   // A manuscript that goes out should not carry the writer's notes to self.
   function printablePages(state) {
     const clone = state.column.cloneNode(true)
-    clone.querySelectorAll('.ms-gutter, .ms-card, .ms-ink').forEach(el => el.remove())
+    clone.querySelectorAll('.ms-gutter, .ms-card, .ms-ink, .ms-stub, .ms-stub-only').forEach(el => el.remove())
     clone.querySelectorAll('mark.ms-mark').forEach(mark => mark.replaceWith(...mark.childNodes))
     clone.removeAttribute('style')
     return clone.outerHTML
