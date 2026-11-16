@@ -279,7 +279,26 @@ const ReadDraft = (() => {
     const want = PAGE_W + (editing ? GUTTER_W : 0) + 48
     const avail = state.desk.clientWidth || want
     state.scale = Math.min(1, avail / want)
-    state.column.style.zoom = String(state.scale)
+    const column = state.column
+    if (!document.documentElement.classList.contains('web-ipad')) {
+      column.style.zoom = String(state.scale)
+    } else {
+      // iPad Safari's CSS zoom shrinks the page but not its text, so the text ran off the
+      // page (web/editorzoom.js). There the column is drawn with a scale transform instead;
+      // layout stays in page pixels, so the margins below give back the space it no longer fills.
+      column.style.zoom = ''
+      if (state.scale < 1) {
+        const w = column.offsetWidth, h = column.offsetHeight
+        column.style.transformOrigin = 'top left'
+        column.style.transform = `scale(${state.scale})`
+        column.style.marginLeft = `${Math.max(0, (avail - w * state.scale) / 2)}px`
+        column.style.marginRight = '0'
+        column.style.marginBottom = `${-h * (1 - state.scale)}px`
+      } else {
+        column.style.transform = column.style.transformOrigin = ''
+        column.style.marginLeft = column.style.marginRight = column.style.marginBottom = ''
+      }
+    }
     if (editing) state.pages.forEach(page => layoutGutter(state, page))
   }
 

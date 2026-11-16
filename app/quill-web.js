@@ -2742,16 +2742,43 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
   function offerFile(name2, data, { message = "Your file is ready.", detail = "Tap Save to Files, then choose a folder in iCloud Drive." } = {}) {
     const file = new File([data], name2, { type: mimeFor(name2) });
     return new Promise((resolve) => {
-      let close;
+      let close, finished = false, sharing = false, returnTimer = null;
       const status2 = el("p", { class: "web-sheet-status" });
+      const onReturn = () => {
+        clearTimeout(returnTimer);
+        returnTimer = setTimeout(() => {
+          if (sharing) finish(true);
+        }, 600);
+      };
+      const finish = (ok) => {
+        if (finished) return;
+        finished = true;
+        sharing = false;
+        clearTimeout(returnTimer);
+        document.removeEventListener("pointerdown", onReturn, true);
+        close();
+        resolve(ok);
+      };
       const save2 = async () => {
+        if (sharing) return;
+        if (!navigator.canShare?.({ files: [file] })) {
+          download(file);
+          return finish(true);
+        }
+        const backdrop = status2.closest(".web-sheet-backdrop");
+        sharing = true;
+        status2.textContent = "";
+        if (backdrop) backdrop.style.display = "none";
+        document.addEventListener("pointerdown", onReturn, true);
         try {
-          if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file] });
-          else download(file);
-          close();
-          resolve(true);
+          await navigator.share({ files: [file] });
+          finish(true);
         } catch (err2) {
-          if (err2.name === "AbortError") return;
+          if (finished) return;
+          if (err2.name === "AbortError") return finish(false);
+          sharing = false;
+          document.removeEventListener("pointerdown", onReturn, true);
+          if (backdrop) backdrop.style.display = "";
           status2.textContent = err2.message;
         }
       };
@@ -2761,10 +2788,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         el("p", { class: "web-sheet-hint", text: detail }),
         status2,
         el("div", { class: "web-sheet-buttons" }, [
-          el("button", { class: "btn", text: "Not Now", onclick: () => {
-            close();
-            resolve(false);
-          } }),
+          el("button", { class: "btn", text: "Not Now", onclick: () => finish(false) }),
           el("button", { class: "btn primary", text: "Save to Files\u2026", onclick: save2 })
         ])
       ]);
@@ -19820,7 +19844,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-13T22:11:10.773Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-16T23:21:54.392Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
