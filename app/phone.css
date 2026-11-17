@@ -34,7 +34,7 @@ html.web-phone .workspace-nav-row{min-height:44px;font-size:16px}
 html.web-phone .workspace-nav-row:is([data-workspace-section="outliner"],[data-workspace-section="timeline"],
   [data-workspace-section="audit"],[data-workspace-section="outline"],[data-workspace-section="case"],
   [data-workspace-section="characters"],[data-workspace-section="worldbible"],[data-workspace-section="novelboard"],
-  [data-workspace-section="read"],[data-workspace-section="freewrite"],[data-workspace-section="brainstorm"],
+  [data-workspace-section="read"],[data-workspace-section="brainstorm"],
   [data-workspace-section="concept"],[data-workspace-section="styleguide"]),
 html.web-phone #practice-sidebar-section,html.web-phone #ch-board-btn{display:none !important}
 

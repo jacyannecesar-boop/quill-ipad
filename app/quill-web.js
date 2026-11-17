@@ -3422,6 +3422,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         updateSceneMeta: (args) => ipcRenderer2.invoke("update-scene-meta", args),
         getScraps: (novel) => ipcRenderer2.invoke("get-scraps", novel),
         saveScraps: (args) => ipcRenderer2.invoke("save-scraps", args),
+        getFreewrite: (novel) => ipcRenderer2.invoke("get-freewrite", novel),
+        saveFreewrite: (args) => ipcRenderer2.invoke("save-freewrite", args),
         getScratchInbox: (scratch) => ipcRenderer2.invoke("get-scratch-inbox", scratch),
         saveScratchInbox: (args) => ipcRenderer2.invoke("save-scratch-inbox", args),
         getFolderMeta: (rel) => ipcRenderer2.invoke("get-folder-meta", rel),
@@ -5960,6 +5962,14 @@ ${raw}` : raw;
         function blankStructure() {
           return { version: 1, triangle: false, mystery: false, foundation: {}, answers: {}, mine: {}, drafts: {} };
         }
+        function writeBeat(structure, beats, id, text) {
+          if (beatState(id, beats, structure) === "draft" && !structure.drafts?.[id]) {
+            structure.drafts = { ...structure.drafts || {}, [id]: beats[id] };
+          }
+          beats[id] = text;
+          structure.mine = { ...structure.mine || {}, [id]: true };
+          return { structure, beats };
+        }
         function toMarkdown({ title = "", templateKey = "generic", beats = {}, structure = {}, scenesByBeat = {}, caseDigest = null } = {}) {
           const s = { ...blankStructure(), ...structure };
           const tmpl = template(templateKey, s.triangle);
@@ -6014,6 +6024,7 @@ ${raw}` : raw;
           migrate,
           beatState,
           blankStructure,
+          writeBeat,
           toMarkdown
         };
       });
@@ -12482,6 +12493,44 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         if (scraps.length) noteFeature("scraps");
         return { ok: true };
       });
+      function cleanFreewriteCard(item) {
+        const text = (v, max2) => String(v ?? "").slice(0, max2);
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        return {
+          id: /^[\w-]{1,64}$/.test(String(item.id || "")) ? item.id : crypto2.randomBytes(6).toString("hex"),
+          title: text(item.title, 300),
+          text: text(item.text, 2e5),
+          color: SCRAP_COLOR.test(String(item.color || "")) ? item.color : "sand",
+          created: text(item.created, 40) || now,
+          updated: text(item.updated, 40) || now
+        };
+      }
+      ipcMain2.handle("get-freewrite", (_, novelRel) => {
+        let file;
+        try {
+          file = path5.join(scrapsDir(novelRel), ".freewrite.json");
+        } catch (error) {
+          return { ok: false, error: error.message, cards: [] };
+        }
+        try {
+          const data = JSON.parse(fs.readFileSync(file, "utf8"));
+          return { ok: true, cards: (Array.isArray(data.cards) ? data.cards : []).filter((x2) => x2 && typeof x2 === "object").map(cleanFreewriteCard) };
+        } catch {
+          return { ok: true, cards: [] };
+        }
+      });
+      ipcMain2.handle("save-freewrite", (_, { novelRel, cards } = {}) => {
+        let file;
+        try {
+          file = path5.join(scrapsDir(novelRel), ".freewrite.json");
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+        if (!Array.isArray(cards) || cards.length > 2e3) return { ok: false, error: "Invalid free write." };
+        const clean2 = cards.filter((x2) => x2 && typeof x2 === "object").map(cleanFreewriteCard);
+        atomicWriteFileSync(file, JSON.stringify({ version: 1, cards: clean2 }), "utf8");
+        return { ok: true };
+      });
       function revisionsFile(dir) {
         return path5.join(dir, ".revisions.json");
       }
@@ -17364,6 +17413,7 @@ ${sc.text}`);
         ".timeline.json": "Timeline",
         ".structure.json": "Structure",
         ".scraps.json": "Scraps",
+        ".freewrite.json": "Free write",
         ".revisions.json": "Revision notes",
         ".brainstorm-history.json": "Brainstorm conversations"
       };
@@ -20295,7 +20345,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-17T04:10:11.558Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-17T22:22:31.077Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

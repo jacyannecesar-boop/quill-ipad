@@ -247,10 +247,8 @@ const StructureBuilder = (() => {
     })
     const summary = root.querySelector('[data-summary]')
     summary.addEventListener('input', () => {
-      // Keep the pre-builder text before it's overwritten, so it can still be used later.
-      if (state(id) === 'draft' && !_structure.drafts[id]) _structure.drafts[id] = _beats[id]
-      _beats[id] = summary.value
-      _structure.mine[id] = true
+      // Keeps the pre-builder text before it's overwritten, so it can still be used later.
+      S().writeBeat(_structure, _beats, id, summary.value)
       _ctx.onBeat?.(id, summary.value)
       changed()
       renderRail()

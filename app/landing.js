@@ -320,7 +320,7 @@ const Landing = (() => {
       <button class="nl-tab" data-nltab="outline">Structure</button>
       <button class="nl-tab" data-nltab="case">Case</button>
       <button class="nl-tab" data-nltab="characters">Characters</button>
-      <button class="nl-tab" data-nltab="freewrite">Scene Generator</button>
+      <button class="nl-tab" data-nltab="freewrite">Free write</button>
       <button class="nl-tab" data-nltab="scraps">Scraps</button>
       <button class="nl-tab" data-nltab="novelboard">Board</button>
       <button class="nl-tab" data-nltab="read">Read Draft</button>
@@ -428,7 +428,17 @@ const Landing = (() => {
           </div>
           <div class="beat-tmpl-note" id="beat-tmpl-note"></div>
         </div>
-        <div class="spine" id="beats-container"></div>
+        <div class="outline-progress" id="outline-progress"></div>
+        <div class="outline-layout">
+          <div class="outline-main">
+            <div class="outline-save-status" id="outline-save-status" role="status"></div>
+            <div class="outline" id="beats-container"></div>
+          </div>
+          <details class="dump" id="structure-dump" open>
+            <summary class="dump-head"><span>Free write</span><em id="dump-count"></em></summary>
+            <div class="dump-body" id="structure-freewrite"></div>
+          </details>
+        </div>
       </div>
 
       <!-- CASE BUILDER (renderer/casebuilder.js) -->
@@ -443,91 +453,8 @@ const Landing = (() => {
         <div class="char-grid" id="char-grid"></div>
       </div>
 
-      <!-- FREEWRITE -->
-      <div class="nl-pane" data-nlpane="freewrite">
-        <div class="freewrite-wrap">
-
-          <!-- Scene Generator (permanent tool) -->
-          <div class="seed-scene-banner" id="seed-banner">
-            <div class="seed-scene-header">
-              <em class="seed-scene-icon">✦</em>
-              <span class="seed-scene-title">Scene generator</span>
-            </div>
-
-            <!-- Controls — plain text inputs with placeholder hints -->
-            <div class="seed-controls">
-              <div class="seed-ctrl">
-                <span class="seed-ctrl-label">POV voice</span>
-                <input class="field seed-text-input" id="seed-pov" placeholder="e.g. first person, third limited…">
-              </div>
-              <div class="seed-ctrl">
-                <span class="seed-ctrl-label">Atmosphere</span>
-                <input class="field seed-text-input" id="seed-atmosphere" placeholder="e.g. gothic dark, tender, tense…">
-              </div>
-              <div class="seed-ctrl">
-                <span class="seed-ctrl-label">Entry point</span>
-                <input class="field seed-text-input" id="seed-entry" placeholder="e.g. the moment they meet, morning after…">
-              </div>
-              <div class="seed-ctrl">
-                <span class="seed-ctrl-label">Length</span>
-                <input class="field seed-text-input" id="seed-length" placeholder="e.g. ~500 words, flash, chapter opener…">
-              </div>
-              <div class="seed-ctrl full">
-                <span class="seed-ctrl-label">Style</span>
-                <div class="style-pills-wrap" id="seed-style-pills">
-                  <button class="chip style-pill active" data-style="literary">literary</button>
-                  <button class="chip style-pill" data-style="descriptive">descriptive</button>
-                  <button class="chip style-pill" data-style="sardonic">sardonic</button>
-                  <button class="chip style-pill" data-style="spare">spare</button>
-                  <button class="chip style-pill" data-style="lush">lush</button>
-                  <button class="chip style-pill" data-style="raw">raw</button>
-                  <button class="chip style-pill" data-style="dreamlike">dreamlike</button>
-                </div>
-                <input class="field seed-text-input seed-custom-text" id="seed-custom-text" placeholder="or describe your own style…">
-              </div>
-            </div>
-
-            <!-- AI settings row -->
-            <div class="seed-settings-row">
-              <button type="button" class="ai-model-link" data-open-settings="ai" title="Change the model in Settings → AI">Model: <span id="seed-model-name"></span></button>
-              <button class="btn ghost sm seed-instr-btn" id="seed-instr-toggle">Instructions ›</button>
-            </div>
-
-            <!-- Instructions panel (collapsed by default) -->
-            <div class="seed-instr-panel" id="seed-instr-panel" style="display:none">
-              <div class="seed-instr-hint">Customize the AI's writing role. Leave blank to use the default.</div>
-              <textarea class="field seed-instr-ta" id="seed-instr-ta" placeholder="You are a literary fiction writer specializing in dark romance…"></textarea>
-              <div class="seed-instr-btns">
-                <button class="btn sm primary" id="seed-instr-save">Save</button>
-                <button class="btn sm" id="seed-instr-reset">Reset</button>
-              </div>
-            </div>
-
-            <!-- Generated output (hidden until generated) -->
-            <div class="seed-output" id="seed-output" style="display:none">
-              <div class="seed-output-label">
-                <span class="seed-output-dot"></span>
-                <span id="seed-output-label-text">Scene</span>
-              </div>
-              <div class="seed-output-text" id="seed-output-text"></div>
-              <div class="seed-output-actions">
-                <button class="btn sm primary seed-action-btn" id="seed-open-btn">Open as new scene →</button>
-                <button class="btn sm seed-action-btn" id="seed-copy-btn">Copy</button>
-                <button class="btn sm seed-action-btn" id="seed-regen-btn">Regenerate</button>
-                <button class="btn sm seed-action-btn" id="seed-brainstorm-btn">Send to Brainstorm</button>
-              </div>
-            </div>
-
-            <!-- Footer / generate button -->
-            <div class="seed-footer">
-              <button class="btn primary seed-generate-btn" id="seed-generate-btn">Generate scene</button>
-              <span class="seed-footer-note" id="seed-footer-note">Uses your novel's characters, genre, and logline as context</span>
-            </div>
-          </div>
-
-          <div class="freewrite-hint">Looking for your brain dump? Loose ideas live in <b>Scraps</b> now; anything you wrote here is pinned there.</div>
-        </div>
-      </div>
+      <!-- FREE WRITE (renderer/freewrite.js) -->
+      <div class="nl-pane" data-nlpane="freewrite"><div id="freewrite-page"></div></div>
 
       <!-- SCRAPS -->
       <div class="nl-pane" data-nlpane="scraps">
@@ -619,6 +546,8 @@ const Landing = (() => {
         if (tab.dataset.nltab === 'case') CaseBuilder.load(_path, document.getElementById('case-builder'))
         if (tab.dataset.nltab === 'timeline') loadTimeline(_path)
         if (tab.dataset.nltab === 'audit') loadManuscriptAudit(_path)
+        if (tab.dataset.nltab === 'freewrite') showFreewritePage()
+        if (tab.dataset.nltab === 'outline') FreeWrite.refit(document.getElementById('structure-dump'))
         if (tab.dataset.nltab === 'scraps') {
           const wall = document.getElementById('novel-scraps')
           if (wall) Scraps.showWall(_path, wall)
@@ -643,7 +572,6 @@ const Landing = (() => {
 
     // load glimpse on open
     loadGlimpse(_path)
-    initSeedScene(_path, _meta)
 
     // autosave on all [data-key] fields
     inner.querySelectorAll('[data-key]').forEach(el => {
@@ -685,6 +613,7 @@ const Landing = (() => {
       renderBeats()
       await window.quill.saveStructure({ novelRel: _path, structure: _structure }).catch(() => {})
     }
+    initOutline(inner)
     migrateBeats()
     renderBeats()
     loadStructure().then(() => renderBeats())
@@ -1963,17 +1892,69 @@ const Landing = (() => {
   }
 
   // ── Structure / Beats ──────────────────────────────────────
-  // Templates and questions live in structure.js (QuillStructure). The tab is a read-only spine
-  // of beat cards; writing happens in the Structure Builder, which opens at the clicked beat.
+  // Templates and questions live in structure.js (QuillStructure). The tab is an outline you can
+  // read top to bottom: every beat's line in full, edited in place, with a brain dump beside it
+  // whose notes get filed under beats. Build structure → opens the guided questions.
 
   let _structure = QuillStructure.blankStructure()
   let _scenesByBeat = {}
+  let _structureSave = null   // { path, timer } while an outline edit waits to be written
+  const OUTLINE_PREFS = 'quill_structure_outline'
+  const outlinePrefs = () => { try { return JSON.parse(localStorage.getItem(OUTLINE_PREFS)) || {} } catch { return {} } }
+  const setOutlinePrefs = patch => { try { localStorage.setItem(OUTLINE_PREFS, JSON.stringify({ ...outlinePrefs(), ...patch })) } catch {} }
+  const TRACK_NAMES = { quest: 'Quest', romance: 'Romance', shared: 'Shared', rival: 'Rival' }
 
   async function loadStructure() {
     if (!_path) return
     const result = await window.quill.getStructure(_path).catch(() => null)
     _structure = result?.ok ? result.structure : QuillStructure.blankStructure()
     _scenesByBeat = result?.ok ? result.scenesByBeat : {}
+    await migrateBrainDump()
+  }
+
+  // The Structure tab briefly had a brain dump of short notes in .structure.json. They become
+  // Free write cards, titled by the beat they were filed under or their first words.
+  async function migrateBrainDump() {
+    const notes = (Array.isArray(_structure.notes) ? _structure.notes : []).filter(n => String(n?.text || '').trim())
+    if (!Array.isArray(_structure.notes)) return
+    const path = _path
+    if (notes.length) {
+      const labelOf = id => Object.keys(QuillStructure.TEMPLATES)
+        .map(key => QuillStructure.beatsOf(key, true).find(b => b.id === id)?.label).find(Boolean)
+      // A short note is its own topic; a longer one is titled by its first sentence, never cut mid-thought.
+      const topicOf = text => {
+        const plain = text.trim().replace(/\s+/g, ' ')
+        if (plain.length <= 80) return plain
+        const sentence = plain.match(/^.+?[.?!](?=\s|$)/)?.[0]
+        return sentence && sentence.length <= 120 ? sentence : plain.split(' ').slice(0, 10).join(' ')
+      }
+      const ok = await FreeWrite.importCards(path, notes.map(n => ({ title: (n.beat && labelOf(n.beat)) || topicOf(n.text), text: n.text.trim() })))
+      if (!ok) return
+    }
+    delete _structure.notes
+    if (_path === path) await window.quill.saveStructure({ novelRel: path, structure: _structure }).catch(() => {})
+  }
+
+  // Outline edits save on a short timer; navigation, opening the builder and quit flush it.
+  function saveStructureSoon() {
+    clearTimeout(_structureSave?.timer)
+    _structureSave = { path: _path, structure: _structure, timer: setTimeout(flushStructure, 600) }
+  }
+
+  async function flushStructure() {
+    const pending = _structureSave
+    if (!pending) return
+    clearTimeout(pending.timer)
+    _structureSave = null
+    // The live object, if the novel is still open: the switches replace _structure wholesale.
+    const structure = pending.path === _path ? _structure : pending.structure
+    const result = await window.quill.saveStructure({ novelRel: pending.path, structure })
+      .catch(error => ({ ok: false, error: error.message }))
+    const status = document.getElementById('outline-save-status')
+    if (!result?.ok) {
+      if (status) status.textContent = `Couldn’t save the structure${result?.error ? ` (${result.error})` : ''}. Trying again…`
+      if (!_structureSave) _structureSave = { ...pending, timer: setTimeout(flushStructure, 3000) }
+    } else if (status) status.textContent = ''
   }
 
   // Old template ids carry their text into the new ones once, as earlier drafts.
@@ -1984,10 +1965,39 @@ const Landing = (() => {
     if (Object.keys(after).some(id => after[id] !== before[id])) scheduleSave()
   }
 
+  const currentTemplate = () => QuillStructure.template(_meta.beat_template || 'generic', _structure.triangle)
+  const hasTracks = tmpl => tmpl.acts.some(act => act.beats.some(b => b.track === 'quest'))
+  const shortAct = label => String(label).split(' — ')[0]
+
+  // Quest and romance side by side, paired row by row in template order, so the beats that
+  // land together read across; rival beats sit with the romance. The act's shared turning
+  // point spans both columns underneath.
+  function trackedAct(act) {
+    const quest = act.beats.filter(b => b.track === 'quest')
+    const romance = act.beats.filter(b => b.track === 'romance' || b.track === 'rival')
+    const shared = act.beats.filter(b => b.track === 'shared')
+    const rows = Math.max(quest.length, romance.length)
+    const cell = (b, track) => b ? beatRow(b) : `<div class="story-beat-gap" data-track="${track}"></div>`
+    return `<div class="outline-pairs">
+        <div class="outline-col-label" data-track="quest">Quest</div>
+        <div class="outline-col-label" data-track="romance">Romance</div>
+        ${Array.from({ length: rows }, (_, i) => cell(quest[i], 'quest') + cell(romance[i], 'romance')).join('')}
+      </div>
+      ${shared.length ? `<div class="outline-shared"><div class="outline-col-label" data-track="shared">Where they meet</div>${shared.map(beatRow).join('')}</div>` : ''}`
+  }
+
+  function actCounts(act) {
+    const beats = _meta.beats || {}
+    const states = act.beats.map(b => QuillStructure.beatState(b.id, beats, _structure))
+    const written = states.filter(st => st !== 'empty').length
+    const drafts = states.filter(st => st === 'draft').length
+    const unscened = act.beats.filter(b => !(_scenesByBeat[b.id] || []).length).length
+    return `${written} of ${act.beats.length} written${drafts ? ` · ${drafts} earlier draft${drafts === 1 ? '' : 's'}` : ''}${unscened ? ` · ${unscened} without scenes` : ''}`
+  }
+
   function renderBeats(templateKey) {
     const key = templateKey || _meta.beat_template || 'generic'
     const tmpl = QuillStructure.template(key, _structure.triangle)
-    const beats = _meta.beats || {}
 
     document.querySelectorAll('.beat-tmpl-pill').forEach(p => {
       p.classList.toggle('active', p.dataset.tmpl === key)
@@ -1997,46 +2007,184 @@ const Landing = (() => {
 
     const container = document.getElementById('beats-container')
     if (!container) return
-    const dual = tmpl.acts.some(act => act.beats.some(b => b.track === 'quest'))
     const triangle = document.getElementById('structure-triangle')
     if (triangle) triangle.checked = _structure.triangle === true
     const mystery = document.getElementById('structure-mystery')
     if (mystery) mystery.checked = _structure.mystery === true
-    container.className = dual ? 'spine spine-dual' : 'spine'
-    container.innerHTML = tmpl.acts.map(act => {
-      const mine = act.beats.filter(b => QuillStructure.beatState(b.id, beats, _structure) === 'mine').length
-      const unscened = act.beats.filter(b => !(_scenesByBeat[b.id] || []).length).length
-      const head = `<div class="spine-act-head"><span>${esc(act.label)}</span>
-        <em>${mine}/${act.beats.length} yours${unscened ? ` · ${unscened} without scenes` : ''}</em></div>`
-      if (!dual) return `<section class="spine-act">${head}<div class="spine-list">${act.beats.map(beatCard).join('')}</div></section>`
-      const track = name => act.beats.filter(b => b.track === name).map(beatCard).join('')
-      return `<section class="spine-act">${head}
-        <div class="spine-tracks">
-          <div class="spine-track" data-track="quest"><div class="spine-track-label">Quest</div>${track('quest')}</div>
-          <div class="spine-track" data-track="romance"><div class="spine-track-label">Romance</div>${track('romance')}${track('rival')}</div>
-        </div>
-        <div class="spine-shared">${track('shared')}</div>
+
+    const prefs = outlinePrefs()
+    const dual = hasTracks(tmpl)
+    container.classList.toggle('outline-dual', dual)
+    const collapsed = prefs.collapsed || {}
+    container.innerHTML = tmpl.acts.map((act, i) => {
+      const closed = collapsed[act.label] === true
+      return `<section class="outline-act${closed ? ' collapsed' : ''}" data-act="${i}">
+        <button type="button" class="outline-act-head" aria-expanded="${!closed}">
+          <span class="outline-caret" aria-hidden="true">▾</span>
+          <span class="outline-act-label">${esc(act.label)}</span>
+          <em class="outline-act-count">${esc(actCounts(act))}</em>
+        </button>
+        <div class="outline-beats">${dual ? trackedAct(act) : act.beats.map(beatRow).join('')}</div>
       </section>`
     }).join('')
-    container.querySelectorAll('.beat-card').forEach(card => {
-      card.onclick = () => openStructureBuilder(card.dataset.beat)
+    bindOutline(container, tmpl)
+    renderProgress(tmpl)
+  }
+
+  function beatRow(b) {
+    const beats = _meta.beats || {}
+    const state = QuillStructure.beatState(b.id, beats, _structure)
+    const scenes = _scenesByBeat[b.id] || []
+    return `<article class="story-beat" id="story-beat-${esc(b.id)}" data-beat="${esc(b.id)}" data-state="${state}"${b.track ? ` data-track="${b.track}"` : ''}>
+      <div class="story-beat-head">
+        <i class="beat-dot" data-state="${state}" title="${state === 'draft' ? 'Earlier draft: not rewritten in your words yet' : state === 'mine' ? 'Written' : 'Not written yet'}"></i>
+        <span class="story-beat-label">${esc(b.label)}</span>
+        ${b.track ? `<span class="outline-tag" data-track="${b.track}">${TRACK_NAMES[b.track] || b.track}</span>` : ''}
+        <span class="outline-draft-tag"${state === 'draft' ? '' : ' hidden'} title="Text from before the Structure Builder. Typing here makes it yours; the original is kept in the builder.">earlier draft</span>
+        <button type="button" class="outline-questions" data-questions="${esc(b.id)}" title="Answer this beat’s questions in the Structure Builder">Questions →</button>
+      </div>
+      <textarea class="outline-summary l-auto" data-summary="${esc(b.id)}" rows="1" aria-label="${esc(b.label)}"
+        placeholder="${esc(b.hint || '')}">${esc(beats[b.id] || '')}</textarea>
+      <div class="outline-scenes">${scenes.length
+        ? `<span class="outline-scenes-label">Scenes</span>${scenes.map(sc => `<button type="button" class="outline-scene" data-path="${esc(sc.path)}">${esc(sc.title || 'Untitled scene')}</button>`).join('')}`
+        : '<span class="none">no scenes yet</span>'}</div>
+    </article>`
+  }
+
+  // Updates the dots, tags and counts after typing, without re-rendering the field being typed in.
+  function refreshBeatState(row) {
+    const id = row.dataset.beat
+    const state = QuillStructure.beatState(id, _meta.beats || {}, _structure)
+    row.dataset.state = state
+    row.querySelector('.beat-dot').dataset.state = state
+    row.querySelector('.outline-draft-tag').hidden = state !== 'draft'
+    const tmpl = currentTemplate()
+    document.querySelectorAll('#beats-container .outline-act').forEach(section => {
+      const act = tmpl.acts[Number(section.dataset.act)]
+      if (act) section.querySelector('.outline-act-count').textContent = actCounts(act)
+    })
+    renderProgress(tmpl)
+  }
+
+  function writeBeatLine(id, text) {
+    _meta.beats = _meta.beats || {}
+    QuillStructure.writeBeat(_structure, _meta.beats, id, text)
+    scheduleSave()
+    saveStructureSoon()
+  }
+
+  function bindOutline(container, tmpl) {
+    container.querySelectorAll('.outline-act-head').forEach(head => {
+      head.onclick = () => {
+        const section = head.closest('.outline-act')
+        const label = tmpl.acts[Number(section.dataset.act)]?.label
+        const closed = !section.classList.contains('collapsed')
+        section.classList.toggle('collapsed', closed)
+        head.setAttribute('aria-expanded', String(!closed))
+        setOutlinePrefs({ collapsed: { ...(outlinePrefs().collapsed || {}), [label]: closed } })
+        if (!closed) resizeAutoFields(section)
+      }
+    })
+    container.querySelectorAll('.story-beat').forEach(row => {
+      const id = row.dataset.beat
+      const summary = row.querySelector('.outline-summary')
+      summary.addEventListener('input', () => {
+        resizeAutoField(summary)
+        writeBeatLine(id, summary.value)
+        refreshBeatState(row)
+      })
+      summary.addEventListener('blur', () => { if (_structureSave) flushStructure() })
+      row.querySelector('[data-questions]').onclick = () => openStructureBuilder(id)
+      row.querySelectorAll('.outline-scene').forEach(btn => { btn.onclick = () => App.openFile(btn.dataset.path) })
+    })
+    setTimeout(() => resizeAutoFields(container), 0)
+    // Heights measured before the fonts load, or at another width (an iPad turned), are wrong.
+    document.fonts?.ready.then(() => resizeAutoFields(container))
+    watchOutlineWidth(container)
+  }
+
+  let _outlineWidth = 0
+  let _outlineObserver = null
+  function watchOutlineWidth(container) {
+    if (_outlineObserver || typeof ResizeObserver === 'undefined') return
+    _outlineObserver = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry.contentRect.width)
+      if (!width || width === _outlineWidth) return
+      _outlineWidth = width
+      const pane = container.closest('[data-nlpane]')
+      if (pane) resizeAutoFields(pane)
+    })
+    _outlineObserver.observe(container)
+  }
+
+  // One dot per beat, act by act: where the outline stands at a glance.
+  function renderProgress(tmpl = currentTemplate()) {
+    const el = document.getElementById('outline-progress')
+    if (!el) return
+    const beats = _meta.beats || {}
+    const all = tmpl.acts.flatMap(act => act.beats)
+    const written = all.filter(b => QuillStructure.beatState(b.id, beats, _structure) !== 'empty').length
+    const next = all.find(b => QuillStructure.beatState(b.id, beats, _structure) === 'empty')
+    el.innerHTML = `<div class="op-acts">${tmpl.acts.map(act => `<span class="op-act">
+        <span class="op-label">${esc(shortAct(act.label))}</span>
+        <span class="op-dots">${act.beats.map(b => {
+          const state = QuillStructure.beatState(b.id, beats, _structure)
+          return `<button type="button" class="op-dot" data-jump="${esc(b.id)}" aria-label="${esc(`${b.label}: ${state === 'empty' ? 'not written' : state === 'draft' ? 'earlier draft' : 'written'}`)}" title="${esc(b.label)}"><i class="beat-dot" data-state="${state}"></i></button>`
+        }).join('')}</span></span>`).join('')}</div>
+      <span class="op-summary">${written} of ${all.length} beats written</span>
+      ${next ? `<button type="button" class="op-next" data-jump="${esc(next.id)}">Next empty: ${esc(next.label)} →</button>`
+        : '<span class="op-done">Every beat has a line.</span>'}`
+    el.querySelectorAll('[data-jump]').forEach(btn => { btn.onclick = () => jumpToBeat(btn.dataset.jump) })
+  }
+
+  function jumpToBeat(id) {
+    const tmpl = currentTemplate()
+    const act = tmpl.acts.find(a => a.beats.some(b => b.id === id))
+    const beat = act?.beats.find(b => b.id === id)
+    if (!beat) return
+    const prefs = outlinePrefs()
+    if (prefs.collapsed?.[act.label]) {
+      setOutlinePrefs({ collapsed: { ...prefs.collapsed, [act.label]: false } })
+      renderBeats()
+    }
+    const row = document.getElementById(`story-beat-${id}`)
+    if (!row) return
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    row.querySelector('.outline-summary')?.focus({ preventScroll: true })
+  }
+
+  // Questions from the novel's own structure that are still open, for Free write's
+  // "Need a starting point?" card: unanswered foundation questions, then empty beats' questions.
+  function freewritePrompts() {
+    const foundation = QuillStructure.foundationFor(_structure)
+      .filter(f => !String(_structure.foundation?.[f.id] || '').trim())
+      .map(f => ({ text: f.q, source: 'Foundation' }))
+    const beats = currentTemplate().acts.flatMap(act => act.beats)
+      .filter(b => QuillStructure.beatState(b.id, _meta.beats || {}, _structure) === 'empty')
+      .flatMap(b => QuillStructure.questionsFor(b.id, _structure).questions.slice(0, 1).map(q => ({ text: q.text, source: b.label })))
+    return [...foundation, ...beats]
+  }
+
+  function initOutline(inner) {
+    const dump = inner.querySelector('#structure-dump')
+    if (outlinePrefs().dumpClosed) dump.open = false
+    dump.addEventListener('toggle', () => {
+      setOutlinePrefs({ dumpClosed: !dump.open })
+      if (dump.open) FreeWrite.refit(dump)
+    })
+    FreeWrite.showPanel(_path, inner.querySelector('#structure-freewrite'), {
+      countEl: inner.querySelector('#dump-count'),
+      onOpenPage: () => activateNovelTab('freewrite'),
     })
   }
 
-  function beatCard(b) {
-    const beats = _meta.beats || {}
-    const state = QuillStructure.beatState(b.id, beats, _structure)
-    const scenes = (_scenesByBeat[b.id] || []).length
-    const preview = state === 'empty' ? '— empty —' : String(beats[b.id]).trim()
-    return `<button type="button" class="beat-card" data-beat="${esc(b.id)}" data-state="${state}"${b.track ? ` data-track="${b.track}"` : ''}
-      title="${state === 'draft' ? 'Earlier draft: not rewritten in your words yet' : state === 'mine' ? 'Written in the Structure Builder' : 'Not written yet'}">
-      <span class="beat-card-head"><i class="beat-dot"></i><span class="beat-card-label">${esc(b.label)}</span></span>
-      <span class="beat-preview">${esc(preview)}</span>
-      <span class="beat-scenes${scenes ? '' : ' none'}">${scenes ? `${scenes} scene${scenes === 1 ? '' : 's'}` : 'no scenes yet'}</span>
-    </button>`
+  function showFreewritePage() {
+    const page = document.getElementById('freewrite-page')
+    if (page) FreeWrite.showPage(_path, page, { prompts: freewritePrompts }).then(() => FreeWrite.refit(page))
   }
 
-  function openStructureBuilder(startAt) {
+  async function openStructureBuilder(startAt) {
+    await flushStructure()
     StructureBuilder.open({
       novelPath: _path,
       title: _meta.folder_title || _path.split('/').pop(),
@@ -3643,195 +3791,14 @@ const Landing = (() => {
 
   async function flushPending() {
     await flushOutliner()
+    await flushStructure()
+    await FreeWrite.flush()
     await CaseBuilder.flush()
     if (_timelineSaveTimer) await saveTimeline(false)
     if (!_saveTimer) return
     clearTimeout(_saveTimer)
     _saveTimer = null
     await doSave()
-  }
-
-  // ── Seed Scene Generator ──────────────────────────────────
-
-  function initSeedScene(novelPath, meta) {
-    const banner = document.getElementById('seed-banner')
-    if (!banner) return
-
-    // The model is set once in Settings → AI.
-    const modelName = document.getElementById('seed-model-name')
-    if (modelName) modelName.textContent = QuillModels.label(QuillModels.current())
-    const apiKeyEl = document.getElementById('seed-api-key')
-    if (apiKeyEl) {
-      QuillAI.showKeyField(apiKeyEl)
-      apiKeyEl.addEventListener('change', () => QuillAI.saveKeyField(apiKeyEl).catch(err => alert(err.message)))
-    }
-
-    // style pills — multi-select
-    const activePills = new Set(['literary'])
-    document.getElementById('seed-style-pills')?.addEventListener('click', e => {
-      const pill = e.target.closest('.style-pill')
-      if (!pill) return
-      pill.classList.toggle('active')
-      if (pill.classList.contains('active')) activePills.add(pill.dataset.style)
-      else activePills.delete(pill.dataset.style)
-    })
-
-    // instructions toggle
-    document.getElementById('seed-instr-toggle')?.addEventListener('click', () => {
-      const panel = document.getElementById('seed-instr-panel')
-      const btn   = document.getElementById('seed-instr-toggle')
-      if (!panel) return
-      const open = panel.style.display === 'none'
-      panel.style.display = open ? '' : 'none'
-      btn.textContent = open ? 'Instructions ‹' : 'Instructions ›'
-      if (open) {
-        const ta = document.getElementById('seed-instr-ta')
-        if (ta && !ta.value) ta.value = localStorage.getItem('quill_seed_instructions') || ''
-      }
-    })
-    document.getElementById('seed-instr-save')?.addEventListener('click', () => {
-      const val = (document.getElementById('seed-instr-ta')?.value || '').trim()
-      if (val) localStorage.setItem('quill_seed_instructions', val)
-      else localStorage.removeItem('quill_seed_instructions')
-      document.getElementById('seed-instr-panel').style.display = 'none'
-      document.getElementById('seed-instr-toggle').textContent = 'Instructions ›'
-    })
-    document.getElementById('seed-instr-reset')?.addEventListener('click', () => {
-      localStorage.removeItem('quill_seed_instructions')
-      const ta = document.getElementById('seed-instr-ta')
-      if (ta) ta.value = ''
-    })
-
-    let _lastScene = ''
-
-    // generate
-    const doGenerate = async () => {
-      const hasKey = await QuillAI.hasKey()
-      if (!hasKey) {
-        document.getElementById('seed-footer-note').textContent = 'Add your OpenRouter API key in Settings → AI (⌘,) first.'
-        return
-      }
-      const model      = QuillModels.current()
-      const pov        = document.getElementById('seed-pov')?.value.trim()        || 'first person'
-      const atmosphere = document.getElementById('seed-atmosphere')?.value.trim() || ''
-      const entry      = document.getElementById('seed-entry')?.value.trim()      || ''
-      const length     = document.getElementById('seed-length')?.value.trim()     || '~500 words'
-      const customTxt  = document.getElementById('seed-custom-text')?.value.trim() || ''
-      const pillStyles = [...activePills].join(', ')
-      const styles     = [pillStyles, customTxt].filter(Boolean).join(', ')
-      const instrOverride = localStorage.getItem('quill_seed_instructions')
-
-      const chars = (meta.characters || []).slice(0, 3).map(c =>
-        `${c.name || 'Unnamed'} (${c.role || ''}): want: ${c.want || ''}, fear: ${c.fear || ''}, wound: ${c.wound || ''}`
-      ).join('\n')
-
-      const systemPrompt = instrOverride || `You are a literary fiction writer specializing in ${meta.genre || 'genre fiction'}. You write scenes that are visceral, psychologically precise, and true to the emotional register of the story. You never sanitize. You write prose that earns its moments. You do not explain — you show.`
-
-      const userPrompt = `Write a scene for this novel.
-
-NOVEL: ${meta.folder_title || 'Untitled'}
-GENRE: ${meta.genre || ''}
-LOGLINE: ${meta.logline || ''}
-THEMES: ${meta.themes || ''}
-
-CHARACTERS:
-${chars || '(none defined yet)'}
-
-SCENE PARAMETERS:
-- POV: ${pov}
-- Atmosphere: ${atmosphere}
-- Entry point: ${entry}
-- Length: ${length}
-- Style: ${styles}
-
-Write only the scene itself. No title, no preamble, no commentary after. Start immediately in the action.`
-
-      const btn = document.getElementById('seed-generate-btn')
-      const noteEl = document.getElementById('seed-footer-note')
-      btn.disabled = true
-      btn.textContent = 'Generating…'
-      noteEl.textContent = 'Reading your novel…'
-
-      const outputEl  = document.getElementById('seed-output')
-      const outputTxt = document.getElementById('seed-output-text')
-      const labelTxt  = document.getElementById('seed-output-label-text')
-      outputEl.style.display = 'none'
-
-      try {
-        const resp = await QuillAI.fetch({
-          method: 'POST',
-          body: JSON.stringify({
-            model,
-            max_tokens: 1200,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user',   content: userPrompt },
-            ]
-          })
-        })
-        const data  = await resp.json()
-        if (data.error) throw new Error(data.error.message || 'API error')
-        _lastScene  = data.choices?.[0]?.message?.content || ''
-        outputTxt.textContent = _lastScene
-        labelTxt.textContent  = ['Scene', styles, atmosphere, entry].filter(Boolean).join(' · ')
-        outputEl.style.display = ''
-        noteEl.textContent = 'Opens as a new scene file in Act 1'
-      } catch (err) {
-        noteEl.textContent = 'Error: ' + err.message
-      } finally {
-        btn.disabled = false
-        btn.textContent = 'Generate scene'
-      }
-    }
-
-    document.getElementById('seed-generate-btn')?.addEventListener('click', doGenerate)
-    document.getElementById('seed-regen-btn')?.addEventListener('click', doGenerate)
-
-    document.getElementById('seed-copy-btn')?.addEventListener('click', () => {
-      if (_lastScene) navigator.clipboard.writeText(_lastScene).catch(() => {})
-      const btn = document.getElementById('seed-copy-btn')
-      btn.textContent = 'Copied!'
-      setTimeout(() => { btn.textContent = 'Copy' }, 1500)
-    })
-
-    document.getElementById('seed-brainstorm-btn')?.addEventListener('click', () => {
-      if (_lastScene && typeof App !== 'undefined') {
-        App.toggleBrainstorm(`I've generated this seed scene — can you help me develop it?\n\n${_lastScene}`)
-      }
-    })
-
-    document.getElementById('seed-open-btn')?.addEventListener('click', async () => {
-      if (!_lastScene) return
-      const btn = document.getElementById('seed-open-btn')
-      btn.textContent = 'Creating…'; btn.disabled = true
-      try {
-        // find Act 1 folder
-        const tree = await window.quill.getTree()
-        let act1Path = null
-        const findAct1 = node => {
-          for (const child of (node.children || [])) {
-            if (child.path && child.path.startsWith(novelPath) &&
-                (child.folder_type === 'act' || (child.name || '').toLowerCase().includes('act'))) {
-              act1Path = child.path; return
-            }
-            findAct1(child)
-          }
-        }
-        findAct1(tree)
-        const folder = act1Path || novelPath
-        const result = await window.quill.newFile({ folder, title: 'Seed Scene' })
-        if (result?.path) {
-          // save the scene text into the new file
-          await window.quill.saveFile({ rel: result.path, meta: { title: 'Seed Scene' }, body: _lastScene })
-          if (typeof App !== 'undefined') await App.openFile(result.path)
-          if (typeof Tree !== 'undefined') Tree.refresh()
-        }
-      } catch (err) {
-        btn.textContent = 'Error'; setTimeout(() => { btn.textContent = 'Open as new scene →'; btn.disabled = false }, 2000)
-        return
-      }
-      btn.textContent = 'Open as new scene →'; btn.disabled = false
-    })
   }
 
   // ── Called by App.goBack() ────────────────────────────────

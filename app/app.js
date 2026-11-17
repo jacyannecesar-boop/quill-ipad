@@ -307,6 +307,7 @@ const App = (() => {
     await Landing.flushPending?.()
     await Board.flushPending?.()
     await Scraps.flushPending?.()
+    if (typeof FreeWrite !== 'undefined') await FreeWrite.flush?.()
     if (typeof StyleStudy !== 'undefined') await StyleStudy.flushPending?.()
     await flushOutline()
   }
@@ -502,7 +503,7 @@ const App = (() => {
     await openFolder(projectPath, 'novel')
     const labels = {
       overview:'Overview', outliner:'Outliner', timeline:'Timeline', audit:'Manuscript Audit', outline:'Structure', case:'Case', characters:'Characters', novelboard:'Board',
-      read:'Read Draft', freewrite:'Scene Generator', scraps:'Scraps', brainstorm:'Brainstorm', concept:'Concept Art',
+      read:'Read Draft', freewrite:'Free write', scraps:'Scraps', brainstorm:'Brainstorm', concept:'Concept Art',
       styleguide:'Style Guide',
     }
 

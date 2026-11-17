@@ -342,7 +342,7 @@ const Tree = (() => {
     }
 
     workspaceSection(wrap, 'Studio')
-    workspaceNavRow(wrap, project, 'freewrite', 'Scene Generator', '✎', () => App.openNovelWorkspace(project.path, 'freewrite'))
+    workspaceNavRow(wrap, project, 'freewrite', 'Free write', '✎', () => App.openNovelWorkspace(project.path, 'freewrite'))
     workspaceNavRow(wrap, project, 'scraps', 'Scraps', '❏', () => App.openNovelWorkspace(project.path, 'scraps'))
     workspaceNavRow(wrap, project, 'brainstorm', 'Brainstorm', '✦', () => App.openNovelWorkspace(project.path, 'brainstorm'))
     workspaceNavRow(wrap, project, 'concept', 'Concept Art', '◉', () => App.openNovelWorkspace(project.path, 'concept'))

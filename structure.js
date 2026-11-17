@@ -308,6 +308,18 @@
     return { version: 1, triangle: false, mystery: false, foundation: {}, answers: {}, mine: {}, drafts: {} }
   }
 
+  // Writes a beat's line in the writer's own words, from the Structure tab or the builder.
+  // The first time text from before the builder is typed over, the original is kept in
+  // `drafts`. Mutates and returns { structure, beats }.
+  function writeBeat(structure, beats, id, text) {
+    if (beatState(id, beats, structure) === 'draft' && !structure.drafts?.[id]) {
+      structure.drafts = { ...(structure.drafts || {}), [id]: beats[id] }
+    }
+    beats[id] = text
+    structure.mine = { ...(structure.mine || {}), [id]: true }
+    return { structure, beats }
+  }
+
   // The whole structure as Markdown, for pasting into a chat with an AI or a critique partner.
   // caseDigest: QuillCase.caseDigest(cases, scenes), printed as a Cases section when Mystery is on.
   function toMarkdown({ title = '', templateKey = 'generic', beats = {}, structure = {}, scenesByBeat = {}, caseDigest = null } = {}) {
@@ -351,6 +363,6 @@
 
   return {
     TEMPLATES, FOUNDATION_STEPS, FOUNDATION, BEAT_QUESTIONS, MYSTERY_QUESTIONS, MIGRATIONS,
-    template, beatsOf, allBeatIds, foundationSteps, foundationFor, questionsFor, migrate, beatState, blankStructure, toMarkdown,
+    template, beatsOf, allBeatIds, foundationSteps, foundationFor, questionsFor, migrate, beatState, blankStructure, writeBeat, toMarkdown,
   }
 })
