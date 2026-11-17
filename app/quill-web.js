@@ -3485,6 +3485,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         mergePreviewDiff: (args) => ipcRenderer2.invoke("merge-preview-diff", args),
         discardMergePreview: (args) => ipcRenderer2.invoke("discard-merge-preview", args),
         applyMergePreview: (args) => ipcRenderer2.invoke("apply-merge-preview", args),
+        syncCopyDiff: (args) => ipcRenderer2.invoke("sync-copy-diff", args),
+        resolveSyncCopy: (args) => ipcRenderer2.invoke("resolve-sync-copy", args),
         assembleNovel: (rel) => ipcRenderer2.invoke("assemble-novel", rel),
         exportNovelMd: (args) => ipcRenderer2.invoke("export-novel-md", args),
         exportManuscriptPdf: (args) => ipcRenderer2.invoke("export-manuscript-pdf", args),
@@ -9653,8 +9655,7 @@ ${str(e.text).trim()}
           if (!taken.has(name2)) return name2;
         }
       }
-      function detectMoves(local, remote, base, ownerOf = () => null) {
-        if (!base) return [];
+      function detectMoves(local, remote, base, ownerOf = () => null, baseIds = null) {
         const dirOf = (rel) => {
           const i2 = rel.lastIndexOf("/");
           return i2 < 0 ? "" : rel.slice(0, i2);
@@ -9662,27 +9663,33 @@ ${str(e.text).trim()}
         const bySceneId = (files, other) => {
           const out = /* @__PURE__ */ new Map();
           for (const [rel, entry] of Object.entries(files)) {
-            if (!entry.s || other[rel] || rel.startsWith(".trash/") || !/\.md$/i.test(rel) || ownerOf(rel)) continue;
+            if (!entry.s || other[rel] || !isScene(rel, ownerOf)) continue;
             out.set(entry.s, out.has(entry.s) ? null : rel);
           }
           return out;
         };
         const here = bySceneId(local, remote), there = bySceneId(remote, local);
         const moves = [], usedL = /* @__PURE__ */ new Set(), usedR = /* @__PURE__ */ new Set();
-        const add = (lp, rp, isThere) => {
+        const add = (lp, rp, isThere, extra = {}) => {
           if (usedL.has(lp) || usedR.has(rp) || !local[lp] || remote[lp] || !remote[rp] || local[rp]) return false;
           usedL.add(lp);
           usedR.add(rp);
-          moves.push({ lp, rp, there: isThere });
+          moves.push({ lp, rp, there: isThere, ...extra });
           return true;
         };
         const scenes = [];
         for (const [id, lp] of here) {
           const rp = there.get(id);
           if (!lp || !rp) continue;
-          const movedThere = base[lp] !== void 0 && base[rp] === void 0;
-          const movedHere = base[rp] !== void 0 && base[lp] === void 0;
-          if ((movedThere || movedHere) && add(lp, rp, movedThere)) scenes.push({ lp, rp, there: movedThere });
+          const was = baseIds && typeof baseIds[id] === "string" ? baseIds[id] : null;
+          let movedThere = was ? was === lp : !!base && base[lp] !== void 0 && base[rp] === void 0;
+          let movedHere = was ? was === rp : !!base && base[rp] !== void 0 && base[lp] === void 0;
+          let conflict = false;
+          if (!movedThere && !movedHere) {
+            conflict = true;
+            movedThere = (remote[rp].m || 0) > (local[lp].m || 0);
+          }
+          if (add(lp, rp, movedThere, conflict ? { conflict } : {})) scenes.push({ lp, rp, there: movedThere });
         }
         const swap = (rel, from, to) => {
           const f = from.replace(/\.md$/i, ""), t = to.replace(/\.md$/i, "");
@@ -9720,16 +9727,41 @@ ${str(e.text).trim()}
         }
         return moves;
       }
-      function planMerge({ local, remote, base = null, since = null, localName = "this device", remoteName = "other device", ownerOf, retitled = () => false }) {
-        const moves = detectMoves(local, remote, base, ownerOf);
+      function isScene(rel, ownerOf = () => null) {
+        return /\.md$/i.test(rel) && !rel.startsWith(".trash/") && !ownerOf(rel);
+      }
+      function sceneIds(files, ownerOf = () => null) {
+        const out = {}, seen = /* @__PURE__ */ new Set();
+        for (const [rel, entry] of Object.entries(files || {})) {
+          if (!entry || !entry.s || !isScene(rel, ownerOf)) continue;
+          if (seen.has(entry.s)) delete out[entry.s];
+          else out[entry.s] = rel;
+          seen.add(entry.s);
+        }
+        return out;
+      }
+      function chooseBase(mine, theirs) {
+        const time = (b) => {
+          const t = Date.parse(b?.at || "");
+          return Number.isFinite(t) ? t : -Infinity;
+        };
+        const usable = (b) => b && b.files && typeof b.files === "object";
+        if (!usable(theirs)) return usable(mine) ? mine : null;
+        if (!usable(mine)) return theirs;
+        return time(theirs) > time(mine) ? theirs : mine;
+      }
+      function planMerge({ local, remote, base = null, baseIds = null, since = null, localName = "this device", remoteName = "other device", ownerOf = () => null, retitled = () => false }) {
+        const moves = detectMoves(local, remote, base, ownerOf, baseIds);
         const moveActions = [], sourceOf = {}, keepTitle = /* @__PURE__ */ new Set();
+        const renamedBoth = /* @__PURE__ */ new Map();
         if (moves.length) {
           const oldBase = base;
           local = { ...local };
           remote = { ...remote };
           base = { ...base };
           for (const m of moves) {
-            const titleOnly = /\.md$/i.test(m.lp) && retitled(m);
+            const titleOnly = !m.conflict && /\.md$/i.test(m.lp) && retitled(m);
+            if (m.conflict) renamedBoth.set(m.there ? m.rp : m.lp, m.there ? { alt: m.lp, altSide: "here" } : { alt: m.rp, altSide: "there" });
             const [from, to, side] = m.there ? [m.lp, m.rp, local] : [m.rp, m.lp, remote];
             side[to] = side[from];
             delete side[from];
@@ -9748,14 +9780,21 @@ ${str(e.text).trim()}
           }
         }
         const actions = [];
-        const summary = { taken: [], kept: [], trashed: [], copies: [], combined: [], restored: [], moved: [] };
+        const summary = { taken: [], kept: [], trashed: [], copies: [], combined: [], restored: [], moved: [], conflicts: [] };
         const changedAfter = (entry) => since != null && entry.m > since + SLACK_MS;
         const taken = /* @__PURE__ */ new Set([...Object.keys(local), ...Object.keys(remote)]);
         const paths = [...taken].filter((rel) => !IGNORED(rel)).sort();
         for (const rel of paths) {
           const l = local[rel], r = remote[rel];
           const b = base ? base[rel] : void 0;
-          if (l && r && l.h === r.h) continue;
+          const named = renamedBoth.get(rel);
+          if (l && r && l.h === r.h) {
+            if (named) {
+              actions.push({ op: "resolve", rel, newer: r.m > l.m ? "remote" : "local", ...named });
+              summary.conflicts.push(rel);
+            }
+            continue;
+          }
           if (!l) {
             if (base && b !== void 0 && b === r.h) continue;
             actions.push({ op: "take", rel });
@@ -9781,14 +9820,16 @@ ${str(e.text).trim()}
           } else {
             localChanged = remoteChanged = true;
           }
-          if (remoteChanged && !localChanged) {
-            actions.push({ op: "take", rel });
-            summary.taken.push(rel);
-            continue;
-          }
-          if (localChanged && !remoteChanged) {
-            summary.kept.push(rel);
-            continue;
+          if (!named) {
+            if (remoteChanged && !localChanged) {
+              actions.push({ op: "take", rel });
+              summary.taken.push(rel);
+              continue;
+            }
+            if (localChanged && !remoteChanged) {
+              summary.kept.push(rel);
+              continue;
+            }
           }
           const echo = copyName(rel, localName);
           if (remote[echo] && remote[echo].h === l.h && !local[echo]) {
@@ -9803,6 +9844,12 @@ ${str(e.text).trim()}
           }
           const as = copyName(rel, remoteName, taken);
           taken.add(as);
+          if (isScene(rel, ownerOf) && !(l.s && r.s && l.s !== r.s)) {
+            const newer = remoteChanged && !localChanged ? "remote" : localChanged && !remoteChanged ? "local" : r.m > l.m ? "remote" : "local";
+            actions.push({ op: "resolve", rel, as, newer, ...named || {} });
+            summary.conflicts.push(rel);
+            continue;
+          }
           actions.push({ op: "copy", rel, as });
           summary.copies.push({ rel, as });
         }
@@ -9812,7 +9859,7 @@ ${str(e.text).trim()}
         }
         actions.push(...moveActions);
         summary.moved = moveActions.map((a) => a.rel);
-        const order = { move: -1, take: 0, combine: 1, copy: 2, trash: 3 };
+        const order = { move: -1, take: 0, combine: 1, copy: 2, resolve: 2, trash: 3 };
         actions.sort((a, b) => order[a.op] - order[b.op]);
         return { actions, summary, moves };
       }
@@ -9822,7 +9869,7 @@ ${str(e.text).trim()}
         const groupOf = (action) => {
           if (isData(action.rel) || action.rel.startsWith(".trash/")) return "settings";
           if (action.op === "move") return "moved";
-          if (action.op === "copy") return "both";
+          if (action.op === "copy" || action.op === "resolve") return "both";
           if (action.op === "trash") return "deleted";
           if (local[action.rel]) return "edited";
           return restoredSet.has(action.rel) ? "restored" : "new";
@@ -9838,7 +9885,8 @@ ${str(e.text).trim()}
           const item = items.get(action.rel);
           if (item) {
             item.actions.push(action);
-            if (action.op === "copy") item.as = action.as;
+            if (action.op === "copy" || action.op === "resolve") Object.assign(item, { group: "both", op: action.op, as: action.as });
+            if (action.op === "resolve") Object.assign(item, { newer: action.newer, alt: action.alt, altSide: action.altSide });
             continue;
           }
           items.set(action.rel, {
@@ -9850,7 +9898,8 @@ ${str(e.text).trim()}
             from: action.from,
             src: action.src,
             actions: [action],
-            companions: 0
+            companions: 0,
+            ...action.op === "resolve" ? { newer: action.newer, alt: action.alt, altSide: action.altSide } : {}
           });
         }
         for (const { owner, action } of companions) {
@@ -9877,6 +9926,18 @@ ${str(e.text).trim()}
           const keep2 = prev !== void 0 ? prev : action.op === "take" || action.op === "trash" ? local[action.rel]?.h : void 0;
           if (keep2 === void 0) delete out[key];
           else out[key] = keep2;
+        }
+        return out;
+      }
+      function nextIds(remote, oldIds, skipped, ownerOf = () => null) {
+        const out = sceneIds(remote, ownerOf);
+        for (const action of skipped) {
+          if (action.op !== "move") continue;
+          const id = remote[action.rel]?.s;
+          if (id && out[id] === action.rel) {
+            if (oldIds && typeof oldIds[id] === "string") out[id] = oldIds[id];
+            else delete out[id];
+          }
         }
         return out;
       }
@@ -10044,7 +10105,173 @@ ${body}
         for (const c of copies) if (!out.includes(c.name) && present.has(c.name)) out.push(c.name);
         return out;
       }
-      module.exports = { MANIFEST, STATS, IGNORED, isData, sha256: sha2563, copyName, detectMoves, planMerge, planItems, nextBase, combineJson, combineStats, combineAchievements, combineProjectTime, retitleScene, orderWithCopies };
+      module.exports = { MANIFEST, STATS, IGNORED, isData, isScene, sha256: sha2563, copyName, detectMoves, sceneIds, chooseBase, planMerge, planItems, nextBase, nextIds, combineJson, combineStats, combineAchievements, combineProjectTime, retitleScene, orderWithCopies };
+    }
+  });
+
+  // scene-merge.js
+  var require_scene_merge = __commonJS({
+    "scene-merge.js"(exports, module) {
+      var { parseFM, frontmatterBounds, setFrontmatterField } = require_frontmatter();
+      var FIELD_LABELS = {
+        title: "Title",
+        scene_status: "Status",
+        scene_pov: "POV",
+        scene_setting: "Setting",
+        scene_synopsis: "Synopsis",
+        scene_purpose: "Purpose",
+        scene_beats: "Beats",
+        tags: "Tags",
+        mood: "Mood",
+        word_goal: "Word goal",
+        font: "Font",
+        date: "Date"
+      };
+      var HIDDEN_FIELDS = /* @__PURE__ */ new Set(["scene_id"]);
+      var fieldLabel = (key) => FIELD_LABELS[key] || key.replace(/^scene_/, "").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+      function blocksOf(body) {
+        const blocks = [];
+        let blank = true;
+        for (const line of String(body || "").replace(/\r\n?/g, "\n").split("\n")) {
+          if (!line.trim()) {
+            blank = true;
+            continue;
+          }
+          if (!blank && /^\s/.test(line) && blocks.length) blocks[blocks.length - 1] += `
+${line}`;
+          else blocks.push(line);
+          blank = false;
+        }
+        return blocks;
+      }
+      var separatorOf = (body) => /\n[ \t]*\n\S/.test(String(body || "")) ? "\n\n" : "\n";
+      function diffLists(a, b, same = (x2, y) => x2 === y) {
+        let start6 = 0;
+        while (start6 < a.length && start6 < b.length && same(a[start6], b[start6])) start6++;
+        let endA = a.length, endB = b.length;
+        while (endA > start6 && endB > start6 && same(a[endA - 1], b[endB - 1])) {
+          endA--;
+          endB--;
+        }
+        const out = a.slice(0, start6).map((x2) => ["=", x2]);
+        const midA = a.slice(start6, endA), midB = b.slice(start6, endB);
+        const rows = midA.length + 1, cols = midB.length + 1;
+        if (rows * cols > 4e6) {
+          out.push(...midA.map((x2) => ["-", x2]), ...midB.map((x2) => ["+", x2]));
+        } else {
+          const table = Array.from({ length: rows }, () => new Uint32Array(cols));
+          for (let i3 = midA.length - 1; i3 >= 0; i3--) {
+            for (let j2 = midB.length - 1; j2 >= 0; j2--) {
+              table[i3][j2] = same(midA[i3], midB[j2]) ? table[i3 + 1][j2 + 1] + 1 : Math.max(table[i3 + 1][j2], table[i3][j2 + 1]);
+            }
+          }
+          let i2 = 0, j = 0;
+          while (i2 < midA.length && j < midB.length) {
+            if (same(midA[i2], midB[j])) {
+              out.push(["=", midA[i2]]);
+              i2++;
+              j++;
+            } else if (table[i2 + 1][j] >= table[i2][j + 1]) out.push(["-", midA[i2++]]);
+            else out.push(["+", midB[j++]]);
+          }
+          while (i2 < midA.length) out.push(["-", midA[i2++]]);
+          while (j < midB.length) out.push(["+", midB[j++]]);
+        }
+        out.push(...a.slice(endA).map((x2) => ["=", x2]));
+        return out;
+      }
+      function wordDiff(before, after) {
+        const out = [];
+        const tokens = (text) => text.split(/(\s+|[^\p{L}\p{N}\s'’])/u);
+        for (const [op, word] of diffLists(tokens(before), tokens(after))) {
+          if (!word) continue;
+          const last = out[out.length - 1];
+          if (last && last[0] === op) last[1] += word;
+          else out.push([op, word]);
+        }
+        return out;
+      }
+      var sameBlock = (a, b) => a.trim() === b.trim();
+      function textHunks(hereBody, thereBody) {
+        const ops = diffLists(blocksOf(hereBody), blocksOf(thereBody), sameBlock);
+        const hunks = [];
+        let id = 0;
+        for (let k = 0; k < ops.length; ) {
+          if (ops[k][0] === "=") {
+            const same = [];
+            while (k < ops.length && ops[k][0] === "=") same.push(ops[k++][1]);
+            hunks.push({ same });
+            continue;
+          }
+          const here = [], there = [];
+          while (k < ops.length && ops[k][0] !== "=") (ops[k][0] === "-" ? here : there).push(ops[k++][1]);
+          const pairs = Math.min(here.length, there.length);
+          const lines = [];
+          for (let p = 0; p < pairs; p++) lines.push(wordDiff(here[p], there[p]));
+          for (const block of here.slice(pairs)) lines.push([["-", block]]);
+          for (const block of there.slice(pairs)) lines.push([["+", block]]);
+          hunks.push({ id: id++, here, there, lines });
+        }
+        return hunks;
+      }
+      function fieldDiffs(hereMeta, thereMeta) {
+        const show2 = (v) => Array.isArray(v) ? v.join(", ") : String(v ?? "");
+        const out = [];
+        for (const key of /* @__PURE__ */ new Set([...Object.keys(hereMeta), ...Object.keys(thereMeta)])) {
+          if (HIDDEN_FIELDS.has(key)) continue;
+          const here = show2(hereMeta[key]), there = show2(thereMeta[key]);
+          if (here !== there) out.push({ key, label: fieldLabel(key), here, there });
+        }
+        const rank = (key) => key === "title" ? 0 : key in FIELD_LABELS ? 1 + Object.keys(FIELD_LABELS).indexOf(key) : 99;
+        return out.sort((a, b) => rank(a.key) - rank(b.key));
+      }
+      function sceneDiff(hereRaw, thereRaw) {
+        const here = parseFM(String(hereRaw ?? "")), there = parseFM(String(thereRaw ?? ""));
+        return { hunks: textHunks(here.body, there.body), fields: fieldDiffs(here.meta, there.meta) };
+      }
+      function defaultChoices(diff, newer) {
+        const side = newer === "local" ? "here" : "there";
+        return {
+          hunks: Object.fromEntries(diff.hunks.filter((h) => !h.same).map((h) => [h.id, side])),
+          fields: Object.fromEntries(diff.fields.map((f) => [f.key, side]))
+        };
+      }
+      function applyChoices(hereRaw, thereRaw, choices = {}, newer = "remote") {
+        hereRaw = String(hereRaw ?? "");
+        thereRaw = String(thereRaw ?? "");
+        const here = parseFM(hereRaw), there = parseFM(thereRaw);
+        const diff = { hunks: textHunks(here.body, there.body), fields: fieldDiffs(here.meta, there.meta) };
+        const fallback = defaultChoices(diff, newer);
+        const pick = (map, key) => {
+          const v = choices[map]?.[key] ?? fallback[map][key];
+          return v === "here" || v === "there" || v === "both" ? v : fallback[map][key];
+        };
+        const blocks = [];
+        for (const hunk of diff.hunks) {
+          if (hunk.same) {
+            blocks.push(...hunk.same);
+            continue;
+          }
+          const choice = pick("hunks", hunk.id);
+          if (choice !== "there") blocks.push(...hunk.here);
+          if (choice !== "here") blocks.push(...hunk.there);
+        }
+        const sepFrom = newer === "local" ? here.body : there.body;
+        const body = blocks.join(separatorOf(sepFrom));
+        let raw = hereRaw;
+        for (const field of diff.fields) {
+          if (pick("fields", field.key) !== "there") continue;
+          const value = there.meta[field.key];
+          raw = setFrontmatterField(raw, field.key, Array.isArray(value) ? `[${value.join(", ")}]` : value ?? "");
+        }
+        const bounds = frontmatterBounds(raw);
+        const prefix = bounds ? `${bounds.lines.slice(0, bounds.close + 1).join("\n")}
+
+` : "";
+        const trailing = /\n$/.test(sepFrom) || /\n$/.test(hereRaw) ? "\n" : "";
+        return `${prefix}${body}${body && trailing}`;
+      }
+      module.exports = { blocksOf, diffLists, wordDiff, textHunks, fieldDiffs, sceneDiff, defaultChoices, applyChoices, fieldLabel };
     }
   });
 
@@ -10073,6 +10300,7 @@ ${body}
       var AIContext = require_aicontext();
       var ChatGPT = require_chatgpt_web();
       var BackupMerge = require_backup_merge();
+      var SceneMerge = require_scene_merge();
       var ROOT = __quillProcess.env.QUILL_LIBRARY_ROOT || path5.join(os.homedir(), "Documents", "Quill");
       if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
       function readMeta(folderPath) {
@@ -16790,7 +17018,10 @@ ${sc.text}`);
           // When this library last matched another device's: its last full restore from one.
           restoredAt: state.restoredFrom && state.restoredFrom !== state.deviceId ? state.restoredAt ?? null : null,
           files: hashTree(ROOT),
-          bases: Object.fromEntries(Object.entries(state.bases).map(([id, base]) => [id, base.files]))
+          bases: Object.fromEntries(Object.entries(state.bases).map(([id, base]) => [id, base.files])),
+          // When each base was taken and where its scenes were, so the other device can tell whether
+          // its own record or this one is the later, and follow scenes either device renamed.
+          baseInfo: Object.fromEntries(Object.entries(state.bases).map(([id, base]) => [id, { at: base.at || null, ids: base.ids || null }]))
         };
       }
       ipcMain2.handle("sync-manifest", () => syncManifest());
@@ -16812,7 +17043,10 @@ ${sc.text}`);
         const peer = manifest?.deviceId || "legacy";
         state.restoredAt = Date.now();
         state.restoredFrom = peer;
-        if (peer !== state.deviceId) state.bases[peer] = { files: hashesOf(hashTree(ROOT)), at: (/* @__PURE__ */ new Date()).toISOString(), name: manifest?.deviceName || "" };
+        if (peer !== state.deviceId) {
+          const files = hashTree(ROOT);
+          state.bases[peer] = { files: hashesOf(files), ids: BackupMerge.sceneIds(files, sceneOwnerOf), at: (/* @__PURE__ */ new Date()).toISOString(), name: manifest?.deviceName || "" };
+        }
         writeSyncState(state);
       }
       function mergeStatsFile(target2, source, theirsNewer, renames = []) {
@@ -16863,9 +17097,43 @@ ${sc.text}`);
         const raw = fs.readFileSync(full, "utf8");
         if ((parseFM(raw).meta.title ?? null) !== title) atomicWriteFileSync(full, setFrontmatterField(raw, "title", title), "utf8");
       }
-      function applyMergeActions(actions, sourceRoot, remoteName, remotePaths, moves = []) {
+      function relocateScene(fromRel, toRel) {
+        const from = path5.join(ROOT, fromRel), to = path5.join(ROOT, toRel);
+        if (fromRel === toRel || !safeChildStat(from)?.isFile() || fs.existsSync(to)) return false;
+        fs.mkdirSync(path5.dirname(to), { recursive: true });
+        fs.renameSync(from, to);
+        moveSceneCompanions(from, to);
+        if (path5.dirname(from) === path5.dirname(to)) replaceOrderEntry(path5.dirname(from), "file_order", path5.basename(from), path5.basename(to));
+        else {
+          replaceOrderEntry(path5.dirname(from), "file_order", path5.basename(from));
+          replaceOrderEntry(path5.dirname(to), "file_order", path5.basename(to), path5.basename(to));
+        }
+        remapRenamedPaths([{ from: fromRel, to: toRel }]);
+        return true;
+      }
+      function normalChoice(choice, action, defaultMode) {
+        const c = choice && typeof choice === "object" ? choice : {};
+        const mode = ["merge", "here", "there", "both"].includes(c.mode) ? c.mode : defaultMode;
+        const side = action.newer === "local" ? "here" : "there";
+        const name2 = c.name === "here" || c.name === "there" ? c.name : null;
+        return { mode, hunks: c.hunks || {}, fields: { ...c.fields || {} }, companions: c.companions || {}, name: name2, side };
+      }
+      function applyMergeActions(actions, sourceRoot, remoteName, remotePaths, moves = [], choices = {}, defaultMode = "merge") {
         const copies = /* @__PURE__ */ new Map();
         const trashed = [];
+        const relocations = [];
+        const companionChoice = /* @__PURE__ */ new Map();
+        const wholeSide = /* @__PURE__ */ new Map();
+        for (const action of actions) {
+          if (action.op !== "resolve") continue;
+          const choice = normalChoice(choices[action.rel], action, defaultMode);
+          if (choice.mode === "here" || choice.mode === "there") wholeSide.set(action.rel, choice.mode);
+          for (const [rel, side] of Object.entries(choice.companions)) if (side === "here" || side === "there") companionChoice.set(rel, side);
+        }
+        for (const action of actions) {
+          const whole = action.op === "combine" && wholeSide.get(sceneOwnerOf(action.rel));
+          if (whole && !companionChoice.has(action.rel)) companionChoice.set(action.rel, whole);
+        }
         const moved = [];
         for (const action of actions) {
           if (action.op !== "move") continue;
@@ -16896,6 +17164,30 @@ ${sc.text}`);
             fs.mkdirSync(path5.dirname(target2), { recursive: true });
             atomicWriteFileSync(target2, fs.readFileSync(source), null);
             if (title != null) setSceneTitle(target2, title);
+          } else if (action.op === "combine" && companionChoice.has(action.rel)) {
+            if (companionChoice.get(action.rel) === "there") atomicWriteFileSync(target2, fs.readFileSync(source), null);
+          } else if (action.op === "resolve") {
+            const choice = normalChoice(choices[action.rel], action, defaultMode);
+            const hereRaw = safeChildStat(target2)?.isFile() ? fs.readFileSync(target2, "utf8") : null;
+            const thereRaw = fs.readFileSync(source, "utf8");
+            const nameSide = action.alt ? choice.name || (action.altSide === "here" ? "there" : "here") : null;
+            if (nameSide) choice.fields.title = nameSide;
+            if (choice.mode === "both" && !action.as) choice.mode = "merge";
+            if (hereRaw == null || choice.mode === "there") {
+              atomicWriteFileSync(target2, thereRaw, "utf8");
+              if (hereRaw != null && nameSide === "here") setSceneTitle(target2, parseFM(hereRaw).meta.title ?? null);
+            } else if (choice.mode === "both") {
+              atomicWriteFileSync(path5.join(ROOT, action.as), BackupMerge.retitleScene(thereRaw, remoteName), "utf8");
+              const folder = path5.posix.dirname(action.rel);
+              if (!copies.has(folder)) copies.set(folder, []);
+              copies.get(folder).push({ of: path5.posix.basename(action.rel), name: path5.posix.basename(action.as) });
+            } else if (choice.mode === "merge") {
+              const merged = SceneMerge.applyChoices(hereRaw, thereRaw, choice, action.newer);
+              if (merged !== hereRaw) atomicWriteFileSync(target2, merged, "utf8");
+            } else if (nameSide && nameSide !== "here") {
+              setSceneTitle(target2, fileTitle(source));
+            }
+            if (action.alt && nameSide === action.altSide) relocations.push({ from: action.rel, to: action.alt });
           } else if (action.op === "combine") {
             let combined = null;
             try {
@@ -16918,6 +17210,7 @@ ${sc.text}`);
             trashed.push(action.rel);
           }
         }
+        for (const { from, to } of relocations) relocateScene(from, to);
         for (const [folder, list2] of copies) {
           const dir = folder === "." ? ROOT : path5.join(ROOT, folder);
           const meta2 = readMeta(dir);
@@ -16980,6 +17273,7 @@ ${sc.text}`);
           local,
           remote: preview.remote,
           base: preview.base,
+          baseIds: preview.baseIds,
           since: preview.since,
           localName: DEVICE_NAME,
           remoteName: preview.remoteName,
@@ -17004,10 +17298,13 @@ ${sc.text}`);
           const remote = hashTree(extractedRoot);
           for (const [rel, entry] of Object.entries(manifest?.files || {})) if (remote[rel] && remote[rel].h === entry.h) remote[rel].m = entry.m;
           const peer = manifest?.deviceId || "legacy";
-          const base = state.bases[peer]?.files || manifest?.bases?.[state.deviceId] || state.bases.legacy?.files || null;
+          const theirs = manifest?.bases?.[state.deviceId] ? { files: manifest.bases[state.deviceId], ids: manifest.baseInfo?.[state.deviceId]?.ids || null, at: manifest.baseInfo?.[state.deviceId]?.at || null } : null;
+          const chosen = BackupMerge.chooseBase(state.bases[peer], theirs) || (state.bases.legacy?.files ? state.bases.legacy : null);
+          const base = chosen?.files || null;
+          const baseIds = chosen?.ids || null;
           const since = base ? null : manifest?.restoredAt ?? (state.restoredFrom && state.restoredFrom !== state.deviceId ? state.restoredAt ?? null : null);
           const remoteName = manifest?.deviceName || (DEVICE_NAME === "Mac" ? "iPad" : "Mac");
-          const preview = { token, tempRoot, extractedRoot, inspection, manifest, remote, peer, base, since, remoteName };
+          const preview = { token, tempRoot, extractedRoot, inspection, manifest, remote, peer, base, baseIds, since, remoteName };
           Object.assign(preview, planMergeFor(preview));
           return { preview };
         } catch (error2) {
@@ -17049,6 +17346,12 @@ ${sc.text}`);
             fromName: item.from && scene && path5.posix.basename(item.from) !== path5.posix.basename(item.rel) ? sceneTitle(here) : "",
             edited: item.group === "moved" && changed,
             scene,
+            resolve: item.op === "resolve",
+            newer: item.newer || "",
+            canKeepBoth: !!item.as,
+            altName: item.alt ? path5.posix.basename(item.alt).replace(/\.md$/i, "") : "",
+            altWhere: item.alt ? item.alt.split("/").slice(0, -1).join(" \u203A ") : "",
+            altSide: item.altSide || "",
             words: scene ? { here: preview.local[hereRel] ? fileWords(here) : null, there: preview.remote[thereRel] ? fileWords(there) : null } : null
           };
         });
@@ -17270,29 +17573,130 @@ ${sc.text}`);
         mergePreviews.set(token, preview);
         return mergeReview(preview);
       });
-      ipcMain2.handle("merge-preview-diff", (_, { token, id } = {}) => {
-        const preview = mergePreviews.get(token);
+      function mergePreviewDiff(preview, id) {
         const actions = preview?.actions.filter((a) => a.rel === id) || [];
         if (!actions.length) return { ok: false, error: "That comparison has closed." };
-        const read = (full) => {
+        const readRaw = (full) => {
           try {
-            return parseFM(fs.readFileSync(full, "utf8")).body.slice(0, 4e5);
+            return fs.readFileSync(full, "utf8").slice(0, 4e5);
           } catch {
             return null;
           }
         };
         const hereRel = actions.find((a) => a.from)?.from || id, thereRel = actions.find((a) => a.src)?.src || id;
+        const hereRaw = preview.local[hereRel] ? readRaw(path5.join(ROOT, hereRel)) : null;
+        const thereRaw = preview.remote[thereRel] ? readRaw(path5.join(preview.extractedRoot, thereRel)) : null;
+        const count = (text) => wordCount(text);
+        const diff = SceneMerge.sceneDiff(hereRaw ?? "", thereRaw ?? "");
+        const hunks = diff.hunks.map((h) => h.same ? { same: h.same.length, words: count(h.same.join("\n")), text: h.same } : { id: h.id, lines: h.lines, hereWords: count(h.here.join("\n")), thereWords: count(h.there.join("\n")), here: h.here.length, there: h.there.length });
+        const resolve = actions.find((a) => a.op === "resolve");
+        const out = {
+          ok: true,
+          here: hereRaw == null ? null : parseFM(hereRaw).body,
+          there: thereRaw == null ? null : parseFM(thereRaw).body,
+          hunks,
+          fields: diff.fields,
+          words: { here: hereRaw == null ? null : count(parseFM(hereRaw).body), there: thereRaw == null ? null : count(parseFM(thereRaw).body) },
+          resolve: !!resolve,
+          companions: []
+        };
+        if (!resolve) return out;
+        out.newer = resolve.newer;
+        out.canKeepBoth = !!resolve.as;
+        if (resolve.alt) {
+          const place2 = (rel) => ({ name: path5.posix.basename(rel).replace(/\.md$/i, ""), where: rel.split("/").slice(0, -1).join(" \u203A ") });
+          const altIsHere = resolve.altSide === "here";
+          out.names = { here: place2(altIsHere ? resolve.alt : id), there: place2(altIsHere ? id : resolve.alt) };
+          const title = (raw) => raw == null ? "" : parseFM(raw).meta.title || "";
+          out.names.here.title = title(hereRaw);
+          out.names.there.title = title(thereRaw);
+          out.fields = out.fields.filter((f) => f.key !== "title");
+        }
+        for (const action of preview.actions) {
+          if (action.op !== "combine" || sceneOwnerOf(action.rel) !== id) continue;
+          const suffix = SCENE_COMPANION_SUFFIXES.find((sfx) => action.rel.endsWith(sfx));
+          const hereText = readRaw(path5.join(ROOT, action.rel));
+          const thereText = readRaw(path5.join(preview.extractedRoot, action.src || action.rel));
+          const row = { rel: action.rel, label: COMPANION_LABELS[suffix] || path5.posix.basename(action.rel) };
+          if (suffix === ".notes.json") {
+            const content = (text) => {
+              try {
+                return String(JSON.parse(text)?.content || "");
+              } catch {
+                return "";
+              }
+            };
+            row.lines = SceneMerge.textHunks(content(hereText), content(thereText)).filter((h) => !h.same).flatMap((h) => h.lines);
+          } else {
+            row.summary = describeJsonChange(hereText, thereText) || "Changed on both";
+          }
+          out.companions.push(row);
+        }
+        return out;
+      }
+      ipcMain2.handle("merge-preview-diff", (_, { token, id } = {}) => mergePreviewDiff(mergePreviews.get(token), id));
+      var SYNC_COPY_NAME = /^(.*) \(([^()]+) copy(?: \d+)?\)(\.md)$/i;
+      function syncCopyPair(rel) {
+        if (typeof rel !== "string") return null;
+        const dir = path5.posix.dirname(rel), m = path5.posix.basename(rel).match(SYNC_COPY_NAME);
+        if (!m) return null;
+        const original = `${dir === "." ? "" : `${dir}/`}${m[1]}${m[3]}`;
+        try {
+          if (!safeChildStat(inRoot(rel))?.isFile() || !safeChildStat(inRoot(original))?.isFile()) return null;
+        } catch {
+          return null;
+        }
+        return { original, copy: rel, device: m[2] };
+      }
+      ipcMain2.handle("sync-copy-diff", (_, { rel } = {}) => {
+        const pair = syncCopyPair(rel);
+        if (!pair) return { ok: false, error: "The other version of this scene is no longer beside it." };
+        const hereRaw = fs.readFileSync(inRoot(pair.original), "utf8"), thereRaw = fs.readFileSync(inRoot(pair.copy), "utf8");
+        const diff = SceneMerge.sceneDiff(hereRaw, thereRaw);
+        const newer = fs.statSync(inRoot(pair.copy)).mtimeMs > fs.statSync(inRoot(pair.original)).mtimeMs ? "remote" : "local";
         return {
           ok: true,
-          here: preview.local[hereRel] ? read(path5.join(ROOT, hereRel)) : null,
-          there: preview.remote[thereRel] ? read(path5.join(preview.extractedRoot, thereRel)) : null
+          resolve: true,
+          original: pair.original,
+          copy: pair.copy,
+          device: pair.device,
+          newer,
+          canKeepBoth: false,
+          name: parseFM(hereRaw).meta.title || path5.posix.basename(pair.original, ".md"),
+          where: pair.original.split("/").slice(0, -1).join(" \u203A "),
+          hunks: diff.hunks.map((h) => h.same ? { same: h.same.length, words: wordCount(h.same.join("\n")), text: h.same } : { id: h.id, lines: h.lines, hereWords: wordCount(h.here.join("\n")), thereWords: wordCount(h.there.join("\n")), here: h.here.length, there: h.there.length }),
+          // The copy's title only says it is a copy; the original keeps its own.
+          fields: diff.fields.filter((f) => f.key !== "title"),
+          companions: [],
+          words: { here: wordCount(parseFM(hereRaw).body), there: wordCount(parseFM(thereRaw).body) }
         };
+      });
+      ipcMain2.handle("resolve-sync-copy", async (_, { rel, choice } = {}) => {
+        const pair = syncCopyPair(rel);
+        if (!pair) return { ok: false, error: "The other version of this scene is no longer beside it." };
+        const c = choice && typeof choice === "object" ? choice : {};
+        const mode = ["merge", "here", "there"].includes(c.mode) ? c.mode : "merge";
+        const hereRaw = fs.readFileSync(inRoot(pair.original), "utf8"), thereRaw = fs.readFileSync(inRoot(pair.copy), "utf8");
+        const diff = SceneMerge.sceneDiff(hereRaw, thereRaw);
+        const all = (side) => ({
+          hunks: Object.fromEntries(diff.hunks.filter((h) => !h.same).map((h) => [h.id, side])),
+          fields: Object.fromEntries(diff.fields.map((f) => [f.key, side]))
+        });
+        const picks = mode === "merge" ? { hunks: { ...c.hunks || {} }, fields: { ...c.fields || {} } } : all(mode);
+        picks.fields.title = "here";
+        const merged = SceneMerge.applyChoices(hereRaw, thereRaw, picks, "local");
+        const censusBefore = manuscriptProjectCensus();
+        if (merged !== hereRaw) atomicWriteFileSync(inRoot(pair.original), merged, "utf8");
+        trashLibraryPath(pair.copy);
+        rebaselineAfterMerge(censusBefore, manuscriptProjectCensus());
+        return { ok: true, path: pair.original };
       });
       ipcMain2.handle("discard-merge-preview", (_, { token } = {}) => {
         discardMergePreview(token);
         return { ok: true };
       });
-      async function applyMergePreview(preview, skipIds) {
+      async function applyMergePreview(preview, skipIds, choices = {}, defaultMode = "merge") {
+        choices = choices && typeof choices === "object" ? choices : {};
         const fresh2 = planMergeFor(preview);
         if (JSON.stringify(fresh2.actions) !== JSON.stringify(preview.actions)) {
           Object.assign(preview, fresh2);
@@ -17304,35 +17708,39 @@ ${sc.text}`);
         for (const item of items) (skip.has(item.id) ? skipped : chosen).push(...item.actions);
         const safetyArchive = chosen.length ? await createPreRestoreSafetyArchive() : "";
         const censusBefore = manuscriptProjectCensus();
-        applyMergeActions(chosen, preview.extractedRoot, preview.remoteName, Object.keys(preview.remote), preview.moves || []);
+        applyMergeActions(chosen, preview.extractedRoot, preview.remoteName, Object.keys(preview.remote), preview.moves || [], choices, defaultMode);
         rebaselineAfterMerge(censusBefore, manuscriptProjectCensus());
         const state = readSyncState();
         state.bases[preview.peer] = {
           files: BackupMerge.nextBase(preview.remote, preview.base, preview.local, skipped),
+          ids: BackupMerge.nextIds(preview.remote, preview.baseIds, skipped, sceneOwnerOf),
           at: (/* @__PURE__ */ new Date()).toISOString(),
           name: preview.remoteName
         };
         writeSyncState(state);
         const ops = new Set(chosen.map((a) => a.rel));
         const s = preview.summary;
+        const resolves = chosen.filter((a) => a.op === "resolve");
+        const keptBoth = resolves.filter((a) => a.as && normalChoice(choices[a.rel], a, defaultMode).mode === "both");
         const summary = {
           taken: s.taken.filter((r) => ops.has(r)),
           restored: s.restored.filter((r) => ops.has(r)),
           trashed: s.trashed.filter((r) => ops.has(r)),
           combined: s.combined.filter((r) => ops.has(r)),
-          copies: s.copies.filter((c) => ops.has(c.rel)),
           kept: s.kept,
+          copies: [...s.copies.filter((c) => ops.has(c.rel)), ...keptBoth.map((a) => ({ rel: a.rel, as: a.as }))],
+          resolved: resolves.filter((a) => !keptBoth.includes(a)).map((a) => a.rel),
           moved: (s.moved || []).filter((r) => ops.has(r) && /\.md$/i.test(r) && !sceneOwnerOf(r))
         };
         return { ok: true, remoteName: preview.remoteName, firstMerge: !preview.base, summary, skipped: skip.size, safetyArchive };
       }
-      ipcMain2.handle("apply-merge-preview", async (_, { token, skip = [] } = {}) => {
+      ipcMain2.handle("apply-merge-preview", async (_, { token, skip = [], choices = {} } = {}) => {
         if (_restoreBackupPromise) return { ok: false, error: "Another backup restore is already running." };
         const preview = mergePreviews.get(token);
         if (!preview) return { ok: false, error: "That comparison has closed. Choose the backup again." };
         _restoreBackupPromise = (async () => {
           try {
-            const result = await applyMergePreview(preview, skip);
+            const result = await applyMergePreview(preview, skip, choices);
             if (result.ok) {
               discardMergePreview(token);
               inspectedRestoreArchives.delete(token);
@@ -17356,7 +17764,7 @@ ${sc.text}`);
         mergePreviews.set(token, preview);
         _restoreBackupPromise = (async () => {
           try {
-            return await applyMergePreview(preview, []);
+            return await applyMergePreview(preview, [], {}, "both");
           } catch (error2) {
             return { ok: false, error: error2.message || "The backup could not be merged." };
           } finally {
@@ -19887,7 +20295,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-17T03:35:00.248Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-17T04:10:11.558Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

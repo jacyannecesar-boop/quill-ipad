@@ -879,7 +879,7 @@ const Tree = (() => {
     const wc = file.word_count > 0 ? file.word_count.toLocaleString() + ' w' : ''
     fileRow.innerHTML = `
       <span class="file-drag" title="Drag to reorder or move">⠿</span>
-      <span class="file-title">${esc(file.title || 'Untitled')}</span>${SYNC_COPY.test(file.path || '') ? '<span class="file-sync-copy" title="Kept twice when merging a backup: this is the other device’s version. Keep the one you want and delete the other.">2 versions</span>' : ''}
+      <span class="file-title">${esc(file.title || 'Untitled')}</span>${SYNC_COPY.test(file.path || '') ? '<button class="file-sync-copy" title="Kept twice when merging a backup: this is the other device’s version. Click to compare the two and keep what you want.">2 versions</button>' : ''}
       <span class="file-actions">
         <button class="f-btn rename-btn" title="Rename">
           <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -889,6 +889,9 @@ const Tree = (() => {
         </button>
       </span>
       <span class="file-wc">${wc}</span>`
+
+    const syncCopy = fileRow.querySelector('.file-sync-copy')
+    if (syncCopy) syncCopy.onclick = e => { e.stopPropagation(); MergeReview.resolveCopy(file.path) }
 
     fileRow.querySelector('.rename-btn').onclick = e => {
       e.stopPropagation()

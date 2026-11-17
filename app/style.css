@@ -278,11 +278,54 @@ details.merge-group[open]>summary::after{content:'Hide'}
 .merge-diff{flex-basis:100%;max-height:340px;overflow:auto;margin:6px 0 2px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface2);font:var(--fs-md)/1.6 var(--editor,var(--ui));color:var(--text);user-select:text;-webkit-user-select:text}
 .merge-diff p{margin:0 0 8px}
 .merge-diff-same{color:var(--muted)}
-.merge-diff del{color:var(--danger);text-decoration:line-through}
-.merge-diff ins{color:var(--ok);text-decoration:underline;text-underline-offset:2px}
+.merge-diff del{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--danger) 60%,transparent);border-radius:var(--r-sm)}
+.merge-diff ins{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent);text-decoration:none;border-radius:var(--r-sm)}
 .merge-diff-note,.merge-diff-fold{margin:0 0 8px;color:var(--muted);font:var(--fs-xs)/1.5 var(--ui)}
 .merge-diff-fold{font-style:italic}
-.file-sync-copy{flex:none;margin-left:6px;padding:0 6px;border-radius:var(--r-pill,999px);background:var(--adim);color:var(--accent);font:var(--fs-xs)/1.5 var(--ui);white-space:nowrap}
+.merge-diff-section{margin:12px 0 6px;color:var(--muted);font:600 var(--fs-xs)/1.4 var(--ui);text-transform:uppercase;letter-spacing:.04em}
+.merge-item-resolve .merge-diff{max-height:min(520px,60vh)}
+.merge-item-choice{color:var(--accent)}
+/* A scene changed on both: what to keep */
+.merge-modes,.merge-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px;font:var(--fs-sm)/1.4 var(--ui)}
+.merge-mode,.merge-tab{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--r-pill,999px);padding:3px 10px;cursor:pointer;font:inherit}
+.merge-mode.on,.merge-tab.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.merge-tab{border-radius:var(--r-sm)}
+.merge-tab:disabled{opacity:.45;cursor:default}
+.merge-tab-count{opacity:.75;margin-left:2px}
+.merge-result{margin-left:auto;align-self:center;color:var(--muted);font:var(--fs-xs)/1.4 var(--ui)}
+.merge-hunk{margin:0 0 10px;padding:6px 8px;border-left:3px solid var(--border);border-radius:0 var(--r-sm) var(--r-sm) 0;background:var(--surface)}
+.merge-hunk p{margin:0 0 6px}
+.merge-hunk-pick.take-here{border-left-color:var(--danger)}
+.merge-hunk-pick.take-there{border-left-color:var(--ok)}
+.merge-hunk-pick.take-both{border-left-color:var(--accent)}
+/* What is left out fades, so the scene as it will be reads at a glance. */
+.merge-diff .take-here ins,.merge-diff .take-there del{opacity:.38}
+.merge-diff .take-here del,.merge-diff .take-both del{text-decoration:none}
+.merge-picks{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;font:var(--fs-xs)/1.4 var(--ui)}
+.merge-pick-btn{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:var(--r-sm);padding:2px 8px;cursor:pointer;font:inherit}
+.merge-pick-btn.on{background:var(--adim);border-color:var(--accent);color:var(--accent);font-weight:600}
+.merge-pick-btn:disabled{cursor:default;opacity:.6}
+.merge-field,.merge-names{display:grid;grid-template-columns:110px 1fr 1fr;gap:6px;align-items:stretch;margin:0 0 8px;font:var(--fs-sm)/1.5 var(--ui)}
+.merge-comp{grid-template-columns:110px 1fr}
+.merge-comp .merge-picks{grid-column:2}
+.merge-field-label{color:var(--muted);font:600 var(--fs-xs)/1.5 var(--ui);padding-top:4px}
+.merge-pick{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--r-sm);padding:5px 8px;cursor:pointer;font:inherit;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.merge-pick.on{border-color:var(--accent);outline:1px solid var(--accent);outline-offset:-2px;background:var(--adim)}
+.merge-pick:disabled{cursor:default}
+.merge-pick-side{color:var(--muted);font:var(--fs-xs)/1.4 var(--ui)}
+.merge-pick-where{color:var(--muted);font:var(--fs-xs)/1.4 var(--ui)}
+.merge-field-static{grid-template-columns:110px 1fr 1fr}
+.merge-comp-lines{min-width:0}
+.merge-comp-lines p{margin:0 0 4px}
+@media (max-width:600px){
+  .merge-field,.merge-names,.merge-comp,.merge-field-static{grid-template-columns:1fr}
+  .merge-comp .merge-picks{grid-column:1}
+  .merge-result{margin-left:0;flex-basis:100%}
+}
+.file-sync-copy{flex:none;margin-left:6px;padding:0 6px;border:0;border-radius:var(--r-pill,999px);background:var(--adim);color:var(--accent);font:var(--fs-xs)/1.5 var(--ui);white-space:nowrap;cursor:pointer}
+.file-sync-copy:hover{filter:brightness(.95);text-decoration:underline}
+.merge-item-solo{padding-left:0;border-bottom:0}
+.merge-item-solo .merge-diff{max-height:none;margin-top:0}
 .recovery-modal{width:min(980px,94vw);height:min(680px,88vh);display:flex;flex-direction:column;padding:22px 24px}
 .recovery-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
 .recovery-head h3{margin:0 0 3px}.recovery-head p{margin:0}
