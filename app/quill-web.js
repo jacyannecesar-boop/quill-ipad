@@ -5339,6 +5339,37 @@ ${raw}` : raw;
         while (words2.length > 1 && HONORIFICS.test(words2[0])) words2.shift();
         return (words2[0] || "").length >= 3 ? words2[0] : "";
       }
+      var SUFFIXES = /^(jr|sr|ii|iii|iv|v|esq)\.?$/i;
+      function characterSurname(name2) {
+        const words2 = String(name2 || "").trim().split(/\s+/).filter(Boolean);
+        if (/^(the|a|an)$/i.test(words2[0] || "")) return "";
+        while (words2.length > 1 && HONORIFICS.test(words2[0])) words2.shift();
+        while (words2.length > 1 && SUFFIXES.test(words2[words2.length - 1])) words2.pop();
+        if (words2.length < 2) return "";
+        const last = words2[words2.length - 1].replace(/[.,]+$/, "");
+        return last.length >= 3 && new RegExp("^\\p{Lu}", "u").test(last) ? last : "";
+      }
+      function characterNames(characters = []) {
+        const people = [...new Set(characters.map((c) => String(c || "").trim()).filter(Boolean))].map((name2) => ({ name: name2, key: characterKey(name2), surname: characterSurname(name2) })).filter((p) => p.key);
+        const surnameCount = /* @__PURE__ */ new Map();
+        for (const p of people) if (p.surname) surnameCount.set(p.surname, (surnameCount.get(p.surname) || 0) + 1);
+        const firstNames = new Set(people.map((p) => p.key));
+        const byKey = /* @__PURE__ */ new Map();
+        for (const p of people) {
+          const terms = byKey.get(p.key) || /* @__PURE__ */ new Set([p.key]);
+          if (p.surname && p.surname !== p.key && surnameCount.get(p.surname) === 1 && !firstNames.has(p.surname)) {
+            terms.add(`${p.key} ${p.surname}`);
+            terms.add(p.surname);
+          }
+          byKey.set(p.key, terms);
+        }
+        return [...byKey].map(([key, terms]) => ({ key, terms: [...terms] }));
+      }
+      function countMentions(body, terms) {
+        const escaped = [...terms].sort((a, b) => b.length - a.length).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"));
+        const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${escaped.join("|")})(?![\\p{L}\\p{N}])`, "gu");
+        return (body.match(pattern) || []).length;
+      }
       function proseFacts(scenes = [], { characters = [], novel = "your novel" } = {}) {
         const where = `in ${novel}`;
         const facts = [];
@@ -5450,13 +5481,10 @@ ${raw}` : raw;
         if (questions + exclaims >= 10) {
           facts.push({ id: "punctuation", icon: "\u2753", text: `You\u2019ve written ${plural(questions, "question mark")} and ${plural(exclaims, "exclamation point")} ${where}.` });
         }
-        const keys = [...new Set(characters.map(characterKey).filter(Boolean))];
-        if (keys.length >= 2) {
+        const people = characterNames(characters);
+        if (people.length >= 2) {
           const body = allText.join("\n");
-          const counted = keys.map((key) => {
-            const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|[^\\p{L}\\p{N}])`, "gu");
-            return { key, n: (body.match(pattern) || []).length };
-          }).filter((c) => c.n > 0).sort((a, b) => b.n - a.n);
+          const counted = people.map(({ key, terms }) => ({ key, n: countMentions(body, terms) })).filter((c) => c.n > 0).sort((a, b) => b.n - a.n);
           if (counted.length >= 2) {
             facts.push({
               id: "most-named",
@@ -5476,7 +5504,7 @@ ${raw}` : raw;
         }
         return facts;
       }
-      module.exports = { habitFacts, proseFacts, characterKey, hourLabel, duration };
+      module.exports = { habitFacts, proseFacts, characterKey, characterSurname, characterNames, hourLabel, duration };
     }
   });
 
@@ -19859,7 +19887,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-16T23:38:00.398Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-17T03:35:00.248Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
