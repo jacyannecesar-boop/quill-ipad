@@ -4653,7 +4653,7 @@ ${raw}` : raw;
           return { cut: midA.length - kept2, written: midB.length - kept2 };
         }
         function countPlain(text) {
-          return countWords(stripStubs(stripRevisionNotes(text)));
+          return countWords(stripStubs(stripRevisionNotes(stripInsetFences(text))));
         }
         const NOTE_LINE = /^[ \t]*<!--\s*quill:revise\s+(rv_[A-Za-z0-9]+)\s*\|\s?(.*?)\s*-->[ \t\r]*$/;
         const NOTE_LINES = new RegExp(NOTE_LINE.source, "gm");
@@ -4696,6 +4696,28 @@ ${raw}` : raw;
         function stripRevisionNotes(text) {
           return String(text || "").replace(NOTE_LINES, "");
         }
+        const INSET_KINDS = ["document", "message"];
+        const INSET_OPEN = /^[ \t]*<!--\s*quill:inset\s+([a-z]+)\s*-->[ \t\r]*$/;
+        const INSET_CLOSE = /^[ \t]*<!--\s*quill:\/inset\s*-->[ \t\r]*$/;
+        const INSET_FENCES = /^[ \t]*<!--\s*quill:(?:inset\s+[a-z]+|\/inset)\s*-->[ \t\r]*$/gm;
+        function insetKind(kind) {
+          return INSET_KINDS.includes(kind) ? kind : "document";
+        }
+        function insetOpenLine(kind) {
+          return "<!-- quill:inset " + insetKind(kind) + " -->";
+        }
+        function insetCloseLine() {
+          return "<!-- quill:/inset -->";
+        }
+        function parseInsetFence(line) {
+          const s = String(line || "");
+          const m = INSET_OPEN.exec(s);
+          if (m) return { fence: "open", kind: insetKind(m[1]) };
+          return INSET_CLOSE.test(s) ? { fence: "close" } : null;
+        }
+        function stripInsetFences(text) {
+          return String(text || "").replace(INSET_FENCES, "");
+        }
         function mintNoteId() {
           let hex = "";
           const c = typeof crypto !== "undefined" && crypto.getRandomValues ? crypto : null;
@@ -4719,7 +4741,12 @@ ${raw}` : raw;
           parseNoteLine,
           findNotes,
           stripRevisionNotes,
-          mintNoteId
+          mintNoteId,
+          INSET_KINDS,
+          insetOpenLine,
+          insetCloseLine,
+          parseInsetFence,
+          stripInsetFences
         };
       });
     }
@@ -10297,7 +10324,7 @@ ${line}`;
       var http = (init_http(), __toCommonJS(http_exports));
       var crypto2 = (init_crypto(), __toCommonJS(crypto_exports));
       var { fmLine, parseFM, frontmatterBounds, frontmatterPrefix, setFrontmatterField, cleanTag } = require_frontmatter();
-      var { countWords, diffWords, stripStubs, removeStubs, stubRegExp, stripRevisionNotes, findNotes, parseNoteLine, noteLine, mintNoteId } = require_words();
+      var { countWords, diffWords, stripStubs, removeStubs, stubRegExp, stripRevisionNotes, stripInsetFences, findNotes, parseNoteLine, noteLine, mintNoteId } = require_words();
       var Revisions = require_revisions();
       var Achievements = require_achievements();
       var FunFacts = require_funfacts();
@@ -10453,7 +10480,7 @@ ${line}`;
 ` + fmLine("mood", mood || "") + fmLine("word_goal", wordGoal || "") + fmLine("font", font || "poppins") + "---\n\n";
       }
       function proseText(text) {
-        return stripStubs(stripRevisionNotes(text)).replace(/^\s*(?:\*\s+\*\s+\*|---|<!--\s*quill:page-break\s*-->)\s*$/gm, " ").replace(/<br>/gi, " ").replace(/<\/?u>/gi, "").replace(/^\s*(?:#{1,3}|>|-|\d+\.)\s+/gm, "").replace(/\\([\\*~<#>.-])/g, "$1").replace(/\*\*|~~|\*/g, "");
+        return stripStubs(stripRevisionNotes(stripInsetFences(text))).replace(/^\s*(?:\*\s+\*\s+\*|---|<!--\s*quill:page-break\s*-->)\s*$/gm, " ").replace(/<br>/gi, " ").replace(/<\/?u>/gi, "").replace(/^\s*(?:#{1,3}|>|-|\d+\.)\s+/gm, "").replace(/\\([\\*~<#>.-])/g, "$1").replace(/\*\*|~~|\*/g, "");
       }
       function wordCount(text) {
         return countWords(proseText(text));
@@ -15745,7 +15772,7 @@ ${body.trim()}`;
                   chapter: ch.folderTitle || ch.name,
                   chapterPath: ch.path,
                   act: act.folderTitle || "",
-                  text: stripStubs(stripRevisionNotes(body || "")).trim()
+                  text: stripStubs(stripRevisionNotes(stripInsetFences(body || ""))).trim()
                 });
               } catch {
               }
@@ -18890,6 +18917,9 @@ h1{font-family:'Lora',Georgia,serif;font-size:32px;font-weight:400;margin-bottom
 h2{font-family:'Lora',Georgia,serif;font-size:22px;font-weight:400;margin:18px 0 4px}
 .date{font-size:12px;color:#888;margin-bottom:32px}
 blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:italic;margin:8px 0}
+.inset{margin:1em 2.5em}.inset p{margin:.35em 0;text-indent:0}
+.inset-message{margin-right:0;font-family:-apple-system,system-ui,'Helvetica Neue',Arial,sans-serif;font-size:.92em}
+.inset-message p{margin:.15em 0}
 .scene-break{text-align:center;letter-spacing:.65em;margin:2em 0}
 @media print{body{margin:20px;max-width:100%}}</style></head><body>
 <h1>${escapeHtml(title)}</h1><div class="date">${escapeHtml(date)}</div>${bodyHTML || ""}
@@ -20345,7 +20375,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-19T00:37:12.730Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-19T04:45:55.996Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {

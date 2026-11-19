@@ -1085,7 +1085,7 @@ const StyleStudy = (() => {
     const file = await window.quill.getFile(path).catch(() => null)
     if (!file) return null
     let body = String(file.body || '')
-    if (window.QuillWords) body = window.QuillWords.stripRevisionNotes(window.QuillWords.stripStubs(body))
+    if (window.QuillWords) body = window.QuillWords.stripInsetFences(window.QuillWords.stripRevisionNotes(window.QuillWords.stripStubs(body)))
     // Quill scenes put one line break between paragraphs.
     return body.split(/\n+/).map(t => t.trim()).filter(Boolean)
   }

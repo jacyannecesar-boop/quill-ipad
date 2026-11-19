@@ -101,7 +101,7 @@
   // Counts prose in plain text — an innerText read, or a Markdown body already stripped of
   // its delimiters. Stubs are removed first.
   function countPlain(text) {
-    return countWords(stripStubs(stripRevisionNotes(text)))
+    return countWords(stripStubs(stripRevisionNotes(stripInsetFences(text))))
   }
 
   // ── Revision notes ──────────────────────────────────────────────────────────
@@ -156,6 +156,31 @@
 
   function stripRevisionNotes(text) { return String(text || '').replace(NOTE_LINES, '') }
 
+  // ── Insets ──────────────────────────────────────────────────────────────────
+  // An inset sets a stretch of paragraphs apart as a document inside the story — a news
+  // article, a letter (`document`) — or a run of text messages (`message`). On disk the
+  // paragraphs are ordinary lines between two fence lines (FORMAT.md, "Insets"):
+  //   <!-- quill:inset document -->
+  //   …paragraphs…
+  //   <!-- quill:/inset -->
+  // The fences are structure, not prose, so they never count as words.
+  const INSET_KINDS = ['document', 'message']
+  const INSET_OPEN = /^[ \t]*<!--\s*quill:inset\s+([a-z]+)\s*-->[ \t\r]*$/
+  const INSET_CLOSE = /^[ \t]*<!--\s*quill:\/inset\s*-->[ \t\r]*$/
+  const INSET_FENCES = /^[ \t]*<!--\s*quill:(?:inset\s+[a-z]+|\/inset)\s*-->[ \t\r]*$/gm
+
+  function insetKind(kind) { return INSET_KINDS.includes(kind) ? kind : 'document' }
+  function insetOpenLine(kind) { return '<!-- quill:inset ' + insetKind(kind) + ' -->' }
+  function insetCloseLine() { return '<!-- quill:/inset -->' }
+  // 'open' with the kind, 'close', or null for any other line.
+  function parseInsetFence(line) {
+    const s = String(line || '')
+    const m = INSET_OPEN.exec(s)
+    if (m) return { fence: 'open', kind: insetKind(m[1]) }
+    return INSET_CLOSE.test(s) ? { fence: 'close' } : null
+  }
+  function stripInsetFences(text) { return String(text || '').replace(INSET_FENCES, '') }
+
   function mintNoteId() {
     let hex = ''
     const c = typeof crypto !== 'undefined' && crypto.getRandomValues ? crypto : null
@@ -168,5 +193,6 @@
     STUB_PATTERN, stubRegExp, stripStubs, removeStubs, countWords, countPlain, wordTokens, diffWords,
     NOTE_LINE, encodeNoteText, decodeNoteText, noteLine, parseNoteLine, findNotes,
     stripRevisionNotes, mintNoteId,
+    INSET_KINDS, insetOpenLine, insetCloseLine, parseInsetFence, stripInsetFences,
   }
 })

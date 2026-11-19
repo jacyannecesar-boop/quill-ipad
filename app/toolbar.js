@@ -20,6 +20,8 @@ window.QuillShortcuts = (() => {
     underline:    { keys: '⌘U',  label: 'Underline' },
     strike:       { keys: '⌘⇧S', label: 'Strikethrough' },
     quote:        { keys: '⌘⇧B', label: 'Block quote' },
+    insetDocument:{ keys: '⌘⇧D', label: 'Document inset — an article or letter in the story' },
+    insetMessage: { keys: '⌘⇧M', label: 'Text messages' },
     bullets:      { keys: '⌘⇧8', label: 'Bulleted list' },
     numbers:      { keys: '⌘⇧7', label: 'Numbered list' },
     sceneBreak:   { keys: '⌘⇧↵', label: 'Scene break (* * *)' },

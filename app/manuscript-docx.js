@@ -44,13 +44,13 @@ const ManuscriptDocx = (() => {
 
   function para(inner, opts = {}) {
     const { align, indent = null, before = 0, after = 0, pageBreak = false,
-      left = 0, tabRight = 0, sectPr = '' } = opts
+      left = 0, right = 0, tabRight = 0, sectPr = '' } = opts
     let pPr = ''
     if (pageBreak) pPr += '<w:pageBreakBefore/>'
     if (tabRight) pPr += `<w:tabs><w:tab w:val="right" w:pos="${tabRight}"/></w:tabs>`
     if (before || after) pPr += `<w:spacing w:before="${before}" w:after="${after}"/>`
-    if (left || indent != null) {
-      pPr += `<w:ind${left ? ` w:left="${left}"` : ''}`
+    if (left || right || indent != null) {
+      pPr += `<w:ind${left ? ` w:left="${left}"` : ''}${right ? ` w:right="${right}"` : ''}`
         + `${indent != null ? ` w:firstLine="${indent}"` : ''}/>`
     }
     if (align) pPr += `<w:jc w:val="${align}"/>`
@@ -78,6 +78,13 @@ const ManuscriptDocx = (() => {
       case 'blockquote':
         return (node.content || []).map(child =>
           para(runs(child.content), { left: INDENT, indent: 0 })).join('')
+      // A document inside the story (an article, a letter) is set in from both margins; text
+      // messages from the left only. Both keep the manuscript's one font.
+      case 'inset': {
+        const right = node.attrs?.kind === 'message' ? 0 : INDENT
+        return (node.content || []).filter(child => child.type === 'paragraph').map(child =>
+          child.content?.length ? para(runs(child.content), { left: INDENT, right, indent: 0 }) : blank()).join('')
+      }
       case 'horizontalRule':
         return text('#', { align: 'center' })
       case 'bulletList':
@@ -306,6 +313,9 @@ const ManuscriptDocx = (() => {
         return para(styled(plain(node), { bold: true }), { before: 8 * PT, after: 2 * PT })
       case 'blockquote':
         return (node.content || []).map(child => para(runs(child.content), { ...gap, left: INDENT })).join('')
+      case 'inset':
+        return (node.content || []).filter(child => child.type === 'paragraph' && child.content?.length)
+          .map(child => para(runs(child.content), { ...gap, left: INDENT })).join('')
       case 'horizontalRule':
         return ''
       case 'bulletList':

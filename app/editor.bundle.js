@@ -114,7 +114,7 @@
           return { cut: midA.length - kept, written: midB.length - kept };
         }
         function countPlain(text) {
-          return countWords(stripStubs(stripRevisionNotes(text)));
+          return countWords(stripStubs(stripRevisionNotes(stripInsetFences(text))));
         }
         const NOTE_LINE = /^[ \t]*<!--\s*quill:revise\s+(rv_[A-Za-z0-9]+)\s*\|\s?(.*?)\s*-->[ \t\r]*$/;
         const NOTE_LINES = new RegExp(NOTE_LINE.source, "gm");
@@ -157,6 +157,28 @@
         function stripRevisionNotes(text) {
           return String(text || "").replace(NOTE_LINES, "");
         }
+        const INSET_KINDS2 = ["document", "message"];
+        const INSET_OPEN = /^[ \t]*<!--\s*quill:inset\s+([a-z]+)\s*-->[ \t\r]*$/;
+        const INSET_CLOSE = /^[ \t]*<!--\s*quill:\/inset\s*-->[ \t\r]*$/;
+        const INSET_FENCES = /^[ \t]*<!--\s*quill:(?:inset\s+[a-z]+|\/inset)\s*-->[ \t\r]*$/gm;
+        function insetKind(kind) {
+          return INSET_KINDS2.includes(kind) ? kind : "document";
+        }
+        function insetOpenLine(kind) {
+          return "<!-- quill:inset " + insetKind(kind) + " -->";
+        }
+        function insetCloseLine() {
+          return "<!-- quill:/inset -->";
+        }
+        function parseInsetFence(line) {
+          const s = String(line || "");
+          const m = INSET_OPEN.exec(s);
+          if (m) return { fence: "open", kind: insetKind(m[1]) };
+          return INSET_CLOSE.test(s) ? { fence: "close" } : null;
+        }
+        function stripInsetFences(text) {
+          return String(text || "").replace(INSET_FENCES, "");
+        }
         function mintNoteId() {
           let hex = "";
           const c = typeof crypto !== "undefined" && crypto.getRandomValues ? crypto : null;
@@ -180,7 +202,12 @@
           parseNoteLine,
           findNotes,
           stripRevisionNotes,
-          mintNoteId
+          mintNoteId,
+          INSET_KINDS: INSET_KINDS2,
+          insetOpenLine,
+          insetCloseLine,
+          parseInsetFence,
+          stripInsetFences
         };
       });
     }
@@ -333,6 +360,16 @@
   function para(text) {
     return { type: "paragraph", content: parseInline(text) };
   }
+  function insetBlocks(blocks2) {
+    const out = [];
+    const walk = (node) => {
+      if (node.type === "paragraph" || node.type === "revisionNote") out.push(node);
+      else if (node.type === "heading") out.push({ type: "paragraph", content: node.content || [] });
+      else (node.content || []).forEach(walk);
+    };
+    blocks2.forEach(walk);
+    return out.length ? out : [{ type: "paragraph" }];
+  }
   function parseBlocks(lines) {
     const out = [];
     let i3 = 0;
@@ -357,6 +394,23 @@
       if (t === "---") {
         out.push({ type: "horizontalRule" });
         i3++;
+        continue;
+      }
+      const fence = import_words.default.parseInsetFence(t);
+      if (fence) {
+        i3++;
+        if (fence.fence === "close") continue;
+        const inner = [];
+        while (i3 < lines.length) {
+          const f = import_words.default.parseInsetFence(lines[i3]);
+          if (f) {
+            if (f.fence === "close") i3++;
+            break;
+          }
+          inner.push(lines[i3]);
+          i3++;
+        }
+        out.push({ type: "inset", attrs: { kind: fence.kind }, content: insetBlocks(parseBlocks(inner)) });
         continue;
       }
       const note = import_words.default.parseNoteLine(t);
@@ -565,6 +619,11 @@
         case "blockquote":
           serializeBlocks(node.content, opts).forEach((l) => lines.push("> " + l));
           break;
+        case "inset":
+          lines.push(import_words2.default.insetOpenLine(node.attrs?.kind));
+          serializeBlocks(node.content, opts).forEach((l) => lines.push(l));
+          lines.push(import_words2.default.insetCloseLine());
+          break;
         case "bulletList":
           for (const item of node.content || []) {
             const sub = serializeBlocks(item.content, opts);
@@ -640,6 +699,10 @@
       }
       case "blockquote":
         return `<blockquote>${children()}</blockquote>`;
+      case "inset": {
+        const kind = node.attrs?.kind === "message" ? "message" : "document";
+        return `<div class="inset inset-${kind}" data-inset="${kind}">${children()}</div>`;
+      }
       case "bulletList":
         return `<ul>${children()}</ul>`;
       case "orderedList": {
@@ -26166,6 +26229,62 @@ ${fromBody}`;
     return true;
   }
 
+  // renderer/src/editor/inset.js
+  var INSET_KINDS = ["document", "message"];
+  var kindOf = (kind) => INSET_KINDS.includes(kind) ? kind : "document";
+  function insetAt($pos) {
+    for (let d = $pos.depth; d > 0; d--) {
+      const node = $pos.node(d);
+      if (node.type.name === "inset") return { node, depth: d };
+    }
+    return null;
+  }
+  var Inset = Node3.create({
+    name: "inset",
+    group: "block",
+    // Paragraphs only (plus revision notes): an inset never holds another inset, a list or a
+    // heading, so every export can render it as a plain run of indented paragraphs.
+    content: "(paragraph | revisionNote)+",
+    defining: true,
+    addAttributes() {
+      return {
+        kind: {
+          default: "document",
+          parseHTML: (el2) => kindOf(el2.getAttribute("data-inset")),
+          renderHTML: (attrs) => ({ "data-inset": kindOf(attrs.kind) })
+        }
+      };
+    },
+    parseHTML() {
+      return [{ tag: "div[data-inset]" }];
+    },
+    renderHTML({ node, HTMLAttributes }) {
+      return ["div", mergeAttributes(HTMLAttributes, { class: `inset inset-${kindOf(node.attrs.kind)}` }), 0];
+    },
+    addCommands() {
+      return {
+        setInset: (kind) => ({ commands }) => commands.wrapIn(this.name, { kind: kindOf(kind) }),
+        unsetInset: () => ({ commands }) => commands.lift(this.name),
+        // Same kind: take the inset away. Other kind: switch it in place. None: wrap the
+        // selected paragraphs.
+        toggleInset: (kind) => ({ state, tr, dispatch, commands }) => {
+          kind = kindOf(kind);
+          const found2 = insetAt(state.selection.$from);
+          if (!found2) return commands.setInset(kind);
+          if (found2.node.attrs.kind === kind) return commands.unsetInset();
+          if (dispatch) tr.setNodeMarkup(state.selection.$from.before(found2.depth), void 0, { kind });
+          return true;
+        }
+      };
+    },
+    addKeyboardShortcuts() {
+      return {
+        "Mod-Shift-d": () => this.editor.commands.toggleInset("document"),
+        "Mod-Shift-m": () => this.editor.commands.toggleInset("message")
+      };
+    }
+  });
+
   // renderer/src/editor/schema.js
   function breakNode({ name, kind, className, command: command2, shortcut, render: render2 }) {
     return Node3.create({
@@ -26232,6 +26351,7 @@ ${fromBody}`;
       src_default8,
       CommentMark,
       src_default9,
+      Inset,
       BulletList,
       OrderedList,
       ListItem,
@@ -26424,6 +26544,10 @@ ${fromBody}`;
         return true;
       case "removeFormat":
         c.unsetAllMarks().run();
+        return true;
+      // `inset,document` or `inset,message` — see inset.js.
+      case "inset":
+        c.toggleInset(String(val || "document")).run();
         return true;
       case "formatBlock": {
         const tag = String(val || "").toLowerCase().replace(/[<>]/g, "");

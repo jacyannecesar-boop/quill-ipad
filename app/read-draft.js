@@ -238,6 +238,17 @@ const ReadDraft = (() => {
     const out = []
     for (const child of [...holder.children]) {
       if (child.matches('hr, .scene-break')) { out.push(breakEl()); continue }
+      // An inset (an article, a run of texts) goes onto the pages paragraph by paragraph, so
+      // a long one can break across pages like prose. Each paragraph carries the inset's look.
+      if (child.matches('.inset')) {
+        const kind = child.dataset.inset === 'message' ? 'message' : 'document'
+        for (const p of [...child.children]) {
+          p.classList.add('ms-inset', `ms-inset-${kind}`)
+          if (p.matches('[data-b]')) p.dataset.scene = scene.path
+          out.push(p)
+        }
+        continue
+      }
       for (const b of child.matches('[data-b]') ? [child] : child.querySelectorAll('[data-b]')) {
         b.dataset.scene = scene.path
       }
