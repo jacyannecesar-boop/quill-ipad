@@ -20,9 +20,9 @@
   };
   var __copyProps = (to, from2, except, desc) => {
     if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-      for (let key of __getOwnPropNames(from2))
-        if (!__hasOwnProp.call(to, key) && key !== except)
-          __defProp(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc(from2, key)) || desc.enumerable });
+      for (let key2 of __getOwnPropNames(from2))
+        if (!__hasOwnProp.call(to, key2) && key2 !== except)
+          __defProp(to, key2, { get: () => from2[key2], enumerable: !(desc = __getOwnPropDesc(from2, key2)) || desc.enumerable });
     }
     return to;
   };
@@ -284,9 +284,9 @@
     const memo = /* @__PURE__ */ new Map();
     function solve(t, stack) {
       if (t === toks.length) return stack.length === 0 ? { cost: 0, opens: 0, parts: [] } : null;
-      const key = t + "|" + stack.map((s) => s.mark + "@" + s.at).join(",");
-      if (memo.has(key)) return memo.get(key);
-      memo.set(key, null);
+      const key2 = t + "|" + stack.map((s) => s.mark + "@" + s.at).join(",");
+      if (memo.has(key2)) return memo.get(key2);
+      memo.set(key2, null);
       let best = null;
       const take = (cand) => {
         if (!cand) return;
@@ -315,7 +315,7 @@
         const lit = tok.t === "uopen" ? "<u>" : tok.t === "uclose" ? "</u>" : tok.t;
         if (tok.t !== "br") take(after(t + 1, stack, { text: lit }, 1));
       }
-      memo.set(key, best);
+      memo.set(key2, best);
       return best;
     }
     const solved = solve(0, []);
@@ -767,27 +767,27 @@
   }
   OrderedMap.prototype = {
     constructor: OrderedMap,
-    find: function(key) {
+    find: function(key2) {
       for (var i3 = 0; i3 < this.content.length; i3 += 2)
-        if (this.content[i3] === key) return i3;
+        if (this.content[i3] === key2) return i3;
       return -1;
     },
     // :: (string) → ?any
     // Retrieve the value stored under `key`, or return undefined when
     // no such key exists.
-    get: function(key) {
-      var found2 = this.find(key);
+    get: function(key2) {
+      var found2 = this.find(key2);
       return found2 == -1 ? void 0 : this.content[found2 + 1];
     },
     // :: (string, any, ?string) → OrderedMap
     // Create a new map by replacing the value of `key` with a new
     // value, or adding a binding to the end of the map. If `newKey` is
     // given, the key of the binding will be replaced with that key.
-    update: function(key, value, newKey) {
-      var self2 = newKey && newKey != key ? this.remove(newKey) : this;
-      var found2 = self2.find(key), content = self2.content.slice();
+    update: function(key2, value, newKey) {
+      var self2 = newKey && newKey != key2 ? this.remove(newKey) : this;
+      var found2 = self2.find(key2), content = self2.content.slice();
       if (found2 == -1) {
-        content.push(newKey || key, value);
+        content.push(newKey || key2, value);
       } else {
         content[found2 + 1] = value;
         if (newKey) content[found2] = newKey;
@@ -796,8 +796,8 @@
     },
     // :: (string) → OrderedMap
     // Return a map with the given key removed, if it existed.
-    remove: function(key) {
-      var found2 = this.find(key);
+    remove: function(key2) {
+      var found2 = this.find(key2);
       if (found2 == -1) return this;
       var content = this.content.slice();
       content.splice(found2, 2);
@@ -805,23 +805,23 @@
     },
     // :: (string, any) → OrderedMap
     // Add a new key to the start of the map.
-    addToStart: function(key, value) {
-      return new OrderedMap([key, value].concat(this.remove(key).content));
+    addToStart: function(key2, value) {
+      return new OrderedMap([key2, value].concat(this.remove(key2).content));
     },
     // :: (string, any) → OrderedMap
     // Add a new key to the end of the map.
-    addToEnd: function(key, value) {
-      var content = this.remove(key).content.slice();
-      content.push(key, value);
+    addToEnd: function(key2, value) {
+      var content = this.remove(key2).content.slice();
+      content.push(key2, value);
       return new OrderedMap(content);
     },
     // :: (string, string, any) → OrderedMap
     // Add a key after the given key. If `place` is not found, the new
     // key is added to the end.
-    addBefore: function(place, key, value) {
-      var without = this.remove(key), content = without.content.slice();
+    addBefore: function(place, key2, value) {
+      var without = this.remove(key2), content = without.content.slice();
       var found2 = without.find(place);
-      content.splice(found2 == -1 ? content.length : found2, 0, key, value);
+      content.splice(found2 == -1 ? content.length : found2, 0, key2, value);
       return new OrderedMap(content);
     },
     // :: ((key: string, value: any))
@@ -861,8 +861,8 @@
     // Turn ordered map into a plain object.
     toObject: function() {
       var result = {};
-      this.forEach(function(key, value) {
-        result[key] = value;
+      this.forEach(function(key2, value) {
+        result[key2] = value;
       });
       return result;
     },
@@ -6560,15 +6560,15 @@
     Store a metadata property in this transaction, keyed either by
     name or by plugin.
     */
-    setMeta(key, value) {
-      this.meta[typeof key == "string" ? key : key.key] = value;
+    setMeta(key2, value) {
+      this.meta[typeof key2 == "string" ? key2 : key2.key] = value;
       return this;
     }
     /**
     Retrieve a metadata property for a given name or plugin.
     */
-    getMeta(key) {
-      return this.meta[typeof key == "string" ? key : key.key];
+    getMeta(key2) {
+      return this.meta[typeof key2 == "string" ? key2 : key2.key];
     }
     /**
     Returns true if this transaction doesn't contain any metadata,
@@ -7415,8 +7415,8 @@
     "Ctrl-a": selectTextblockStart,
     "Ctrl-e": selectTextblockEnd
   };
-  for (let key in pcBaseKeymap)
-    macBaseKeymap[key] = pcBaseKeymap[key];
+  for (let key2 in pcBaseKeymap)
+    macBaseKeymap[key2] = pcBaseKeymap[key2];
   var mac = typeof navigator != "undefined" ? /Mac|iP(hone|[oa]d)/.test(navigator.platform) : typeof os != "undefined" && os.platform ? os.platform() == "darwin" : false;
 
   // node_modules/prosemirror-schema-list/dist/index.js
@@ -7655,11 +7655,11 @@
   var selectionCollapsed = function(domSel) {
     return domSel.focusNode && isEquivalentPosition(domSel.focusNode, domSel.focusOffset, domSel.anchorNode, domSel.anchorOffset);
   };
-  function keyEvent(keyCode, key) {
+  function keyEvent(keyCode, key2) {
     let event = document.createEvent("Event");
     event.initEvent("keydown", true, true);
     event.keyCode = keyCode;
-    event.key = event.code = key;
+    event.key = event.code = key2;
     return event;
   }
   function deepActiveElement(doc3) {
@@ -13327,10 +13327,10 @@
   function objectIncludes(object1, object2, options = { strict: true }) {
     const keys2 = Object.keys(object2);
     if (!keys2.length) return true;
-    return keys2.every((key) => {
-      if (options.strict) return object2[key] === object1[key];
-      if (isRegExp(object2[key])) return object2[key].test(object1[key]);
-      return object2[key] === object1[key];
+    return keys2.every((key2) => {
+      if (options.strict) return object2[key2] === object1[key2];
+      if (isRegExp(object2[key2])) return object2[key2].test(object1[key2]);
+      return object2[key2] === object1[key2];
     });
   }
   function findMarkInSet(marks, type, attributes = {}) {
@@ -13664,7 +13664,7 @@
     const defaultType = defaultBlockAt2($pos.parent.contentMatchAt($pos.index()));
     if (!defaultType) return false;
     const validAttrKeys = Object.keys(defaultType.spec.attrs || {});
-    const filteredAttrs = attrs ? Object.fromEntries(Object.entries(attrs).filter(([key]) => validAttrKeys.includes(key))) : {};
+    const filteredAttrs = attrs ? Object.fromEntries(Object.entries(attrs).filter(([key2]) => validAttrKeys.includes(key2))) : {};
     let node;
     if (content) {
       const parsed = createNodeFromContent(content, editor3.schema);
@@ -13747,14 +13747,14 @@
   }
   var keyboardShortcut = (name) => ({ editor: editor3, view, tr, dispatch }) => {
     const keys2 = normalizeKeyName2(name).split(/-(?!$)/);
-    const key = keys2.find((item) => ![
+    const key2 = keys2.find((item) => ![
       "Alt",
       "Ctrl",
       "Meta",
       "Shift"
     ].includes(item));
     const event = new KeyboardEvent("keydown", {
-      key: key === "Space" ? " " : key,
+      key: key2 === "Space" ? " " : key2,
       altKey: keys2.includes("Alt"),
       ctrlKey: keys2.includes("Ctrl"),
       metaKey: keys2.includes("Meta"),
@@ -14104,9 +14104,9 @@
   function mergeAttributes(...objects) {
     return objects.filter((item) => !!item).reduce((items, item) => {
       const mergedAttributes = { ...items };
-      Object.entries(item).forEach(([key, value]) => {
-        if (key === "__proto__") {
-          Object.defineProperty(mergedAttributes, key, {
+      Object.entries(item).forEach(([key2, value]) => {
+        if (key2 === "__proto__") {
+          Object.defineProperty(mergedAttributes, key2, {
             configurable: true,
             enumerable: true,
             value,
@@ -14114,19 +14114,19 @@
           });
           return;
         }
-        if (!mergedAttributes[key]) {
-          mergedAttributes[key] = value;
+        if (!mergedAttributes[key2]) {
+          mergedAttributes[key2] = value;
           return;
         }
-        if (key === "class") {
+        if (key2 === "class") {
           const valueClasses = value ? String(value).split(" ") : [];
-          const existingClasses = mergedAttributes[key] ? mergedAttributes[key].split(" ") : [];
+          const existingClasses = mergedAttributes[key2] ? mergedAttributes[key2].split(" ") : [];
           const insertClasses = valueClasses.filter((valueClass) => !existingClasses.includes(valueClass));
-          mergedAttributes[key] = [...existingClasses, ...insertClasses].join(" ");
-        } else if (key === "style") {
-          const styleMap = new Map([...parseStyleEntries(mergedAttributes[key]), ...parseStyleEntries(value)]);
-          mergedAttributes[key] = Array.from(styleMap.entries()).map(([property, val]) => `${property}: ${val}`).join("; ");
-        } else mergedAttributes[key] = value;
+          mergedAttributes[key2] = [...existingClasses, ...insertClasses].join(" ");
+        } else if (key2 === "style") {
+          const styleMap = new Map([...parseStyleEntries(mergedAttributes[key2]), ...parseStyleEntries(value)]);
+          mergedAttributes[key2] = Array.from(styleMap.entries()).map(([property, val]) => `${property}: ${val}`).join("; ");
+        } else mergedAttributes[key2] = value;
       });
       return mergedAttributes;
     }, {});
@@ -14167,8 +14167,8 @@
     };
   }
   function cleanUpSchemaItem(data) {
-    return Object.fromEntries(Object.entries(data).filter(([key, value]) => {
-      if (key === "attrs" && isEmptyObject(value)) return false;
+    return Object.fromEntries(Object.entries(data).filter(([key2, value]) => {
+      if (key2 === "attrs" && isEmptyObject(value)) return false;
       return value !== null && value !== void 0;
     }));
   }
@@ -14336,8 +14336,8 @@
   function removeDuplicates(array, by = JSON.stringify) {
     const seen = {};
     return array.filter((item) => {
-      const key = by(item);
-      return Object.prototype.hasOwnProperty.call(seen, key) ? false : seen[key] = true;
+      const key2 = by(item);
+      return Object.prototype.hasOwnProperty.call(seen, key2) ? false : seen[key2] = true;
     });
   }
   function simplifyChangedRanges(changes) {
@@ -14636,8 +14636,8 @@
     }
     return canSetMark(state, tr, type);
   };
-  var setMeta = (key, value) => ({ tr }) => {
-    tr.setMeta(key, value);
+  var setMeta = (key2, value) => ({ tr }) => {
+    tr.setMeta(key2, value);
     return true;
   };
   var setNode = (typeOrName, attributes = {}) => ({ state, dispatch, chain }) => {
@@ -15261,28 +15261,28 @@
   }
   function widgetKeyOf(decoration) {
     var _decoration$spec;
-    const key = (_decoration$spec = decoration.spec) === null || _decoration$spec === void 0 ? void 0 : _decoration$spec.key;
-    return typeof key === "string" ? key : void 0;
+    const key2 = (_decoration$spec = decoration.spec) === null || _decoration$spec === void 0 ? void 0 : _decoration$spec.key;
+    return typeof key2 === "string" ? key2 : void 0;
   }
   function findDuplicateWidgetKeys(decorationSet) {
     const extensionsByKey = /* @__PURE__ */ new Map();
     const counts = /* @__PURE__ */ new Map();
     for (const decoration of decorationSet.find()) {
       var _extensionName, _extensionsByKey$get, _counts$get;
-      const key = widgetKeyOf(decoration);
-      if (!key) continue;
+      const key2 = widgetKeyOf(decoration);
+      if (!key2) continue;
       const extension = (_extensionName = decoration.spec.extensionName) !== null && _extensionName !== void 0 ? _extensionName : "unknown";
-      const extensions = (_extensionsByKey$get = extensionsByKey.get(key)) !== null && _extensionsByKey$get !== void 0 ? _extensionsByKey$get : /* @__PURE__ */ new Set();
+      const extensions = (_extensionsByKey$get = extensionsByKey.get(key2)) !== null && _extensionsByKey$get !== void 0 ? _extensionsByKey$get : /* @__PURE__ */ new Set();
       extensions.add(extension);
-      extensionsByKey.set(key, extensions);
-      counts.set(key, ((_counts$get = counts.get(key)) !== null && _counts$get !== void 0 ? _counts$get : 0) + 1);
+      extensionsByKey.set(key2, extensions);
+      counts.set(key2, ((_counts$get = counts.get(key2)) !== null && _counts$get !== void 0 ? _counts$get : 0) + 1);
     }
-    return Array.from(extensionsByKey, ([key, extensions]) => ({
-      key,
+    return Array.from(extensionsByKey, ([key2, extensions]) => ({
+      key: key2,
       extensions
-    })).filter(({ key }) => {
+    })).filter(({ key: key2 }) => {
       var _counts$get2;
-      return ((_counts$get2 = counts.get(key)) !== null && _counts$get2 !== void 0 ? _counts$get2 : 0) > 1;
+      return ((_counts$get2 = counts.get(key2)) !== null && _counts$get2 !== void 0 ? _counts$get2 : 0) > 1;
     });
   }
   function isAttrStep(step) {
@@ -15345,8 +15345,8 @@
   }
   function mapDecorationSet(set, mapping, doc3, widgetKeys) {
     return set.map(mapping, doc3, { onRemove: (removedSpec) => {
-      const key = removedSpec === null || removedSpec === void 0 ? void 0 : removedSpec.key;
-      if (typeof key === "string") widgetKeys.delete(key);
+      const key2 = removedSpec === null || removedSpec === void 0 ? void 0 : removedSpec.key;
+      if (typeof key2 === "string") widgetKeys.delete(key2);
     } });
   }
   function mapDecorations(name, previous, tr) {
@@ -15364,7 +15364,7 @@
   }
   function unionWidgetKeys(widgetKeysByExtension) {
     const merged = /* @__PURE__ */ new Set();
-    for (const keys2 of Object.values(widgetKeysByExtension)) for (const key of keys2) merged.add(key);
+    for (const keys2 of Object.values(widgetKeysByExtension)) for (const key2 of keys2) merged.add(key2);
     return merged;
   }
   function validateDecorationSpec(name, spec) {
@@ -15558,8 +15558,8 @@
           docSize
         }));
         for (const decoration of stale) {
-          const key = widgetKeyOf(decoration);
-          if (key) widgetKeys.delete(key);
+          const key2 = widgetKeyOf(decoration);
+          if (key2) widgetKeys.delete(key2);
         }
         set = set.remove(stale);
         const { decorations: pmDecorations, widgetKeys: addedKeys } = decorationsToPMDecorations(filterOutOfRangeDecorations({
@@ -15577,7 +15577,7 @@
           warnedExtensions: this.warnedOutOfRangeExtensions
         }), name);
         set = set.add(newState.doc, pmDecorations);
-        for (const key of addedKeys) widgetKeys.add(key);
+        for (const key2 of addedKeys) widgetKeys.add(key2);
       }
       return {
         set,
@@ -15622,11 +15622,11 @@
         return;
       }
       const duplicateKeys = findDuplicateWidgetKeys(state.mergedDecorationSet);
-      const nextWarningKeys = new Set(duplicateKeys.map(({ key }) => key));
-      for (const { key, extensions } of duplicateKeys) {
-        if (this.warnedWidgetKeys.has(key)) continue;
+      const nextWarningKeys = new Set(duplicateKeys.map(({ key: key2 }) => key2));
+      for (const { key: key2, extensions } of duplicateKeys) {
+        if (this.warnedWidgetKeys.has(key2)) continue;
         const names = Array.from(extensions).map((name) => `"${name}"`).join(", ");
-        console.warn(`[tiptap warn]: Duplicate widget decoration key "${key}" in extension${extensions.size === 1 ? "" : "s"} ${names}. Widget decoration keys must be globally unique, otherwise ProseMirror misplaces the widget DOM. Use a stable, unique key (e.g. \`comment-\${id}\`).`);
+        console.warn(`[tiptap warn]: Duplicate widget decoration key "${key2}" in extension${extensions.size === 1 ? "" : "s"} ${names}. Widget decoration keys must be globally unique, otherwise ProseMirror misplaces the widget DOM. Use a stable, unique key (e.g. \`comment-\${id}\`).`);
       }
       this.warnedWidgetKeys = nextWarningKeys;
     }
@@ -15784,9 +15784,9 @@ ${indentedChild}`;
   }
   function mergeDeep(target, source) {
     const output = { ...target };
-    if (isPlainObject(target) && isPlainObject(source)) Object.keys(source).forEach((key) => {
-      if (isPlainObject(source[key]) && isPlainObject(target[key])) output[key] = mergeDeep(target[key], source[key]);
-      else output[key] = source[key];
+    if (isPlainObject(target) && isPlainObject(source)) Object.keys(source).forEach((key2) => {
+      if (isPlainObject(source[key2]) && isPlainObject(target[key2])) output[key2] = mergeDeep(target[key2], source[key2]);
+      else output[key2] = source[key2];
     });
     return output;
   }
@@ -16992,8 +16992,8 @@ ${indentedChild}`;
             const nodeAttributes = currentNode.node.attrs;
             const attrKeys = Object.keys(attributes);
             for (let index = 0; index < attrKeys.length; index += 1) {
-              const key = attrKeys[index];
-              if (nodeAttributes[key] !== attributes[key]) break;
+              const key2 = attrKeys[index];
+              if (nodeAttributes[key2] !== attributes[key2]) break;
             }
           } else node = currentNode;
         }
@@ -17011,7 +17011,7 @@ ${indentedChild}`;
       this.children.forEach((childPos) => {
         if (firstItemOnly && nodes.length > 0) return;
         if (childPos.node.type.name === selector) {
-          if (attrKeys.every((key) => attributes[key] === childPos.node.attrs[key])) nodes.push(childPos);
+          if (attrKeys.every((key2) => attributes[key2] === childPos.node.attrs[key2])) nodes.push(childPos);
         }
         if (firstItemOnly && nodes.length > 0) return;
         nodes = nodes.concat(childPos.querySelectorAll(selector, attributes, firstItemOnly));
@@ -17298,11 +17298,11 @@ img.ProseMirror-separator {
         dragging: null,
         editable: true,
         isDestroyed: false
-      }, { get: (obj, key) => {
-        if (this.editorView) return this.editorView[key];
-        if (key === "state") return this.editorState;
-        if (key in obj) return Reflect.get(obj, key);
-        throw new Error(`[tiptap error]: The editor view is not available. Cannot access view['${key}']. The editor may not be mounted yet.`);
+      }, { get: (obj, key2) => {
+        if (this.editorView) return this.editorView[key2];
+        if (key2 === "state") return this.editorState;
+        if (key2 in obj) return Reflect.get(obj, key2);
+        throw new Error(`[tiptap error]: The editor view is not available. Cannot access view['${key2}']. The editor may not be mounted yet.`);
       } });
     }
     /**
@@ -19493,15 +19493,15 @@ ${prefix}
             if (!this.options.onReadOnlyChecked(node, checked)) checkbox.checked = !checkbox.checked;
           }
         });
-        Object.entries(this.options.HTMLAttributes).forEach(([key, value]) => {
-          listItem.setAttribute(key, value);
+        Object.entries(this.options.HTMLAttributes).forEach(([key2, value]) => {
+          listItem.setAttribute(key2, value);
         });
         listItem.dataset.checked = node.attrs.checked;
         checkbox.checked = node.attrs.checked;
         checkboxWrapper.append(checkbox, checkboxStyler);
         listItem.append(checkboxWrapper, content);
-        Object.entries(HTMLAttributes).forEach(([key, value]) => {
-          listItem.setAttribute(key, value);
+        Object.entries(HTMLAttributes).forEach(([key2, value]) => {
+          listItem.setAttribute(key2, value);
         });
         let prevRenderedAttributeKeys = new Set(Object.keys(HTMLAttributes));
         return {
@@ -19516,17 +19516,17 @@ ${prefix}
             const newHTMLAttributes = getRenderedAttributes(updatedNode, extensionAttributes);
             const newKeys = new Set(Object.keys(newHTMLAttributes));
             const staticAttrs = this.options.HTMLAttributes;
-            prevRenderedAttributeKeys.forEach((key) => {
-              if (!newKeys.has(key)) {
-                if (key in staticAttrs) listItem.setAttribute(key, staticAttrs[key]);
-                else listItem.removeAttribute(key);
+            prevRenderedAttributeKeys.forEach((key2) => {
+              if (!newKeys.has(key2)) {
+                if (key2 in staticAttrs) listItem.setAttribute(key2, staticAttrs[key2]);
+                else listItem.removeAttribute(key2);
               }
             });
-            Object.entries(newHTMLAttributes).forEach(([key, value]) => {
+            Object.entries(newHTMLAttributes).forEach(([key2, value]) => {
               if (value === null || value === void 0) {
-                if (key in staticAttrs) listItem.setAttribute(key, staticAttrs[key]);
-                else listItem.removeAttribute(key);
-              } else listItem.setAttribute(key, value);
+                if (key2 in staticAttrs) listItem.setAttribute(key2, staticAttrs[key2]);
+                else listItem.removeAttribute(key2);
+              } else listItem.setAttribute(key2, value);
             });
             prevRenderedAttributeKeys = newKeys;
             return true;
@@ -21662,8 +21662,8 @@ ${prefix}
   var __typeError = (msg) => {
     throw TypeError(msg);
   };
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  var __defNormalProp = (obj, key2, value) => key2 in obj ? __defProp3(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
+  var __publicField = (obj, key2, value) => __defNormalProp(obj, typeof key2 !== "symbol" ? key2 + "" : key2, value);
   var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
   var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
   var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
@@ -24641,14 +24641,14 @@ ${fromBody}`;
   function pMemoize(fn, { cacheKey = ([firstArgument]) => firstArgument, cache = /* @__PURE__ */ new Map() } = {}) {
     const promiseCache = /* @__PURE__ */ new Map();
     const memoized = function(...arguments_) {
-      const key = cacheKey(arguments_);
-      if (promiseCache.has(key)) {
-        return promiseCache.get(key);
+      const key2 = cacheKey(arguments_);
+      if (promiseCache.has(key2)) {
+        return promiseCache.get(key2);
       }
       const promise = (async () => {
         try {
-          if (cache && await cache.has(key)) {
-            return await cache.get(key);
+          if (cache && await cache.has(key2)) {
+            return await cache.get(key2);
           }
           const promise2 = fn.apply(this, arguments_);
           const result = await promise2;
@@ -24656,14 +24656,14 @@ ${fromBody}`;
             return result;
           } finally {
             if (cache) {
-              await cache.set(key, result);
+              await cache.set(key2, result);
             }
           }
         } finally {
-          promiseCache.delete(key);
+          promiseCache.delete(key2);
         }
       })();
-      promiseCache.set(key, promise);
+      promiseCache.set(key2, promise);
       return promise;
     };
     mimicFunction(memoized, fn, {
@@ -24779,8 +24779,8 @@ ${fromBody}`;
 
   // node_modules/harper.js/dist/index.js
   var __defProp4 = Object.defineProperty;
-  var __defNormalProp2 = (obj, key, value) => key in obj ? __defProp4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField2 = (obj, key, value) => __defNormalProp2(obj, typeof key !== "symbol" ? key + "" : key, value);
+  var __defNormalProp2 = (obj, key2, value) => key2 in obj ? __defProp4(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
+  var __publicField2 = (obj, key2, value) => __defNormalProp2(obj, typeof key2 !== "symbol" ? key2 + "" : key2, value);
   function assert(condition, message) {
     if (!condition) {
       throw new Error("Assertion failed");
@@ -24831,7 +24831,7 @@ ${fromBody}`;
         return {
           json: JSON.stringify(
             await Promise.all(
-              Object.entries(arg).map(([key, value]) => this.serializeArg([key, value]))
+              Object.entries(arg).map(([key2, value]) => this.serializeArg([key2, value]))
             )
           ),
           type: "object"
@@ -25330,17 +25330,17 @@ ${fromBody}`;
   function createParagraphCache(limit = 4e3) {
     const map2 = /* @__PURE__ */ new Map();
     return {
-      has: (key) => map2.has(key),
-      get(key) {
-        if (!map2.has(key)) return void 0;
-        const value = map2.get(key);
-        map2.delete(key);
-        map2.set(key, value);
+      has: (key2) => map2.has(key2),
+      get(key2) {
+        if (!map2.has(key2)) return void 0;
+        const value = map2.get(key2);
+        map2.delete(key2);
+        map2.set(key2, value);
         return value;
       },
-      set(key, value) {
-        map2.delete(key);
-        map2.set(key, value);
+      set(key2, value) {
+        map2.delete(key2);
+        map2.set(key2, value);
         while (map2.size > limit) map2.delete(map2.keys().next().value);
       },
       clear: () => map2.clear(),
@@ -25513,9 +25513,9 @@ ${fromBody}`;
       if (!node.isTextblock) return;
       const runs = /* @__PURE__ */ new Map();
       for (const edge of findMarkEdges(node.content.toJSON() || [])) {
-        const key = `${edge.mark}:${edge.run[0]}`;
-        if (!runs.has(key)) runs.set(key, []);
-        runs.get(key).push(edge);
+        const key2 = `${edge.mark}:${edge.run[0]}`;
+        if (!runs.has(key2)) runs.set(key2, []);
+        runs.get(key2).push(edge);
       }
       for (const edges of runs.values()) {
         const { mark, run: run2, blankOnly } = edges[0];
@@ -25590,8 +25590,8 @@ ${fromBody}`;
         const last = positions[Math.max(start, end - 1)];
         if (from2 == null || last == null) continue;
         const actual = text.slice(start, end);
-        const key = ignoreKey(m.ruleId, actual, para2.text);
-        if (ignored.has(key)) continue;
+        const key2 = ignoreKey(m.ruleId, actual, para2.text);
+        if (ignored.has(key2)) continue;
         const ctx = sentenceAround(text, start, end);
         issues.push({
           from: from2,
@@ -25604,7 +25604,7 @@ ${fromBody}`;
           actual,
           sentence: ctx.sentence,
           sentenceOffset: ctx.offset,
-          ignoreHash: key
+          ignoreHash: key2
         });
       }
     }
@@ -26285,6 +26285,78 @@ ${fromBody}`;
     }
   });
 
+  // renderer/src/editor/held-selection.js
+  var key = new PluginKey("heldSelection");
+  var SETTLE_MS = 150;
+  var HeldSelection = Extension.create({
+    name: "heldSelection",
+    addProseMirrorPlugins() {
+      return [new Plugin({
+        key,
+        state: {
+          init: () => false,
+          apply(tr, shown) {
+            const meta = tr.getMeta(key);
+            if (meta != null) return meta;
+            return tr.selectionSet || tr.docChanged ? false : shown;
+          }
+        },
+        props: {
+          decorations(state) {
+            const { from: from2, to, empty: empty2 } = state.selection;
+            if (!key.getState(state) || empty2) return null;
+            return DecorationSet.create(state.doc, [Decoration.inline(from2, to, { class: "held-sel" })]);
+          },
+          attributes: (state) => key.getState(state) && !state.selection.empty ? { class: "has-held-sel" } : {}
+        },
+        view(view) {
+          let timer = null;
+          let pressed = false;
+          const show = () => {
+            timer = null;
+            if (pressed || view.isDestroyed) return;
+            const { state } = view;
+            if (state.selection.empty || key.getState(state)) return;
+            view.dispatch(state.tr.setMeta(key, true).setMeta("addToHistory", false));
+          };
+          const schedule = () => {
+            clearTimeout(timer);
+            timer = setTimeout(show, SETTLE_MS);
+          };
+          const down = () => {
+            pressed = true;
+            clearTimeout(timer);
+          };
+          const up = () => {
+            if (!pressed) return;
+            pressed = false;
+            schedule();
+          };
+          const opts = { capture: true, passive: true };
+          view.dom.addEventListener("pointerdown", down, opts);
+          view.dom.addEventListener("touchstart", down, opts);
+          document.addEventListener("pointerup", up, opts);
+          document.addEventListener("touchend", up, opts);
+          document.addEventListener("pointercancel", up, opts);
+          return {
+            update(view2, prev) {
+              if (view2.state.selection.empty || key.getState(view2.state)) return;
+              if (!prev.selection.eq(view2.state.selection) || key.getState(prev)) schedule();
+            },
+            destroy() {
+              clearTimeout(timer);
+              view.dom.removeEventListener("pointerdown", down, opts);
+              view.dom.removeEventListener("touchstart", down, opts);
+              document.removeEventListener("pointerup", up, opts);
+              document.removeEventListener("touchend", up, opts);
+              document.removeEventListener("pointercancel", up, opts);
+            }
+          };
+        }
+      })];
+    }
+  });
+
   // renderer/src/editor/schema.js
   function breakNode({ name, kind, className, command: command2, shortcut, render: render2 }) {
     return Node3.create({
@@ -26363,6 +26435,7 @@ ${fromBody}`;
       GrammarExtension,
       StubExtension,
       WritingBehaviors,
+      HeldSelection,
       UndoRedo,
       // replaces renderer/undo.js
       Dropcursor,

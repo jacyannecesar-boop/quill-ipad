@@ -721,6 +721,10 @@ body.focus #editor-inner{
   content:attr(data-placeholder);color:var(--subtle);pointer-events:none;font-style:italic;
   float:left;height:0}
 #entry-body .ProseMirror-separator{display:none}
+/* held-selection.js: the editor paints a settled selection itself, so it stays visible while a
+   menu has focus and is never left partly unpainted. The native highlight hides underneath. */
+.ProseMirror .held-sel{background:var(--adim);background:color-mix(in srgb,Highlight 45%,transparent)}
+.ProseMirror.has-held-sel ::selection,.ProseMirror.has-held-sel::selection{background:transparent}
 #entry-body .ProseMirror:focus,
 #entry-body .ProseMirror:focus-visible{outline:none;border:none;box-shadow:none}
 #find-btn:disabled{opacity:.35;cursor:not-allowed}
