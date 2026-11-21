@@ -110,10 +110,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
       function tripletToBase64(num2) {
         return lookup[num2 >> 18 & 63] + lookup[num2 >> 12 & 63] + lookup[num2 >> 6 & 63] + lookup[num2 & 63];
       }
-      function encodeChunk(uint8, start6, end) {
+      function encodeChunk(uint8, start7, end) {
         var tmp;
         var output = [];
-        for (var i3 = start6; i3 < end; i3 += 3) {
+        for (var i3 = start7; i3 < end; i3 += 3) {
           tmp = (uint8[i3] << 16 & 16711680) + (uint8[i3 + 1] << 8 & 65280) + (uint8[i3 + 2] & 255);
           output.push(tripletToBase64(tmp));
         }
@@ -568,12 +568,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         }
       }
       Buffer9.byteLength = byteLength;
-      function slowToString(encoding, start6, end) {
+      function slowToString(encoding, start7, end) {
         let loweredCase = false;
-        if (start6 === void 0 || start6 < 0) {
-          start6 = 0;
+        if (start7 === void 0 || start7 < 0) {
+          start7 = 0;
         }
-        if (start6 > this.length) {
+        if (start7 > this.length) {
           return "";
         }
         if (end === void 0 || end > this.length) {
@@ -583,30 +583,30 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
           return "";
         }
         end >>>= 0;
-        start6 >>>= 0;
-        if (end <= start6) {
+        start7 >>>= 0;
+        if (end <= start7) {
           return "";
         }
         if (!encoding) encoding = "utf8";
         while (true) {
           switch (encoding) {
             case "hex":
-              return hexSlice(this, start6, end);
+              return hexSlice(this, start7, end);
             case "utf8":
             case "utf-8":
-              return utf8Slice(this, start6, end);
+              return utf8Slice(this, start7, end);
             case "ascii":
-              return asciiSlice(this, start6, end);
+              return asciiSlice(this, start7, end);
             case "latin1":
             case "binary":
-              return latin1Slice(this, start6, end);
+              return latin1Slice(this, start7, end);
             case "base64":
-              return base64Slice(this, start6, end);
+              return base64Slice(this, start7, end);
             case "ucs2":
             case "ucs-2":
             case "utf16le":
             case "utf-16le":
-              return utf16leSlice(this, start6, end);
+              return utf16leSlice(this, start7, end);
             default:
               if (loweredCase) throw new TypeError("Unknown encoding: " + encoding);
               encoding = (encoding + "").toLowerCase();
@@ -676,7 +676,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
       if (customInspectSymbol) {
         Buffer9.prototype[customInspectSymbol] = Buffer9.prototype.inspect;
       }
-      Buffer9.prototype.compare = function compare(target2, start6, end, thisStart, thisEnd) {
+      Buffer9.prototype.compare = function compare(target2, start7, end, thisStart, thisEnd) {
         if (isInstance(target2, Uint8Array)) {
           target2 = Buffer9.from(target2, target2.offset, target2.byteLength);
         }
@@ -685,8 +685,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
             'The "target" argument must be one of type Buffer or Uint8Array. Received type ' + typeof target2
           );
         }
-        if (start6 === void 0) {
-          start6 = 0;
+        if (start7 === void 0) {
+          start7 = 0;
         }
         if (end === void 0) {
           end = target2 ? target2.length : 0;
@@ -697,28 +697,28 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         if (thisEnd === void 0) {
           thisEnd = this.length;
         }
-        if (start6 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
+        if (start7 < 0 || end > target2.length || thisStart < 0 || thisEnd > this.length) {
           throw new RangeError("out of range index");
         }
-        if (thisStart >= thisEnd && start6 >= end) {
+        if (thisStart >= thisEnd && start7 >= end) {
           return 0;
         }
         if (thisStart >= thisEnd) {
           return -1;
         }
-        if (start6 >= end) {
+        if (start7 >= end) {
           return 1;
         }
-        start6 >>>= 0;
+        start7 >>>= 0;
         end >>>= 0;
         thisStart >>>= 0;
         thisEnd >>>= 0;
         if (this === target2) return 0;
         let x2 = thisEnd - thisStart;
-        let y = end - start6;
+        let y = end - start7;
         const len = Math.min(x2, y);
         const thisCopy = this.slice(thisStart, thisEnd);
-        const targetCopy = target2.slice(start6, end);
+        const targetCopy = target2.slice(start7, end);
         for (let i2 = 0; i2 < len; ++i2) {
           if (thisCopy[i2] !== targetCopy[i2]) {
             x2 = thisCopy[i2];
@@ -928,17 +928,17 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
           data: Array.prototype.slice.call(this._arr || this, 0)
         };
       };
-      function base64Slice(buf, start6, end) {
-        if (start6 === 0 && end === buf.length) {
+      function base64Slice(buf, start7, end) {
+        if (start7 === 0 && end === buf.length) {
           return base64.fromByteArray(buf);
         } else {
-          return base64.fromByteArray(buf.slice(start6, end));
+          return base64.fromByteArray(buf.slice(start7, end));
         }
       }
-      function utf8Slice(buf, start6, end) {
+      function utf8Slice(buf, start7, end) {
         end = Math.min(buf.length, end);
         const res = [];
-        let i2 = start6;
+        let i2 = start7;
         while (i2 < end) {
           const firstByte = buf[i2];
           let codePoint = null;
@@ -1011,49 +1011,49 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         }
         return res;
       }
-      function asciiSlice(buf, start6, end) {
+      function asciiSlice(buf, start7, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start6; i2 < end; ++i2) {
+        for (let i2 = start7; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2] & 127);
         }
         return ret;
       }
-      function latin1Slice(buf, start6, end) {
+      function latin1Slice(buf, start7, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i2 = start6; i2 < end; ++i2) {
+        for (let i2 = start7; i2 < end; ++i2) {
           ret += String.fromCharCode(buf[i2]);
         }
         return ret;
       }
-      function hexSlice(buf, start6, end) {
+      function hexSlice(buf, start7, end) {
         const len = buf.length;
-        if (!start6 || start6 < 0) start6 = 0;
+        if (!start7 || start7 < 0) start7 = 0;
         if (!end || end < 0 || end > len) end = len;
         let out = "";
-        for (let i2 = start6; i2 < end; ++i2) {
+        for (let i2 = start7; i2 < end; ++i2) {
           out += hexSliceLookupTable[buf[i2]];
         }
         return out;
       }
-      function utf16leSlice(buf, start6, end) {
-        const bytes = buf.slice(start6, end);
+      function utf16leSlice(buf, start7, end) {
+        const bytes = buf.slice(start7, end);
         let res = "";
         for (let i2 = 0; i2 < bytes.length - 1; i2 += 2) {
           res += String.fromCharCode(bytes[i2] + bytes[i2 + 1] * 256);
         }
         return res;
       }
-      Buffer9.prototype.slice = function slice(start6, end) {
+      Buffer9.prototype.slice = function slice(start7, end) {
         const len = this.length;
-        start6 = ~~start6;
+        start7 = ~~start7;
         end = end === void 0 ? len : ~~end;
-        if (start6 < 0) {
-          start6 += len;
-          if (start6 < 0) start6 = 0;
-        } else if (start6 > len) {
-          start6 = len;
+        if (start7 < 0) {
+          start7 += len;
+          if (start7 < 0) start7 = 0;
+        } else if (start7 > len) {
+          start7 = len;
         }
         if (end < 0) {
           end += len;
@@ -1061,8 +1061,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         } else if (end > len) {
           end = len;
         }
-        if (end < start6) end = start6;
-        const newBuf = this.subarray(start6, end);
+        if (end < start7) end = start7;
+        const newBuf = this.subarray(start7, end);
         Object.setPrototypeOf(newBuf, Buffer9.prototype);
         return newBuf;
       };
@@ -1492,41 +1492,41 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
       Buffer9.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
         return writeDouble(this, value, offset, false, noAssert);
       };
-      Buffer9.prototype.copy = function copy(target2, targetStart, start6, end) {
+      Buffer9.prototype.copy = function copy(target2, targetStart, start7, end) {
         if (!Buffer9.isBuffer(target2)) throw new TypeError("argument should be a Buffer");
-        if (!start6) start6 = 0;
+        if (!start7) start7 = 0;
         if (!end && end !== 0) end = this.length;
         if (targetStart >= target2.length) targetStart = target2.length;
         if (!targetStart) targetStart = 0;
-        if (end > 0 && end < start6) end = start6;
-        if (end === start6) return 0;
+        if (end > 0 && end < start7) end = start7;
+        if (end === start7) return 0;
         if (target2.length === 0 || this.length === 0) return 0;
         if (targetStart < 0) {
           throw new RangeError("targetStart out of bounds");
         }
-        if (start6 < 0 || start6 >= this.length) throw new RangeError("Index out of range");
+        if (start7 < 0 || start7 >= this.length) throw new RangeError("Index out of range");
         if (end < 0) throw new RangeError("sourceEnd out of bounds");
         if (end > this.length) end = this.length;
-        if (target2.length - targetStart < end - start6) {
-          end = target2.length - targetStart + start6;
+        if (target2.length - targetStart < end - start7) {
+          end = target2.length - targetStart + start7;
         }
-        const len = end - start6;
+        const len = end - start7;
         if (this === target2 && typeof Uint8Array.prototype.copyWithin === "function") {
-          this.copyWithin(targetStart, start6, end);
+          this.copyWithin(targetStart, start7, end);
         } else {
           Uint8Array.prototype.set.call(
             target2,
-            this.subarray(start6, end),
+            this.subarray(start7, end),
             targetStart
           );
         }
         return len;
       };
-      Buffer9.prototype.fill = function fill(val, start6, end, encoding) {
+      Buffer9.prototype.fill = function fill(val, start7, end, encoding) {
         if (typeof val === "string") {
-          if (typeof start6 === "string") {
-            encoding = start6;
-            start6 = 0;
+          if (typeof start7 === "string") {
+            encoding = start7;
+            start7 = 0;
             end = this.length;
           } else if (typeof end === "string") {
             encoding = end;
@@ -1549,18 +1549,18 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         } else if (typeof val === "boolean") {
           val = Number(val);
         }
-        if (start6 < 0 || this.length < start6 || this.length < end) {
+        if (start7 < 0 || this.length < start7 || this.length < end) {
           throw new RangeError("Out of range index");
         }
-        if (end <= start6) {
+        if (end <= start7) {
           return this;
         }
-        start6 = start6 >>> 0;
+        start7 = start7 >>> 0;
         end = end === void 0 ? this.length : end >>> 0;
         if (!val) val = 0;
         let i2;
         if (typeof val === "number") {
-          for (i2 = start6; i2 < end; ++i2) {
+          for (i2 = start7; i2 < end; ++i2) {
             this[i2] = val;
           }
         } else {
@@ -1569,8 +1569,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
           if (len === 0) {
             throw new TypeError('The value "' + val + '" is invalid for argument "value"');
           }
-          for (i2 = 0; i2 < end - start6; ++i2) {
-            this[i2 + start6] = bytes[i2 % len];
+          for (i2 = 0; i2 < end - start7; ++i2) {
+            this[i2 + start7] = bytes[i2 % len];
           }
         }
         return this;
@@ -1644,8 +1644,8 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
       function addNumericalSeparator(val) {
         let res = "";
         let i2 = val.length;
-        const start6 = val[0] === "-" ? 1 : 0;
-        for (; i2 >= start6 + 4; i2 -= 3) {
+        const start7 = val[0] === "-" ? 1 : 0;
+        for (; i2 >= start7 + 4; i2 -= 3) {
           res = `_${val.slice(i2 - 3, i2)}${res}`;
         }
         return `${val.slice(0, i2)}${res}`;
@@ -2063,7 +2063,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         basename: function basename(path5, ext) {
           if (ext !== void 0 && typeof ext !== "string") throw new TypeError('"ext" argument must be a string');
           assertPath(path5);
-          var start6 = 0;
+          var start7 = 0;
           var end = -1;
           var matchedSlash = true;
           var i2;
@@ -2075,7 +2075,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
               var code = path5.charCodeAt(i2);
               if (code === 47) {
                 if (!matchedSlash) {
-                  start6 = i2 + 1;
+                  start7 = i2 + 1;
                   break;
                 }
               } else {
@@ -2095,14 +2095,14 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
                 }
               }
             }
-            if (start6 === end) end = firstNonSlashEnd;
+            if (start7 === end) end = firstNonSlashEnd;
             else if (end === -1) end = path5.length;
-            return path5.slice(start6, end);
+            return path5.slice(start7, end);
           } else {
             for (i2 = path5.length - 1; i2 >= 0; --i2) {
               if (path5.charCodeAt(i2) === 47) {
                 if (!matchedSlash) {
-                  start6 = i2 + 1;
+                  start7 = i2 + 1;
                   break;
                 }
               } else if (end === -1) {
@@ -2111,7 +2111,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
               }
             }
             if (end === -1) return "";
-            return path5.slice(start6, end);
+            return path5.slice(start7, end);
           }
         },
         extname: function extname(path5) {
@@ -2162,12 +2162,12 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
           if (path5.length === 0) return ret;
           var code = path5.charCodeAt(0);
           var isAbsolute = code === 47;
-          var start6;
+          var start7;
           if (isAbsolute) {
             ret.root = "/";
-            start6 = 1;
+            start7 = 1;
           } else {
-            start6 = 0;
+            start7 = 0;
           }
           var startDot = -1;
           var startPart = 0;
@@ -2175,7 +2175,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
           var matchedSlash = true;
           var i2 = path5.length - 1;
           var preDotState = 0;
-          for (; i2 >= start6; --i2) {
+          for (; i2 >= start7; --i2) {
             code = path5.charCodeAt(i2);
             if (code === 47) {
               if (!matchedSlash) {
@@ -2747,10 +2747,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
       const onReturn = () => {
         clearTimeout(returnTimer);
         returnTimer = setTimeout(() => {
-          if (sharing) finish(true);
+          if (sharing) finish2(true);
         }, 600);
       };
-      const finish = (ok) => {
+      const finish2 = (ok) => {
         if (finished) return;
         finished = true;
         sharing = false;
@@ -2763,7 +2763,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         if (sharing) return;
         if (!navigator.canShare?.({ files: [file] })) {
           download(file);
-          return finish(true);
+          return finish2(true);
         }
         const backdrop = status2.closest(".web-sheet-backdrop");
         sharing = true;
@@ -2772,10 +2772,10 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         document.addEventListener("pointerdown", onReturn, true);
         try {
           await navigator.share({ files: [file] });
-          finish(true);
+          finish2(true);
         } catch (err2) {
           if (finished) return;
-          if (err2.name === "AbortError") return finish(false);
+          if (err2.name === "AbortError") return finish2(false);
           sharing = false;
           document.removeEventListener("pointerdown", onReturn, true);
           if (backdrop) backdrop.style.display = "";
@@ -2788,7 +2788,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         el("p", { class: "web-sheet-hint", text: detail }),
         status2,
         el("div", { class: "web-sheet-buttons" }, [
-          el("button", { class: "btn", text: "Not Now", onclick: () => finish(false) }),
+          el("button", { class: "btn", text: "Not Now", onclick: () => finish2(false) }),
           el("button", { class: "btn primary", text: "Save to Files\u2026", onclick: save2 })
         ])
       ]);
@@ -2852,7 +2852,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
     closeSignIn?.();
     closeSignIn = null;
   }
-  function signInSheet(authorizeUrl, deliver, onCancel) {
+  function signInSheet(authorizeUrl, deliver, onCancel2) {
     closeSignInSheet();
     const linkField = el("input", { type: "url", class: "settings-text web-sheet-field", value: authorizeUrl || "", readonly: "readonly" });
     const copy = el("button", { class: "btn", text: "Copy Sign-In Link", onclick: async () => {
@@ -2900,7 +2900,7 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
       el("div", { class: "web-sheet-buttons" }, [
         el("button", { class: "btn", text: "Cancel", onclick: () => {
           closeSignInSheet();
-          onCancel?.();
+          onCancel2?.();
         } }),
         authorizeUrl ? copy : null,
         connect3
@@ -4555,12 +4555,12 @@ ${fmLine(key, text)}---
 ${raw}` : raw;
         const { lines, close } = bounds;
         const eol = lines[0].endsWith("\r") ? "\r" : "";
-        let start6 = -1;
+        let start7 = -1;
         let end = -1;
         for (let i2 = 1; i2 < close; i2++) {
           const colon = lines[i2].indexOf(":");
           if (colon < 1 || lines[i2].slice(0, colon).trim() !== key) continue;
-          start6 = i2;
+          start7 = i2;
           end = i2 + 1;
           if (lines[i2].slice(colon + 1).trim() === "|") {
             while (end < close && /^ {2}/.test(lines[end])) end++;
@@ -4568,7 +4568,7 @@ ${raw}` : raw;
           break;
         }
         const replacement = text ? fmLine(key, text).slice(0, -1).split("\n").map((line) => line + eol) : [];
-        if (start6 >= 0) lines.splice(start6, end - start6, ...replacement);
+        if (start7 >= 0) lines.splice(start7, end - start7, ...replacement);
         else if (replacement.length) lines.splice(close, 0, ...replacement);
         return lines.join("\n");
       }
@@ -4635,14 +4635,14 @@ ${raw}` : raw;
         }
         function diffWords(before, after, limit = 1e3) {
           const a = wordTokens(before), b = wordTokens(after);
-          let start6 = 0;
-          while (start6 < a.length && start6 < b.length && a[start6] === b[start6]) start6++;
+          let start7 = 0;
+          while (start7 < a.length && start7 < b.length && a[start7] === b[start7]) start7++;
           let endA = a.length, endB = b.length;
-          while (endA > start6 && endB > start6 && a[endA - 1] === b[endB - 1]) {
+          while (endA > start7 && endB > start7 && a[endA - 1] === b[endB - 1]) {
             endA--;
             endB--;
           }
-          const midA = a.slice(start6, endA), midB = b.slice(start6, endB);
+          const midA = a.slice(start7, endA), midB = b.slice(start7, endB);
           const edits = editDistance(midA, midB, limit);
           let kept2;
           if (edits !== null) kept2 = (midA.length + midB.length - edits) / 2;
@@ -6469,15 +6469,15 @@ ${raw}` : raw;
           const pct = Math.min(words2 / g, 1);
           const acts = template.acts || [];
           const share = acts.length === 4 ? [0.25, 0.25, 0.25, 0.25] : acts.map(() => 1 / acts.length);
-          let start6 = 0;
+          let start7 = 0;
           for (let i2 = 0; i2 < acts.length; i2++) {
-            const end = start6 + share[i2];
+            const end = start7 + share[i2];
             if (pct <= end || i2 === acts.length - 1) {
               const beats = acts[i2].beats.filter((b) => b.track !== "rival");
-              const at = beats.length ? beats[Math.min(beats.length - 1, Math.floor((pct - start6) / share[i2] * beats.length))] : null;
+              const at = beats.length ? beats[Math.min(beats.length - 1, Math.floor((pct - start7) / share[i2] * beats.length))] : null;
               return { pct: Math.round(pct * 100), act: acts[i2].label, beat: at };
             }
-            start6 = end;
+            start7 = end;
           }
           return null;
         }
@@ -6822,10 +6822,10 @@ ${raw}` : raw;
         0
       ]);
       clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
-      freb = function(eb, start6) {
+      freb = function(eb, start7) {
         var b = new u16(31);
         for (var i2 = 0; i2 < 31; ++i2) {
-          b[i2] = start6 += 1 << eb[i2 - 1];
+          b[i2] = start7 += 1 << eb[i2 - 1];
         }
         var r = new i32(b[30]);
         for (var i2 = 1; i2 < 30; ++i2) {
@@ -7947,7 +7947,7 @@ wait $child
           }
           if (!have || !have.equals(want)) fs.writeFileSync(p.customRules, want);
         }
-        async function start6() {
+        async function start7() {
           if (_server) return _server;
           if (_starting) return _starting;
           if (!isInstalled()) throw new Error("LanguageTool is not installed.");
@@ -8018,7 +8018,7 @@ wait $child
           if (!ENGLISH_LANGUAGES.has(language)) throw new TypeError("Unsupported LanguageTool dialect.");
           if (text.length > MAX_TEXT) throw new Error("This document is too long to check in one pass.");
           if (!text.trim()) return [];
-          const { port } = await start6();
+          const { port } = await start7();
           clearTimeout(_idleTimer);
           _idleTimer = setTimeout(() => {
             stop().catch(() => {
@@ -8349,9 +8349,9 @@ wait $child
           if (e.flags & 1) throw new EpubError("This EPUB is encrypted (DRM) and cannot be opened.");
           const lp = e.localOffset;
           if (lp + 30 > buf.length || buf.readUInt32LE(lp) !== 67324752) throw new EpubError("This EPUB is truncated or damaged.");
-          const start6 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
-          if (start6 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
-          const data = buf.subarray(start6, start6 + e.compSize);
+          const start7 = lp + 30 + buf.readUInt16LE(lp + 26) + buf.readUInt16LE(lp + 28);
+          if (start7 + e.compSize > buf.length) throw new EpubError("This EPUB is truncated or damaged.");
+          const data = buf.subarray(start7, start7 + e.compSize);
           const budget = Math.min(limits.maxEntryBytes, limits.maxTotalBytes - total);
           let out;
           if (e.method === 0) {
@@ -8527,7 +8527,7 @@ wait $child
         "ol",
         "body"
       ]);
-      var SKIP = /* @__PURE__ */ new Set(["script", "style", "head", "svg", "math", "noscript", "template", "iframe", "object", "title"]);
+      var SKIP2 = /* @__PURE__ */ new Set(["script", "style", "head", "svg", "math", "noscript", "template", "iframe", "object", "title"]);
       var ITALIC = /* @__PURE__ */ new Set(["i", "em", "cite", "var", "dfn"]);
       var VOID = /* @__PURE__ */ new Set(["br", "img", "hr", "meta", "link", "input", "col", "area", "base", "wbr", "source", "embed", "image"]);
       var PAGE_ANCHOR = /^p(?:age)?[-_]?\d+$/i;
@@ -8613,7 +8613,7 @@ wait $child
           const name2 = localName(m[1]);
           const closing = tok[1] === "/";
           const selfClosing = /\/\s*>$/.test(tok) || VOID.has(name2);
-          if (SKIP.has(name2)) {
+          if (SKIP2.has(name2)) {
             if (closing) skipDepth = Math.max(0, skipDepth - 1);
             else if (!selfClosing) skipDepth++;
             continue;
@@ -8831,8 +8831,8 @@ wait $child
           }
           return { t, i: i2 };
         }
-        function makeAnchor(text, start6, end) {
-          const s = Math.max(0, Math.min(start6, end)), e = Math.min(text.length, Math.max(start6, end));
+        function makeAnchor(text, start7, end) {
+          const s = Math.max(0, Math.min(start7, end)), e = Math.min(text.length, Math.max(start7, end));
           return {
             start: s,
             end: e,
@@ -9023,8 +9023,8 @@ wait $child
           if (scored.length > 1 && scored[0].score < scored[1].score + 5) return { status: "ambiguous", chapterIndex: ci, count: scored.length };
           return { status: "ok", chapterIndex: ci, start: scored[0].start, end: scored[0].end };
         }
-        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start6, end) {
-          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start6, end) };
+        function rawAnchor(paragraphs, chapterIndex, chapterTitle, start7, end) {
+          return { chapterIndex, chapterTitle: chapterTitle || "", ...makeAnchor(rawChapterText(paragraphs), start7, end) };
         }
         function splitSentences(text) {
           const out = [];
@@ -10283,9 +10283,9 @@ ${str(e.text).trim()}
         const ownToday = (key) => Math.max(0, (Number(theirs[key]?.[today]) || 0) - (Number(theirs.broughtIn?.[key]?.[today]) || 0));
         const credit = (key) => Math.max(0, ownToday(key) - (Number(before[key]?.[today]) || 0));
         const added = credit("wordsAddedByDay"), cut = credit("wordsCutByDay");
-        const start6 = Number.isFinite(mine.sceneDayBaselines?.[today]) ? mine.sceneDayBaselines[today] : Number.isFinite(mine.lastSceneCensusTotal) ? mine.lastSceneCensusTotal : null;
-        if (added && start6 !== null) {
-          out.sceneDayBaselines = { ...mine.sceneDayBaselines, [today]: start6 - added };
+        const start7 = Number.isFinite(mine.sceneDayBaselines?.[today]) ? mine.sceneDayBaselines[today] : Number.isFinite(mine.lastSceneCensusTotal) ? mine.lastSceneCensusTotal : null;
+        if (added && start7 !== null) {
+          out.sceneDayBaselines = { ...mine.sceneDayBaselines, [today]: start7 - added };
           out.wordsAddedByDay[today] = (Number(out.wordsAddedByDay[today]) || 0) + added;
           out.wordsByDay[today] = out.wordsAddedByDay[today];
           broughtIn.wordsAddedByDay[today] = (Number(broughtIn.wordsAddedByDay[today]) || 0) + added;
@@ -10416,15 +10416,15 @@ ${line}`;
       }
       var separatorOf = (body) => /\n[ \t]*\n\S/.test(String(body || "")) ? "\n\n" : "\n";
       function diffLists(a, b, same = (x2, y) => x2 === y) {
-        let start6 = 0;
-        while (start6 < a.length && start6 < b.length && same(a[start6], b[start6])) start6++;
+        let start7 = 0;
+        while (start7 < a.length && start7 < b.length && same(a[start7], b[start7])) start7++;
         let endA = a.length, endB = b.length;
-        while (endA > start6 && endB > start6 && same(a[endA - 1], b[endB - 1])) {
+        while (endA > start7 && endB > start7 && same(a[endA - 1], b[endB - 1])) {
           endA--;
           endB--;
         }
-        const out = a.slice(0, start6).map((x2) => ["=", x2]);
-        const midA = a.slice(start6, endA), midB = b.slice(start6, endB);
+        const out = a.slice(0, start7).map((x2) => ["=", x2]);
+        const midA = a.slice(start7, endA), midB = b.slice(start7, endB);
         const rows = midA.length + 1, cols = midB.length + 1;
         if (rows * cols > 4e6) {
           out.push(...midA.map((x2) => ["-", x2]), ...midB.map((x2) => ["+", x2]));
@@ -12219,7 +12219,7 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         if (fs.existsSync(destination)) {
           return { ok: false, error: `A scene named "${path5.basename(destination, ".md")}" already exists in that chapter.` };
         }
-        if (moves.some((move2) => fs.existsSync(move2.to))) {
+        if (moves.some((move3) => fs.existsSync(move3.to))) {
           return { ok: false, error: `Notes or history for a scene named "${path5.basename(destination, ".md")}" already exist in that chapter.` };
         }
         const sourceMetaPath = path5.join(sourceDir, ".quill_meta");
@@ -12250,9 +12250,9 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
           const cardIndex = sourceCards.findIndex((card2) => sceneMeta.scene_id && card2.scene_id === sceneMeta.scene_id || !card2.scene_id && String(card2.title || "").trim().toLowerCase() === title);
           const card = cardIndex >= 0 ? sourceCards.splice(cardIndex, 1)[0] : null;
           if (card) destinationCards.push(card);
-          for (const move2 of moves) {
-            fs.renameSync(move2.from, move2.to);
-            moved.push(move2);
+          for (const move3 of moves) {
+            fs.renameSync(move3.from, move3.to);
+            moved.push(move3);
           }
           atomicWriteFileSync(sourceMetaPath, JSON.stringify(sourceMeta), "utf8");
           atomicWriteFileSync(destinationMetaPath, JSON.stringify(destinationMeta), "utf8");
@@ -12273,9 +12273,9 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
             destinationFolder: path5.relative(ROOT, destinationDir).replace(/\\/g, "/")
           };
         } catch (error) {
-          for (const move2 of moved.reverse()) {
+          for (const move3 of moved.reverse()) {
             try {
-              if (fs.existsSync(move2.to)) fs.renameSync(move2.to, move2.from);
+              if (fs.existsSync(move3.to)) fs.renameSync(move3.to, move3.from);
             } catch {
             }
           }
@@ -14606,17 +14606,17 @@ ${tags}`);
           if (!match.targetHash || currentHash !== match.targetHash) {
             throw new Error(`\u201C${match.fileTitle || "A result"}\u201D changed since the search. Search again before replacing.`);
           }
-          const start6 = Number(match.matchStart);
+          const start7 = Number(match.matchStart);
           const end = Number(match.matchEnd);
-          if (!Number.isInteger(start6) || !Number.isInteger(end) || start6 < 0 || end <= start6 || end > value.length || value.slice(start6, end) !== match.matchedText || value.slice(start6, end).toLowerCase() !== term.toLowerCase()) {
+          if (!Number.isInteger(start7) || !Number.isInteger(end) || start7 < 0 || end <= start7 || end > value.length || value.slice(start7, end) !== match.matchedText || value.slice(start7, end).toLowerCase() !== term.toLowerCase()) {
             throw new Error("A selected match is stale. Search again before replacing.");
           }
           if (!targets.has(key)) targets.set(key, { value, ref, occurrences: [] });
           const target2 = targets.get(key);
           if (target2.value !== value) throw new Error("A replacement target changed during validation.");
-          if (target2.occurrences.some((item) => item.start === start6 && item.end === end)) return;
+          if (target2.occurrences.some((item) => item.start === start7 && item.end === end)) return;
           target2.occurrences.push({
-            start: start6,
+            start: start7,
             end,
             lineNumber: Number(match.lineNumber),
             lineMatchStart: Number(match.lineMatchStart)
@@ -14838,10 +14838,10 @@ ${tags}`);
               let nextQuote = quote;
               let delta = 0;
               for (const occurrence of inside2.sort((a, b) => b.start - a.start)) {
-                const start6 = occurrence.start - quoteStart;
+                const start7 = occurrence.start - quoteStart;
                 const end = occurrence.end - quoteStart;
-                nextQuote = nextQuote.slice(0, start6) + String(replacement) + nextQuote.slice(end);
-                delta += String(replacement).length - (end - start6);
+                nextQuote = nextQuote.slice(0, start7) + String(replacement) + nextQuote.slice(end);
+                delta += String(replacement).length - (end - start7);
               }
               comment.text = nextQuote;
               if (comment.anchor && Number.isInteger(comment.anchor.end)) comment.anchor.end += delta;
@@ -20225,6 +20225,219 @@ blockquote{border-left:2px solid #2d6a4f;padding:2px 16px;color:#666;font-style:
     retarget();
   }
 
+  // web/mousedrag.js
+  var THRESHOLD = 6;
+  var EDGE = 40;
+  var SKIP = 'input, textarea, select, button, [contenteditable=""], [contenteditable="true"]';
+  var press = null;
+  var drag2 = null;
+  function dataTransfer() {
+    const store = /* @__PURE__ */ new Map();
+    return {
+      dropEffect: "none",
+      effectAllowed: "all",
+      files: [],
+      items: [],
+      get types() {
+        return [...store.keys()];
+      },
+      setData(type, value) {
+        store.set(String(type).toLowerCase() === "text" ? "text/plain" : String(type), String(value));
+      },
+      getData(type) {
+        return store.get(String(type).toLowerCase() === "text" ? "text/plain" : String(type)) ?? "";
+      },
+      clearData(type) {
+        if (type) store.delete(type);
+        else store.clear();
+      },
+      setDragImage() {
+      }
+    };
+  }
+  function fire(target2, type, { x: x2, y, related = null, cancelable = true, data = drag2?.data } = {}) {
+    if (!target2) return true;
+    const event2 = new Event(type, { bubbles: true, cancelable, composed: true });
+    const props = {
+      dataTransfer: data,
+      clientX: x2,
+      clientY: y,
+      pageX: x2 + scrollX,
+      pageY: y + scrollY,
+      screenX: x2,
+      screenY: y,
+      relatedTarget: related,
+      button: 0,
+      buttons: type === "dragend" || type === "drop" ? 0 : 1
+    };
+    for (const [key, value] of Object.entries(props)) Object.defineProperty(event2, key, { value, configurable: true });
+    return target2.dispatchEvent(event2);
+  }
+  var under = (x2, y) => document.elementFromPoint(x2, y) || document.documentElement;
+  function scrollerAt(el2) {
+    for (let node2 = el2; node2 && node2 !== document.documentElement; node2 = node2.parentElement) {
+      const style = getComputedStyle(node2);
+      if (/(auto|scroll)/.test(style.overflowY) && node2.scrollHeight > node2.clientHeight + 1) return node2;
+    }
+    return null;
+  }
+  function start2(source, x2, y) {
+    const rect = source.getBoundingClientRect();
+    drag2 = {
+      source,
+      data: dataTransfer(),
+      ghost: null,
+      over: null,
+      accepted: false,
+      x: x2,
+      y,
+      offsetX: x2 - rect.left,
+      offsetY: y - rect.top,
+      scroller: null,
+      raf: 0
+    };
+    if (fire(source, "dragstart", { x: x2, y }) === false) {
+      drag2 = null;
+      return false;
+    }
+    document.documentElement.classList.add("mouse-dragging");
+    const ghost = source.cloneNode(true);
+    ghost.removeAttribute("id");
+    ghost.querySelectorAll("[id]").forEach((el2) => el2.removeAttribute("id"));
+    Object.assign(ghost.style, {
+      position: "fixed",
+      left: `${rect.left}px`,
+      top: `${rect.top}px`,
+      width: `${rect.width}px`,
+      margin: "0",
+      opacity: "0.75",
+      pointerEvents: "none",
+      zIndex: "100000",
+      boxShadow: "var(--shadow-2)",
+      background: "var(--surface)"
+    });
+    document.body.appendChild(ghost);
+    drag2.ghost = ghost;
+    move2(x2, y);
+    return true;
+  }
+  function move2(x2, y) {
+    drag2.x = x2;
+    drag2.y = y;
+    drag2.ghost.style.left = `${x2 - drag2.offsetX}px`;
+    drag2.ghost.style.top = `${y - drag2.offsetY}px`;
+    const target2 = under(x2, y);
+    if (target2 !== drag2.over) {
+      if (drag2.over) fire(drag2.over, "dragleave", { x: x2, y, related: target2, cancelable: false });
+      fire(target2, "dragenter", { x: x2, y, related: drag2.over });
+      drag2.over = target2;
+    }
+    drag2.accepted = fire(target2, "dragover", { x: x2, y }) === false;
+    drag2.scroller = scrollerAt(target2);
+    if (!drag2.raf) drag2.raf = requestAnimationFrame(autoScroll);
+  }
+  function autoScroll() {
+    if (!drag2) return;
+    drag2.raf = 0;
+    const box = drag2.scroller;
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const step = drag2.y < r.top + EDGE ? -Math.ceil((r.top + EDGE - drag2.y) / 4) : drag2.y > r.bottom - EDGE ? Math.ceil((drag2.y - (r.bottom - EDGE)) / 4) : 0;
+    if (!step) return;
+    const before = box.scrollTop;
+    box.scrollTop += step;
+    if (box.scrollTop !== before) {
+      move2(drag2.x, drag2.y);
+    }
+  }
+  function finish(dropped) {
+    const d = drag2;
+    drag2 = null;
+    cancelAnimationFrame(d.raf);
+    d.ghost?.remove();
+    document.documentElement.classList.remove("mouse-dragging");
+    if (dropped && d.accepted && d.over) {
+      d.data.dropEffect = d.data.dropEffect === "none" ? "move" : d.data.dropEffect;
+      fire(d.over, "drop", { x: d.x, y: d.y, data: d.data });
+    } else if (d.over) {
+      fire(d.over, "dragleave", { x: d.x, y: d.y, cancelable: false, data: d.data });
+    }
+    fire(d.source, "dragend", { x: d.x, y: d.y, cancelable: false, data: d.data });
+    const swallow = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    };
+    window.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 400);
+  }
+  function onDown(e) {
+    if (e.pointerType !== "mouse" || e.button !== 0 || drag2) return;
+    if (e.target instanceof Element && e.target.closest(SKIP)) return;
+    press = { x: e.clientX, y: e.clientY, target: e.target };
+  }
+  function onMove(e) {
+    if (e.pointerType !== "mouse") return;
+    if (drag2) {
+      e.preventDefault();
+      move2(e.clientX, e.clientY);
+      return;
+    }
+    if (!press || !(e.buttons & 1)) {
+      press = null;
+      return;
+    }
+    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < THRESHOLD) return;
+    const source = press.target instanceof Element ? press.target.closest('[draggable="true"]') : null;
+    const at = press;
+    press = null;
+    if (!source) return;
+    e.preventDefault();
+    window.getSelection()?.removeAllRanges();
+    start2(source, at.x, at.y);
+    if (drag2) move2(e.clientX, e.clientY);
+  }
+  function onUp(e) {
+    if (e.pointerType !== "mouse") return;
+    press = null;
+    if (drag2) {
+      e.preventDefault();
+      move2(e.clientX, e.clientY);
+      finish(true);
+    }
+  }
+  function onCancel() {
+    press = null;
+    if (drag2) finish(false);
+  }
+  function init({ force = false } = {}) {
+    if (!force && !(navigator.maxTouchPoints > 0)) return false;
+    if (document.documentElement.dataset.mouseDrag) return true;
+    document.documentElement.dataset.mouseDrag = "on";
+    const style = document.createElement("style");
+    style.textContent = "html.mouse-dragging, html.mouse-dragging * { -webkit-user-select: none !important; user-select: none !important; cursor: grabbing !important; }";
+    document.head.appendChild(style);
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointermove", onMove, { capture: true, passive: false });
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onCancel, true);
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && drag2) {
+        e.stopPropagation();
+        onCancel();
+      }
+    }, true);
+    document.addEventListener("dragstart", (e) => {
+      if (e.isTrusted && (press || drag2)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    }, true);
+    document.addEventListener("selectstart", (e) => {
+      if (press && e.target instanceof Node && (e.target.nodeType === 1 ? e.target : e.target.parentElement)?.closest?.('[draggable="true"]')) e.preventDefault();
+    }, true);
+    return true;
+  }
+
   // web/boot.js
   init_signin();
 
@@ -20389,7 +20602,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
     clearTimeout(idleTimer2);
     idleTimer2 = setTimeout(release, IDLE_MS2);
   }
-  function start2() {
+  function start3() {
     document.addEventListener("input", typed, true);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && enabled() && Date.now() - lastTyped < IDLE_MS2) hold();
@@ -20407,7 +20620,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   }
 
   // web/editorzoom.js
-  function start3() {
+  function start4() {
     const root2 = document.documentElement;
     root2.classList.add("web-ipad");
     const badge = document.getElementById("selection-wc");
@@ -20519,7 +20732,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
       if (node2.nodeValue.includes("iPad")) node2.nodeValue = node2.nodeValue.replace(/\biPadOS\b/g, "iOS").replace(/\biPad\b/g, "iPhone");
     }
   }
-  function start4() {
+  function start5() {
     if (!isPhone) return;
     root.classList.add("web-phone");
     nameTheDevice();
@@ -20557,19 +20770,19 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   var JWKS = "https://auth.openai.com/.well-known/jwks.json";
   var realFetch = globalThis.fetch.bind(globalThis);
   var json = (body) => new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
-  globalThis.fetch = (input, init) => {
+  globalThis.fetch = (input, init2) => {
     const url = typeof input === "string" ? input : input?.url;
     if (url === OIDC) return Promise.resolve(json({ jwks_uri: JWKS, revocation_endpoint: "https://auth.openai.com/api/accounts/oauth/revoke" }));
     if (url === JWKS) return Promise.resolve(json({ keys: [], webTrust: true }));
     if (typeof url === "string" && url.startsWith("https://api.openai.com/v1/")) {
       const routed = reroute(url);
       if (!routed) return Promise.reject(new Error(missingMessage));
-      return realFetch(typeof input === "string" ? routed : new Request(routed, input), init);
+      return realFetch(typeof input === "string" ? routed : new Request(routed, input), init2);
     }
-    return realFetch(input, init);
+    return realFetch(input, init2);
   };
   require_preload();
-  async function start5() {
+  async function start6() {
     try {
       await load();
     } catch (error) {
@@ -20592,10 +20805,11 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   var fromHomeScreen = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   async function firstScreens(empty, stored) {
     if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
-    start4();
+    start5();
     start();
-    start2();
-    if (onIPad2) start3();
+    init();
+    start3();
+    if (onIPad2) start4();
     show();
     await new Promise((r) => setTimeout(r, 600));
     if (onIPad2 && !fromHomeScreen) {
@@ -20680,7 +20894,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-21T21:38:07.652Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-21T22:58:35.965Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
@@ -20702,7 +20916,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
       location.reload();
     }, { once: true });
   }
-  start5();
+  start6();
 })();
 /*! Bundled license information:
 

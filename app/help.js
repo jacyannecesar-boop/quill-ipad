@@ -28,6 +28,7 @@ window.QuillHelp = (() => {
     ['Planning', [
       ['Board', 'Scene cards for the whole novel, one column per chapter. Drag cards to reorder or move scenes.'],
       ['Outliner', 'The same scenes as a list, with synopsis and status.'],
+      ['Unsorted', 'Scenes without a chapter yet, in the sidebar. + Scene starts a blank one there; drag it into a chapter when you know where it goes.'],
       ['Scene beats', 'The step-by-step plan for one scene, shown beside the page (⌘O).'],
       ['Story beats', 'The novel-wide structure (Structure tab): which scenes serve which turning point.'],
       ['Open threads', 'The questions your reader is holding, on the Structure tab: where each is raised and answered. Find threads in my draft has AI suggest them; you choose which to keep.'],

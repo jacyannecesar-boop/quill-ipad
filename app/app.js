@@ -466,8 +466,9 @@ const App = (() => {
     let title = ''
     if (isNovel) {
       const project = options.project || _currentFolder.split('/')[0]
-      const currentParent = options.project && _currentFile?.startsWith(project + '/')
-        ? _currentFile.slice(0, _currentFile.lastIndexOf('/')) : _currentFolder
+      // `parent` names where the dialog should start (Unsorted's + Scene); otherwise beside the open scene.
+      const currentParent = options.parent || (options.project && _currentFile?.startsWith(project + '/')
+        ? _currentFile.slice(0, _currentFile.lastIndexOf('/')) : _currentFolder)
       const choice = await Tree.askManuscriptName({ project, parent:currentParent, kind:'scene' })
       if (choice === null) return
       title = choice.name

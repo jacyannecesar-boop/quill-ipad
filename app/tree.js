@@ -361,6 +361,20 @@ const Tree = (() => {
     wrap.appendChild(heading)
     const actions = document.createElement('div')
     actions.className = 'workspace-create-actions'
+    // A blank scene straight into Unsorted, named in the usual dialog with Unsorted chosen.
+    const blank = document.createElement('button')
+    blank.type = 'button'
+    blank.className = 'btn sm'
+    blank.id = 'workspace-new-unsorted-scene'
+    blank.textContent = '+ Scene'
+    blank.title = 'A new blank scene, waiting here until you give it a chapter.'
+    blank.onclick = async () => {
+      const made = folder ? { ok: true, path: folder.path } : await window.quill.ensureUnsortedFolder(project.path)
+      if (!made?.ok) { alert(made?.error || 'Could not make the Unsorted folder.'); return }
+      if (!folder) await refresh()   // the name dialog offers only folders the sidebar knows
+      await App.newFile({ project: project.path, folderType: 'novel', parent: made.path })
+    }
+    actions.appendChild(blank)
     const idea = document.createElement('button')
     idea.type = 'button'
     idea.className = 'btn sm'
