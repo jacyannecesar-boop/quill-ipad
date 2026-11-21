@@ -313,10 +313,21 @@ const Settings = (() => {
     if (st.connected) {
       const r = typeof QuillModels !== 'undefined' ? await QuillModels.refresh().catch(() => null) : null
       const n = r?.models?.length || 0
+      const hidden = r?.hidden || []
+      const showing = QuillModels.showHidden()
       title.textContent = st.sharing ? 'Using ChatGPT plan' : 'ChatGPT connected (no plan usage)'
+      // OpenAI marks some models as hidden from its own pickers. Say how many, name them, and let
+      // the writer add them to Quill's model lists.
+      const hiddenNote = st.sharing && !r?.error && hidden.length
+        ? `<label class="check settings-cg-hidden" title="${esc(hidden.map(m => m.label).join(', '))}">
+            <input type="checkbox" id="settings-cg-show-hidden"${showing ? ' checked' : ''}>
+            Also show ${hidden.length} model${hidden.length === 1 ? '' : 's'} OpenAI hides (${esc(hidden.slice(0, 4).map(m => m.label).join(', '))}${hidden.length > 4 ? ', …' : ''})</label>`
+        : ''
       status.innerHTML = st.sharing
-        ? `Connected as ${esc(st.email || 'your account')} · ${r?.error ? esc(r.error) : `${n} model${n === 1 ? '' : 's'} available`}${note ? ` · ${esc(note)}` : ''}`
+        ? `Connected as ${esc(st.email || 'your account')} · ${r?.error ? esc(r.error) : `${n} model${n === 1 ? '' : 's'} available`}${note ? ` · ${esc(note)}` : ''}${hiddenNote}`
         : 'Sign-in worked, but plan usage was not granted. Reconnect and allow Quill to use your plan.'
+      const toggle = $('settings-cg-show-hidden')
+      if (toggle) toggle.onchange = async () => { QuillModels.setShowHidden(toggle.checked); await QuillModels.refresh().catch(() => {}); _renderChatGPT() }
       box.innerHTML = `<button class="btn sm" id="settings-cg-usage">Manage usage</button>
         <button class="btn sm" id="settings-cg-reconnect">Reconnect</button>
         <button class="btn sm danger" id="settings-cg-disconnect">Disconnect</button>`

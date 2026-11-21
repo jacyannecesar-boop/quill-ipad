@@ -1776,6 +1776,46 @@
   </div>
 </div>
 
+<!-- Bridge: from the last scene written to the next scene you can see (renderer/bridgebuilder.js) -->
+<div class="overlay" id="bridge-builder-modal">
+  <div class="modal scene-builder structure-builder bridge-builder" role="dialog" aria-labelledby="brb-heading">
+    <div class="sb-head">
+      <h3 id="brb-heading">Bridge</h3>
+      <span class="stb-head-actions">
+        <button type="button" class="sb-close" id="brb-close" title="Close" aria-label="Close">×</button>
+      </span>
+    </div>
+    <div class="sb-main">
+      <nav class="sb-rail stb-rail" id="brb-rail"></nav>
+      <div class="sb-body" id="brb-body"></div>
+    </div>
+    <div class="modal-btns">
+      <span class="builder-save-status" id="brb-save-status" role="status"></span>
+      <button type="button" class="btn" id="brb-back">Back</button>
+      <button type="button" class="btn primary" id="brb-next">Next</button>
+      <button type="button" class="btn" id="brb-done">Save &amp; close</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI preview: suggestions read from the draft, edited and accepted before anything is saved (renderer/draft-ai.js) -->
+<div class="overlay" id="ai-preview-modal">
+  <div class="modal ai-preview" role="dialog" aria-modal="true" aria-labelledby="aip-heading">
+    <div class="sb-head">
+      <h3 id="aip-heading">Suggestions</h3>
+      <button type="button" class="sb-close" id="aip-close" title="Close" aria-label="Close">×</button>
+    </div>
+    <p class="aip-intro" id="aip-intro"></p>
+    <div class="aip-status" id="aip-status" role="status"></div>
+    <div class="aip-list" id="aip-list"></div>
+    <div class="modal-btns">
+      <button type="button" class="btn sm aip-all" id="aip-all" hidden>Untick all</button>
+      <button type="button" class="btn" id="aip-cancel">Cancel</button>
+      <button type="button" class="btn primary" id="aip-accept" disabled>Add selected</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="grammar-modal">
   <div class="modal grammar-modal">
     <div class="grammar-header">
@@ -1815,6 +1855,9 @@
 <script src="../revisions.js"></script>
 <script src="../structure.js"></script>
 <script src="../case.js"></script>
+<script src="../bridge.js"></script>
+<script src="../threads.js"></script>
+<script src="../story-ai.js"></script>
 <script src="../study.js"></script>
 <script src="sprint.js"></script>
 <script src="tree.js"></script>
@@ -1824,6 +1867,9 @@
 <script src="scene-ai.js"></script>
 <script src="scenebuilder.js"></script>
 <script src="structurebuilder.js"></script>
+<script src="bridgebuilder.js"></script>
+<script src="draft-ai.js"></script>
+<script src="threadspanel.js"></script>
 <script src="casebuilder.js"></script>
 <script src="editor.bundle.js"></script>
 <script src="editor.js"></script>

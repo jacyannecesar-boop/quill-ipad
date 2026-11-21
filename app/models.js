@@ -55,12 +55,18 @@ const QuillModels = (() => {
     if (hasOr) connected.add('openrouter'); else connected.delete('openrouter')
     if (cg.sharing) {
       const res = await window.quill.chatgptModels().catch(() => ({ models: [] }))
-      merge('chatgpt', res.models || [])
-      return { openrouter: hasOr, chatgpt: cg, models: res.models || [], error: res.ok === false ? res.error : '' }
+      const hidden = res.hidden || []
+      // Models OpenAI keeps out of its own pickers appear only when the writer asks for them.
+      const models = [...(res.models || []), ...(showHidden() ? hidden : [])]
+      merge('chatgpt', models)
+      return { openrouter: hasOr, chatgpt: cg, models, hidden, error: res.ok === false ? res.error : '' }
     }
     merge('chatgpt', [])
-    return { openrouter: hasOr, chatgpt: cg, models: [], error: '' }
+    return { openrouter: hasOr, chatgpt: cg, models: [], hidden: [], error: '' }
   }
+  const HIDDEN_KEY = 'quill_chatgpt_show_hidden'
+  function showHidden() { try { return localStorage.getItem(HIDDEN_KEY) === 'on' } catch { return false } }
+  function setShowHidden(on) { try { localStorage.setItem(HIDDEN_KEY, on ? 'on' : 'off') } catch {} }
   function isConnected(provider) { return connected.has(provider) }
 
   // <option>s for a model <select>. `custom` appends the "Custom model ID…" entry.
@@ -84,5 +90,5 @@ const QuillModels = (() => {
 
   setTimeout(() => refresh().catch(() => {}), 0)
 
-  return { list, find, label, providerOf, role, current, setCurrent, merge, refresh, isConnected, saved, optionsHTML, ROLES }
+  return { list, find, label, providerOf, role, current, setCurrent, merge, refresh, isConnected, saved, optionsHTML, showHidden, setShowHidden, ROLES }
 })()

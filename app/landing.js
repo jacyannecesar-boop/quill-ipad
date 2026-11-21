@@ -373,6 +373,7 @@ const Landing = (() => {
           <span>Scenes in manuscript order. Drag a scene by its handle to reorder it or move it to another chapter.</span>
           <div class="outliner-toolbar-actions">
             <span id="novel-outliner-summary"></span>
+            <button class="btn sm" id="outliner-synopses-btn" title="AI reads your written scenes that have no synopsis and suggests one line for each. You edit and choose what's saved.">Draft synopses with AI</button>
             <button class="btn sm" id="outliner-copy-btn" disabled title="Copy the outline to the clipboard">Copy outline</button>
             <button class="btn sm" id="outliner-export-btn" disabled title="Save the outline as a Word document">Export .docx</button>
           </div>
@@ -392,6 +393,7 @@ const Landing = (() => {
               <button type="button" data-tview="week">Week</button>
               <button type="button" data-tview="day">Day</button>
             </div>
+            <button class="btn sm" id="timeline-ai-btn" title="AI reads the chapters you choose and suggests an event for each scene that has none: when, where, who. You edit and choose what's added.">Find events with AI</button>
             <button class="btn sm" id="timeline-add-btn">+ Event</button>
           </div>
         </div>
@@ -423,21 +425,29 @@ const Landing = (() => {
               <label class="check structure-triangle" title="Adds rival questions and beats. Turning it off hides them; nothing is deleted.">
                 <input type="checkbox" id="structure-triangle"> Love triangle</label>
               <button class="btn sm" id="structure-copy-btn" title="Copy the whole structure as Markdown">Copy structure</button>
+              <button class="btn sm" id="structure-bridge-btn" title="Stuck in the middle? Work from your last scene to the next one you can see">Stuck? Bridge to the next beat</button>
               <button class="btn primary" id="structure-build-btn">Build structure →</button>
             </span>
           </div>
           <div class="beat-tmpl-note" id="beat-tmpl-note"></div>
         </div>
         <div class="outline-progress" id="outline-progress"></div>
+        <button type="button" class="outline-bridge" id="outline-bridge" hidden></button>
         <div class="outline-layout">
           <div class="outline-main">
             <div class="outline-save-status" id="outline-save-status" role="status"></div>
             <div class="outline" id="beats-container"></div>
           </div>
-          <details class="dump" id="structure-dump" open>
-            <summary class="dump-head"><span>Free write</span><em id="dump-count"></em></summary>
-            <div class="dump-body" id="structure-freewrite"></div>
-          </details>
+          <div class="outline-side">
+            <details class="dump" id="structure-threads-box" open>
+              <summary class="dump-head"><span>Open threads</span><em id="threads-count"></em></summary>
+              <div class="dump-body" id="structure-threads"></div>
+            </details>
+            <details class="dump" id="structure-dump" open>
+              <summary class="dump-head"><span>Free write</span><em id="dump-count"></em></summary>
+              <div class="dump-body" id="structure-freewrite"></div>
+            </details>
+          </div>
         </div>
       </div>
 
@@ -601,6 +611,13 @@ const Landing = (() => {
       openStructureBuilder(started && next ? next.id : null)
     }
     inner.querySelector('#structure-copy-btn').onclick = e => copyStructure(e.currentTarget)
+    inner.querySelector('#structure-bridge-btn').onclick = () => openBridge()
+    inner.querySelector('#outliner-synopses-btn').onclick = async () => {
+      const novelPath = _path
+      const saved = await DraftAI.synopses({ novelPath, pov: _meta.pov || '' })
+      if (saved && _path === novelPath) loadNovelOutliner(novelPath)
+    }
+    inner.querySelector('#outline-bridge').onclick = () => openBridge()
     // A love triangle adds rival questions and beats. Off hides them; the answers stay saved.
     inner.querySelector('#structure-mystery').onchange = async e => {
       _structure = { ..._structure, mystery: e.target.checked }
@@ -622,6 +639,7 @@ const Landing = (() => {
     renderCharacters(_meta.characters || [])
     inner.querySelector('#char-add-btn').onclick = () => addCharacter()
     inner.querySelector('#timeline-add-btn').onclick = () => addTimelineEvent()
+    inner.querySelector('#timeline-ai-btn').onclick = () => findTimelineEvents()
     inner.querySelector('#audit-refresh-btn').onclick = () => loadManuscriptAudit(_path)
     inner.querySelectorAll('[data-tview]').forEach(button => {
       button.onclick = () => setTimelineView(button.dataset.tview)
@@ -1387,6 +1405,20 @@ const Landing = (() => {
     })
   }
 
+  // AI suggestions for scenes with no event yet, added only after the writer accepts them.
+  async function findTimelineEvents() {
+    const novelPath = _path
+    if (_timelineSaveTimer) await saveTimeline(false)
+    await ThreadsPanel.store.load(novelPath)
+    const added = await DraftAI.timeline({
+      novelPath, events: _timelineEvents,
+      threads: ThreadsPanel.store.list().filter(t => t.status === 'open'),
+    })
+    if (!added.length || _path !== novelPath) return
+    _timelineEvents = [..._timelineEvents, ...added]
+    await saveTimeline(true)
+  }
+
   function scheduleTimelineSave() {
     clearTimeout(_timelineSaveTimer)
     _timelineSaveTimer = setTimeout(() => saveTimeline(false), 650)
@@ -1898,6 +1930,7 @@ const Landing = (() => {
 
   let _structure = QuillStructure.blankStructure()
   let _scenesByBeat = {}
+  let _bridge = null          // the novel's Bridge plan (bridge.js), for the outline's summary line
   let _structureSave = null   // { path, timer } while an outline edit waits to be written
   const OUTLINE_PREFS = 'quill_structure_outline'
   const outlinePrefs = () => { try { return JSON.parse(localStorage.getItem(OUTLINE_PREFS)) || {} } catch { return {} } }
@@ -1909,6 +1942,8 @@ const Landing = (() => {
     const result = await window.quill.getStructure(_path).catch(() => null)
     _structure = result?.ok ? result.structure : QuillStructure.blankStructure()
     _scenesByBeat = result?.ok ? result.scenesByBeat : {}
+    const bridge = await window.quill.getBridge(_path).catch(() => null)
+    _bridge = bridge?.ok ? bridge.bridge : null
     await migrateBrainDump()
   }
 
@@ -2029,6 +2064,7 @@ const Landing = (() => {
     }).join('')
     bindOutline(container, tmpl)
     renderProgress(tmpl)
+    renderBridgeLine(tmpl)
   }
 
   function beatRow(b) {
@@ -2172,6 +2208,13 @@ const Landing = (() => {
       setOutlinePrefs({ dumpClosed: !dump.open })
       if (dump.open) FreeWrite.refit(dump)
     })
+    const threadsBox = inner.querySelector('#structure-threads-box')
+    if (outlinePrefs().threadsClosed) threadsBox.open = false
+    threadsBox.addEventListener('toggle', () => setOutlinePrefs({ threadsClosed: !threadsBox.open }))
+    ThreadsPanel.show(_path, inner.querySelector('#structure-threads'), {
+      countEl: inner.querySelector('#threads-count'),
+      structure: () => _structure,
+    })
     FreeWrite.showPanel(_path, inner.querySelector('#structure-freewrite'), {
       countEl: inner.querySelector('#dump-count'),
       onOpenPage: () => activateNovelTab('freewrite'),
@@ -2181,6 +2224,55 @@ const Landing = (() => {
   function showFreewritePage() {
     const page = document.getElementById('freewrite-page')
     if (page) FreeWrite.showPage(_path, page, { prompts: freewritePrompts }).then(() => FreeWrite.refit(page))
+  }
+
+  // Bridge's plan in one line above the outline, and a tag on the beat it's heading for.
+  function renderBridgeLine(tmpl) {
+    const line = document.getElementById('outline-bridge')
+    if (!line) return
+    const text = _bridge ? QuillBridge.summary(_bridge, tmpl) : ''
+    line.hidden = !text
+    line.textContent = text ? `${text} · Open →` : ''
+    const target = _bridge?.lighthouse?.kind === 'beat' ? _bridge.lighthouse.beatId : ''
+    document.querySelectorAll('.story-beat').forEach(row => row.classList.toggle('bridge-target', !!target && row.dataset.beat === target))
+  }
+
+  // Bridge: from the last scene written to the next scene the writer can see. Its cards
+  // become scene ideas in Unsorted, ready to plan in Build a Scene or draft out of order.
+  async function openBridge() {
+    await flushStructure()
+    const novelPath = _path
+    const result = await window.quill.getStructure(novelPath).catch(() => null)
+    if (result?.ok) _scenesByBeat = result.scenesByBeat
+    BridgeBuilder.open({
+      novelPath,
+      title: _meta.folder_title || novelPath.split('/').pop(),
+      template: currentTemplate(),
+      scenesByBeat: _scenesByBeat,
+      structure: _structure,
+      beats: _meta.beats || {},
+      goal: parseInt(_meta.project_word_goal || '0', 10) || 0,
+      sendScene: async ({ title, synopsis, beatId }) => {
+        const made = await window.quill.ensureUnsortedFolder(novelPath)
+        if (!made?.ok) return { ok: false, error: made?.error || 'Could not make the Unsorted folder.' }
+        const scene = await outlinerCreateScene(made.path, title)
+        if (!scene?.path) return { ok: false, error: 'Could not make the scene.' }
+        await window.quill.updateSceneMeta({ rel: scene.path, synopsis, ...(beatId ? { beats: [beatId] } : {}) })
+        Tree.refresh()
+        return { ok: true, path: scene.path }
+      },
+      // The scene may have been dragged into a chapter since it was sent.
+      pov: _meta.pov || '',
+      planScene: async scenePath => {
+        if (!await openScenePlan(scenePath)) alert('That scene isn’t where Bridge left it. It may have been renamed or deleted.')
+      },
+      onClose: bridge => {
+        if (_path !== novelPath) return
+        _bridge = bridge
+        renderBridgeLine(currentTemplate())
+        ThreadsPanel.render()   // Bridge edits the same thread list
+      },
+    })
   }
 
   async function openStructureBuilder(startAt) {

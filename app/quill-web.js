@@ -3408,6 +3408,11 @@ var __quillProcess={env:{QUILL_LIBRARY_ROOT:"/Quill",QUILL_DEVICE_NAME:Math.min(
         saveOutline: (args) => ipcRenderer2.invoke("save-outline", args),
         getStructure: (rel) => ipcRenderer2.invoke("get-structure", rel),
         saveStructure: (args) => ipcRenderer2.invoke("save-structure", args),
+        getBridge: (rel) => ipcRenderer2.invoke("get-bridge", rel),
+        saveBridge: (args) => ipcRenderer2.invoke("save-bridge", args),
+        getThreads: (rel) => ipcRenderer2.invoke("get-threads", rel),
+        saveThreads: (args) => ipcRenderer2.invoke("save-threads", args),
+        getSceneTexts: (rel) => ipcRenderer2.invoke("get-scene-texts", rel),
         getCases: (rel) => ipcRenderer2.invoke("get-cases", rel),
         saveCases: (args) => ipcRenderer2.invoke("save-cases", args),
         getBrief: (rel) => ipcRenderer2.invoke("get-brief", rel),
@@ -6375,6 +6380,227 @@ ${raw}` : raw;
           return d;
         }
         return { KINDS, JOBS, METHODS, STEPS, blankCase, normalize: normalize2, leadName, positions, boardLayout, boardStrings, fairPlay, notes, pacing, toMarkdown, caseDigest, label };
+      });
+    }
+  });
+
+  // bridge.js
+  var require_bridge = __commonJS({
+    "bridge.js"(exports, module) {
+      (function(root2, factory) {
+        const api = factory();
+        if (typeof module !== "undefined" && module.exports) module.exports = api;
+        else root2.QuillBridge = api;
+      })(typeof self !== "undefined" ? self : globalThis, function() {
+        const OUTCOMES = ["Yes", "No", "Yes, but\u2026", "No, and\u2026"];
+        const PRESSURES = [
+          { id: "reversal", label: "Reversal", q: "What do they think is true that turns out to be the opposite?" },
+          { id: "reveal", label: "A reveal that changes the past", q: "What could they learn that makes an earlier scene mean something else?" },
+          { id: "lie", label: "The lie costs them", q: "Where does believing the lie lose them something they wanted?" },
+          { id: "ally", label: "An ally turns", q: "Who on their side has a reason to stop helping, or to start lying?" },
+          { id: "clock", label: "The clock tightens", q: "What deadline can arrive early, or what door can close?" },
+          { id: "collide", label: "Two threads collide", q: "Which subplot can crash into the main plot here?" },
+          { id: "choice", label: "No good option", q: "What choice can you give them where both answers cost something?" },
+          { id: "false_win", label: "A false win", q: "What can they get that looks like winning and isn\u2019t?" },
+          { id: "closer", label: "Closer, then further", q: "What brings the two of them closer, and what does it cost one of them?" },
+          { id: "consequence", label: "A consequence lands", q: "What did they do earlier that should come back now?" }
+        ];
+        const NOW_QUESTIONS = [
+          { id: "changed", q: "What changed in the last scene you wrote?", hint: "One sentence. If nothing changed, say that too." },
+          { id: "want", q: "What does your protagonist want right now, and what\u2019s in the way?", hint: "Right now, not at the end of the book." },
+          { id: "worry", q: "What is the reader worried about at this point?", hint: "If you can\u2019t name a worry, the next scene should make one." }
+        ];
+        const id = () => Math.random().toString(36).slice(2, 10);
+        const text = (value, max2 = 4e3) => typeof value === "string" ? value.slice(0, max2) : "";
+        const safeId = (value) => typeof value === "string" && /^[\w-]{1,64}$/.test(value) ? value : id();
+        const list2 = (value, max2) => Array.isArray(value) ? value.slice(0, max2).filter((x2) => x2 && typeof x2 === "object") : [];
+        function blank() {
+          return { version: 1, now: {}, advance: [], threads: [], lighthouse: { kind: "", beatId: "", text: "" }, needs: [], cards: [], updated: "" };
+        }
+        function clean2(input) {
+          const b = input && typeof input === "object" ? input : {};
+          const now = b.now && typeof b.now === "object" ? b.now : {};
+          const lh = b.lighthouse && typeof b.lighthouse === "object" ? b.lighthouse : {};
+          return {
+            version: 1,
+            now: Object.fromEntries(NOW_QUESTIONS.map((q) => [q.id, text(now[q.id])])),
+            // The novel's threads live in .threads.json (threads.js); Bridge keeps which ones the next
+            // stretch has to move. `threads` is the list Bridge kept before that, read once to move it.
+            advance: (Array.isArray(b.advance) ? b.advance : []).filter((x2) => typeof x2 === "string" && /^[\w-]{1,64}$/.test(x2)).slice(0, 500),
+            threads: list2(b.threads, 100).map((t) => ({ id: safeId(t.id), text: text(t.text, 1e3), advance: t.advance === true })),
+            lighthouse: {
+              kind: ["beat", "known", "free"].includes(lh.kind) ? lh.kind : "",
+              beatId: typeof lh.beatId === "string" ? lh.beatId.slice(0, 64) : "",
+              text: text(lh.text)
+            },
+            needs: list2(b.needs, 100).map((n) => ({ id: safeId(n.id), text: text(n.text, 1e3), done: n.done === true })),
+            cards: list2(b.cards, 100).map((c) => ({
+              id: safeId(c.id),
+              because: text(c.because, 2e3),
+              then: text(c.then, 2e3),
+              outcome: OUTCOMES.includes(c.outcome) ? c.outcome : "",
+              pressure: PRESSURES.some((p) => p.id === c.pressure) ? c.pressure : "",
+              needId: typeof c.needId === "string" ? c.needId.slice(0, 64) : "",
+              sentPath: typeof c.sentPath === "string" ? c.sentPath.slice(0, 1e3) : ""
+            })),
+            updated: text(b.updated, 40)
+          };
+        }
+        function scenesInOrder(acts) {
+          const out = [];
+          for (const act of acts || []) {
+            for (const ch of act.chapters || []) {
+              for (const sc of ch.scenes || []) out.push({ ...sc, chapter: ch.folderTitle || ch.name || "", act: act.folderTitle || "" });
+            }
+          }
+          return out;
+        }
+        function whereYouAre(acts, count = 6) {
+          const all = scenesInOrder(acts);
+          const total = all.reduce((sum, sc) => sum + (Number(sc.word_count) || 0), 0);
+          let last = all.length - 1;
+          while (last >= 0 && !(Number(all[last].word_count) > 0)) last--;
+          const recent = last < 0 ? [] : all.slice(Math.max(0, last - count + 1), last + 1);
+          return { total, recent, scenes: all.length };
+        }
+        function position(template, words2, goal) {
+          const g = Number(goal) || 0;
+          if (!template || !g || !(words2 > 0)) return null;
+          const pct = Math.min(words2 / g, 1);
+          const acts = template.acts || [];
+          const share = acts.length === 4 ? [0.25, 0.25, 0.25, 0.25] : acts.map(() => 1 / acts.length);
+          let start6 = 0;
+          for (let i2 = 0; i2 < acts.length; i2++) {
+            const end = start6 + share[i2];
+            if (pct <= end || i2 === acts.length - 1) {
+              const beats = acts[i2].beats.filter((b) => b.track !== "rival");
+              const at = beats.length ? beats[Math.min(beats.length - 1, Math.floor((pct - start6) / share[i2] * beats.length))] : null;
+              return { pct: Math.round(pct * 100), act: acts[i2].label, beat: at };
+            }
+            start6 = end;
+          }
+          return null;
+        }
+        function lighthouseOptions(template, scenesByBeat, structure, beatsText) {
+          const beats = (template?.acts || []).flatMap((act) => act.beats.map((b) => ({ ...b, act: act.label })));
+          const has = (b) => (scenesByBeat?.[b.id] || []).length > 0;
+          let lastServed = -1;
+          beats.forEach((b, i2) => {
+            if (has(b)) lastServed = i2;
+          });
+          const options = beats.slice(lastServed + 1).filter((b) => !has(b)).map((b) => ({
+            kind: "beat",
+            beatId: b.id,
+            label: b.label,
+            act: b.act,
+            hint: b.hint || "",
+            text: String(beatsText?.[b.id] || "")
+          }));
+          const known = String(structure?.foundation?.known || "").trim();
+          if (known) options.push({ kind: "known", beatId: "", label: "The scene you already know", act: "", hint: "", text: known });
+          return options;
+        }
+        function chain(cards) {
+          return (cards || []).map((card, i2) => ({
+            id: card.id,
+            linked: i2 === 0 || !!String(card.because || "").trim()
+          }));
+        }
+        function synopsis(card) {
+          const because = String(card.because || "").trim().replace(/[.\s]+$/, "");
+          const then = String(card.then || "").trim();
+          const line = because && then ? `Because ${lower(because)}, ${lower(then)}` : then || because;
+          return [line, card.outcome ? `(${card.outcome})` : ""].filter(Boolean).join(" ");
+        }
+        const lower = (s) => s.replace(/^(because|so|then)\s+/i, "").replace(/^(She|He|They|It|We|You|The|A|An|His|Her|Their|Its|Our|This|That|Someone|Everyone|Nobody)\b/, (w) => w.toLowerCase());
+        const TRAILING = /^(a|an|the|and|or|but|of|to|in|on|at|by|for|with|from|into|under|over|about|after|before|as|than|her|his|their|its|that|who)$/i;
+        function sceneTitle(card, n) {
+          const words2 = String(card.then || card.because || "").trim().replace(/[.!?…]+$/, "").split(/\s+/).filter(Boolean);
+          if (!words2.length) return `Bridge scene ${n}`;
+          const kept2 = words2.slice(0, 6).map((w) => w.replace(/[,;:]+$/, ""));
+          while (kept2.length > 2 && TRAILING.test(kept2[kept2.length - 1])) kept2.pop();
+          const short = kept2.join(" ");
+          return short.charAt(0).toUpperCase() + short.slice(1);
+        }
+        function summary(bridge, template) {
+          const b = bridge || blank();
+          if (!b.cards.length && !b.lighthouse.kind && !String(b.lighthouse.text || "").trim()) return "";
+          const beat = (template?.acts || []).flatMap((a) => a.beats).find((x2) => x2.id === b.lighthouse.beatId);
+          const target2 = b.lighthouse.kind === "beat" ? beat?.label || "a beat" : b.lighthouse.kind === "known" ? "the scene you know" : b.lighthouse.text ? "your lighthouse" : "";
+          const gap = b.cards.filter((c) => c.needId !== "lighthouse");
+          const sent = gap.filter((c) => c.sentPath).length;
+          const parts = [];
+          if (gap.length) parts.push(`${sent} of ${gap.length} scene${gap.length === 1 ? "" : "s"} sent`);
+          if (target2) parts.push(`heading for ${target2}`);
+          return `Bridge: ${parts.join(" \xB7 ")}`;
+        }
+        return { OUTCOMES, PRESSURES, NOW_QUESTIONS, blank, clean: clean2, scenesInOrder, whereYouAre, position, lighthouseOptions, chain, synopsis, sceneTitle, summary };
+      });
+    }
+  });
+
+  // threads.js
+  var require_threads = __commonJS({
+    "threads.js"(exports, module) {
+      (function(root2, factory) {
+        const api = factory();
+        if (typeof module !== "undefined" && module.exports) module.exports = api;
+        else root2.QuillThreads = api;
+      })(typeof self !== "undefined" ? self : globalThis, function() {
+        const KINDS = [
+          { id: "mystery", label: "Mystery", hint: "Who, what or why: something hidden the reader wants to know." },
+          { id: "relationship", label: "Relationship", hint: "Will they, won\u2019t they; trust, betrayal, a bond under strain." },
+          { id: "goal", label: "Goal", hint: "Can they get it, reach it, stop it, survive it?" },
+          { id: "promise", label: "Setup", hint: "Something shown that has to come back: a rule, an object, a warning." },
+          { id: "inner", label: "Inner", hint: "Will they see past the lie, forgive, change?" }
+        ];
+        const STATUSES = ["open", "answered", "dropped"];
+        const newId = () => Math.random().toString(36).slice(2, 10);
+        const text = (value, max2) => typeof value === "string" ? value.slice(0, max2) : "";
+        const safeId = (value) => typeof value === "string" && /^[\w-]{1,64}$/.test(value) ? value : newId();
+        const sceneRef = (value) => value && typeof value === "object" && typeof value.path === "string" && value.path ? { path: value.path.slice(0, 1e3), title: text(value.title, 300) } : null;
+        function cleanOne(t) {
+          return {
+            id: safeId(t.id),
+            text: text(t.text, 1e3),
+            kind: KINDS.some((k) => k.id === t.kind) ? t.kind : "",
+            status: STATUSES.includes(t.status) ? t.status : "open",
+            raised: sceneRef(t.raised),
+            answered: sceneRef(t.answered),
+            note: text(t.note, 4e3),
+            created: text(t.created, 40)
+          };
+        }
+        function clean2(list2) {
+          return (Array.isArray(list2) ? list2 : []).slice(0, 500).filter((t) => t && typeof t === "object").map(cleanOne);
+        }
+        const make = (patch = {}) => cleanOne({ id: newId(), created: (/* @__PURE__ */ new Date()).toISOString(), ...patch });
+        const key = (s) => String(s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+        const isDuplicate = (threads, value) => !!key(value) && threads.some((t) => key(t.text) === key(value));
+        function seedsFrom(structure, threads = []) {
+          const f = structure?.foundation || {};
+          const seen = new Set(threads.map((t) => key(t.text)));
+          const out = [];
+          for (const line of ["question", "threads", "promise", "payoff"].flatMap((k) => String(f[k] || "").split(/\n+/))) {
+            const value = line.replace(/^\s*[-*•]\s*/, "").trim();
+            if (!value || seen.has(key(value))) continue;
+            seen.add(key(value));
+            out.push(value);
+          }
+          return out;
+        }
+        function counts(threads) {
+          const list2 = threads || [];
+          return { open: list2.filter((t) => t.status === "open").length, answered: list2.filter((t) => t.status === "answered").length, total: list2.length };
+        }
+        function sortOpen(threads, order = []) {
+          const at = (path5) => {
+            const i2 = order.indexOf(path5);
+            return i2 < 0 ? Infinity : i2;
+          };
+          return threads.filter((t) => t.status === "open").map((t, i2) => ({ t, i: i2, at: at(t.raised?.path) })).sort((a, b) => a.at - b.at || a.i - b.i).map((x2) => x2.t);
+        }
+        return { KINDS, STATUSES, clean: clean2, make, isDuplicate, seedsFrom, counts, sortOpen };
       });
     }
   });
@@ -9461,9 +9687,14 @@ ${str(e.text).trim()}
         return String(tokenResponse && tokenResponse.scope || "").split(/[\s,]+/).filter(Boolean);
       }
       var canUsePlan = (scopes) => (scopes || []).includes(PLAN_SCOPE);
+      var slugOf = (m) => m && typeof (m.slug || m.id) === "string" ? m.slug || m.id : "";
+      var listOf = (json2) => Array.isArray(json2 && json2.models) ? json2.models : Array.isArray(json2 && json2.data) ? json2.data : [];
+      var asModel = (m, note) => ({ id: MODEL_PREFIX + slugOf(m), label: m.display_name || slugOf(m), note });
       function modelsFromList(json2) {
-        const list2 = Array.isArray(json2 && json2.models) ? json2.models : Array.isArray(json2 && json2.data) ? json2.data : [];
-        return list2.filter((m) => m && m.slug && (!m.visibility || m.visibility === "list")).map((m) => ({ id: MODEL_PREFIX + m.slug, label: m.display_name || m.slug, note: "ChatGPT plan" }));
+        return listOf(json2).filter((m) => slugOf(m) && (!m.visibility || m.visibility === "list")).map((m) => asModel(m, "ChatGPT plan"));
+      }
+      function hiddenFromList(json2) {
+        return listOf(json2).filter((m) => slugOf(m) && m.visibility && m.visibility !== "list").map((m) => asModel(m, "hidden by OpenAI"));
       }
       var isChatGPTModel = (id) => String(id || "").startsWith(MODEL_PREFIX);
       function textOf(content) {
@@ -9634,6 +9865,7 @@ ${str(e.text).trim()}
         grantedScopes,
         canUsePlan,
         modelsFromList,
+        hiddenFromList,
         isChatGPTModel,
         toResponsesBody,
         withoutReasoning,
@@ -10331,6 +10563,8 @@ ${line}`;
       var JournalStats = require_journal_stats();
       var Structure = require_structure();
       var CaseKit = require_case();
+      var Bridge = require_bridge();
+      var Threads = require_threads();
       var LanguageTool = require_languagetool();
       var Thesaurus = require_thesaurus();
       var { parseEpub } = require_epub();
@@ -12483,6 +12717,73 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         const written = Structure.beatsOf(meta2.beat_template, structure.triangle === true).every((beat) => mine[beat.id] && String(beats[beat.id] || "").trim());
         if (answered && written) noteFeature("structureBuilder");
         return { ok: true };
+      });
+      function bridgeFile(novelRel) {
+        const dir = timelineProjectDir(novelRel);
+        if (!dir) throw new Error("Bridge belongs to a novel folder.");
+        return path5.join(dir, ".bridge.json");
+      }
+      ipcMain2.handle("get-bridge", (_, novelRel) => {
+        let file;
+        try {
+          file = bridgeFile(novelRel);
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+        let data = Bridge.blank();
+        try {
+          data = JSON.parse(fs.readFileSync(file, "utf8"));
+        } catch {
+        }
+        return { ok: true, bridge: Bridge.clean(data) };
+      });
+      ipcMain2.handle("save-bridge", (_, { novelRel, bridge } = {}) => {
+        let file;
+        try {
+          file = bridgeFile(novelRel);
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+        if (!bridge || typeof bridge !== "object" || Array.isArray(bridge)) return { ok: false, error: "Invalid bridge." };
+        const clean2 = { ...Bridge.clean(bridge), updated: (/* @__PURE__ */ new Date()).toISOString() };
+        atomicWriteFileSync(file, JSON.stringify(clean2), "utf8");
+        return { ok: true, bridge: clean2 };
+      });
+      function threadsFile(novelRel) {
+        const dir = timelineProjectDir(novelRel);
+        if (!dir) throw new Error("Threads belong to a novel folder.");
+        return path5.join(dir, ".threads.json");
+      }
+      ipcMain2.handle("get-threads", (_, novelRel) => {
+        let file;
+        try {
+          file = threadsFile(novelRel);
+        } catch (error) {
+          return { ok: false, error: error.message, threads: [] };
+        }
+        let data = {};
+        try {
+          data = JSON.parse(fs.readFileSync(file, "utf8"));
+        } catch {
+        }
+        return { ok: true, threads: Threads.clean(data.threads), saved: Array.isArray(data.threads) };
+      });
+      ipcMain2.handle("save-threads", (_, { novelRel, threads } = {}) => {
+        let file;
+        try {
+          file = threadsFile(novelRel);
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+        if (!Array.isArray(threads) || threads.length > 500) return { ok: false, error: "Invalid threads." };
+        const clean2 = Threads.clean(threads);
+        atomicWriteFileSync(file, JSON.stringify({ version: 1, threads: clean2, updated: (/* @__PURE__ */ new Date()).toISOString() }), "utf8");
+        return { ok: true, threads: clean2 };
+      });
+      ipcMain2.handle("get-scene-texts", (_, novelRel) => {
+        if (!timelineProjectDir(novelRel)) return { ok: false, error: "Scene text belongs to a novel folder.", scenes: [] };
+        const synopses = new Map(novelStructure(novelRel).flatMap((act) => act.chapters.flatMap((ch) => ch.scenes)).map((sc) => [sc.path, sc.synopsis || ""]));
+        return { ok: true, scenes: novelSceneTexts(novelRel).map((sc) => ({ path: sc.path, title: sc.title, chapter: sc.chapter, synopsis: synopses.get(sc.path) || "", text: sc.text })) };
       });
       var SCRAP_COLOR = /^[a-z]{1,20}$/;
       function scrapsDir(novelRel) {
@@ -15618,7 +15919,8 @@ ${body.trim()}`;
               title: sceneMeta.title || path5.basename(file, ".md"),
               synopsis: sceneMeta.scene_synopsis || "",
               status: sceneMeta.scene_status || "drafting",
-              word_count: wordCount(body)
+              word_count: wordCount(body),
+              beats: String(sceneMeta.scene_beats || "").split(",").map((id) => id.trim()).filter(Boolean)
             };
           } catch {
             return null;
@@ -17441,6 +17743,8 @@ ${sc.text}`);
         ".structure.json": "Structure",
         ".scraps.json": "Scraps",
         ".freewrite.json": "Free write",
+        ".bridge.json": "Bridge",
+        ".threads.json": "Threads",
         ".revisions.json": "Revision notes",
         ".brainstorm-history.json": "Brainstorm conversations"
       };
@@ -18232,7 +18536,8 @@ ${sc.text}`);
         const token = await chatgptAccessToken();
         const res = await fetch(`${ChatGPT.RESOURCE}/models`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) throw new Error(ChatGPT.errorMessage({ status: res.status, body: await res.text() }));
-        return ChatGPT.modelsFromList(await res.json());
+        const json2 = await res.json();
+        return { models: ChatGPT.modelsFromList(json2), hidden: ChatGPT.hiddenFromList(json2) };
       }
       ipcMain2.handle("chatgpt-status", () => chatgptStatus());
       ipcMain2.handle("chatgpt-sign-in", () => chatgptSignIn());
@@ -18242,9 +18547,9 @@ ${sc.text}`);
       });
       ipcMain2.handle("chatgpt-models", async () => {
         try {
-          return { ok: true, models: await chatgptModels() };
+          return { ok: true, ...await chatgptModels() };
         } catch (err2) {
-          return { ok: false, error: err2.message, models: [] };
+          return { ok: false, error: err2.message, models: [], hidden: [] };
         }
       });
       ipcMain2.handle("chatgpt-manage-usage", () => shell2.openExternal(ChatGPT.USAGE_URL));
@@ -20375,7 +20680,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-19T04:55:52.194Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-21T21:38:07.652Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
