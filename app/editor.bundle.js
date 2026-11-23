@@ -818,9 +818,9 @@
     // :: (string, string, any) → OrderedMap
     // Add a key after the given key. If `place` is not found, the new
     // key is added to the end.
-    addBefore: function(place, key2, value) {
+    addBefore: function(place2, key2, value) {
       var without = this.remove(key2), content = without.content.slice();
-      var found2 = without.find(place);
+      var found2 = without.find(place2);
       content.splice(found2 == -1 ? content.length : found2, 0, key2, value);
       return new OrderedMap(content);
     },
@@ -12344,7 +12344,7 @@
     document container. If it is `null`, the editor will not be
     added to the document.
     */
-    constructor(place, props) {
+    constructor(place2, props) {
       this._root = null;
       this.focused = false;
       this.trackWrites = null;
@@ -12362,13 +12362,13 @@
       this.directPlugins = props.plugins || [];
       this.directPlugins.forEach(checkStateComponent);
       this.dispatch = this.dispatch.bind(this);
-      this.dom = place && place.mount || document.createElement("div");
-      if (place) {
-        if (place.appendChild)
-          place.appendChild(this.dom);
-        else if (typeof place == "function")
-          place(this.dom);
-        else if (place.mount)
+      this.dom = place2 && place2.mount || document.createElement("div");
+      if (place2) {
+        if (place2.appendChild)
+          place2.appendChild(this.dom);
+        else if (typeof place2 == "function")
+          place2(this.dom);
+        else if (place2.mount)
           this.mounted = true;
       }
       this.editable = getEditable(this);
@@ -25397,6 +25397,157 @@ ${fromBody}`;
     return kept.sort((a, b) => a.from - b.from || a.to - b.to);
   }
 
+  // renderer/src/editor/grammar-popover.js
+  var CATEGORY_LABEL = {
+    grammar: "Grammar",
+    punctuation: "Punctuation",
+    repeated: "Repetition",
+    style: "Style",
+    formatting: "Formatting"
+  };
+  var _pop = null;
+  var _owner = null;
+  var _cleanup = [];
+  function isGrammarPopoverOpen(view) {
+    return Boolean(_pop) && (!view || _owner === view);
+  }
+  function closeGrammarPopover(view) {
+    if (!_pop || view && _owner !== view) return;
+    for (const off of _cleanup) off();
+    _cleanup = [];
+    _pop.remove();
+    _pop = null;
+    _owner = null;
+  }
+  function currentIssue(view, deco) {
+    const issue = deco.spec.issue;
+    const delta = deco.from - issue.from;
+    const moved = { ...issue, from: deco.from, to: deco.to };
+    if (issue.markFix) {
+      moved.markFix = { ...issue.markFix, ranges: issue.markFix.ranges.map(([a, b]) => [a + delta, b + delta]) };
+    }
+    const live = view.state.doc.textBetween(deco.from, deco.to, "\n", " ");
+    moved.stale = deco.to - deco.from !== issue.to - issue.from || issue.actual != null && live !== issue.actual;
+    return moved;
+  }
+  function button(label, className, onClick) {
+    const el2 = document.createElement("button");
+    el2.type = "button";
+    el2.className = className;
+    el2.textContent = label;
+    el2.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick();
+    });
+    return el2;
+  }
+  function place(pop, view, from2, to) {
+    const start = view.coordsAtPos(from2);
+    const end = view.coordsAtPos(to, -1);
+    const margin = 8;
+    const vw = document.documentElement.clientWidth;
+    const vv = window.visualViewport;
+    const vTop = vv ? vv.offsetTop : 0;
+    const vBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    const rect = pop.getBoundingClientRect();
+    const left = Math.max(margin, Math.min(start.left, vw - rect.width - margin));
+    const below = end.bottom + 6;
+    const above = start.top - rect.height - 6;
+    const top = below + rect.height <= vBottom - margin || above < vTop + margin ? below : above;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${Math.max(vTop + margin, top)}px`;
+  }
+  function openGrammarPopover(view, deco, actions) {
+    closeGrammarPopover();
+    const issue = currentIssue(view, deco);
+    const pop = document.createElement("div");
+    pop.className = "grammar-pop";
+    pop.setAttribute("role", "dialog");
+    pop.setAttribute("aria-label", "Grammar suggestion");
+    const kind = document.createElement("div");
+    kind.className = `grammar-pop-kind grammar-${issue.category}`;
+    kind.textContent = CATEGORY_LABEL[issue.category] || "Suggestion";
+    if (issue.source === "languagetool") kind.textContent += " \xB7 LanguageTool";
+    pop.appendChild(kind);
+    const message = document.createElement("div");
+    message.className = "grammar-pop-message";
+    message.textContent = issue.message;
+    pop.appendChild(message);
+    const choices = [...new Set(issue.expected || [])];
+    const row = document.createElement("div");
+    row.className = "grammar-pop-actions";
+    if (issue.stale) {
+      const note = document.createElement("div");
+      note.className = "grammar-pop-note";
+      note.textContent = "You changed this text. Suggestions will update in a moment.";
+      pop.appendChild(note);
+    } else if (issue.markFix) {
+      row.appendChild(button("Fix formatting", "btn sm primary", () => {
+        closeGrammarPopover();
+        actions.apply(issue, "");
+      }));
+    } else {
+      for (const replacement of choices.slice(0, 4)) {
+        row.appendChild(button(replacement === "" ? "Remove" : replacement, "btn sm primary grammar-pop-fix", () => {
+          closeGrammarPopover();
+          actions.apply(issue, replacement);
+        }));
+      }
+    }
+    if (issue.ignoreHash) {
+      row.appendChild(button("Ignore", "btn sm ghost", () => {
+        closeGrammarPopover();
+        actions.dismiss(issue);
+      }));
+    }
+    if (row.childElementCount) pop.appendChild(row);
+    pop.addEventListener("mousedown", (event) => event.preventDefault());
+    pop.style.left = "0px";
+    pop.style.top = "0px";
+    pop.style.visibility = "hidden";
+    document.body.appendChild(pop);
+    place(pop, view, issue.from, issue.to);
+    pop.style.visibility = "";
+    _pop = pop;
+    _owner = view;
+    const onPointerDown = (event) => {
+      if (!pop.contains(event.target)) closeGrammarPopover();
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") closeGrammarPopover();
+    };
+    let frame = 0;
+    const follow = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (_pop !== pop) return;
+        const box = view.dom.getBoundingClientRect();
+        const at = view.coordsAtPos(issue.from);
+        if (at.bottom < box.top || at.top > box.bottom) return closeGrammarPopover();
+        place(pop, view, issue.from, issue.to);
+      });
+    };
+    const onScroll = (event) => {
+      if (!pop.contains(event.target)) follow();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", follow);
+    window.visualViewport?.addEventListener("resize", follow);
+    window.visualViewport?.addEventListener("scroll", follow);
+    _cleanup = [
+      () => document.removeEventListener("pointerdown", onPointerDown, true),
+      () => document.removeEventListener("keydown", onKey, true),
+      () => document.removeEventListener("scroll", onScroll, true),
+      () => window.removeEventListener("resize", follow),
+      () => window.visualViewport?.removeEventListener("resize", follow),
+      () => window.visualViewport?.removeEventListener("scroll", follow),
+      () => cancelAnimationFrame(frame)
+    ];
+  }
+
   // renderer/src/editor/grammar.js
   var grammarKey = new PluginKey("quillGrammar");
   var EMPTY2 = { issues: [], decorations: DecorationSet.empty, enabled: false };
@@ -25653,9 +25804,36 @@ ${fromBody}`;
       (issue) => Decoration.inline(issue.from, issue.to, {
         class: `grammar-issue grammar-${issue.category}`,
         title: issue.message
-      })
+      }, { issue })
     ));
   }
+  function decorationAt(view, pos) {
+    const { decorations } = grammarKey.getState(view.state);
+    const found2 = decorations.find(pos, pos, (spec) => Boolean(spec.issue));
+    return found2.find((deco) => deco.from <= pos && pos < deco.to) || found2.find((deco) => deco.from <= pos && pos <= deco.to) || null;
+  }
+  async function recheck(view) {
+    const doc3 = view.state.doc;
+    const issues = await analyzeSnapshot(doc3);
+    const current = grammarKey.getState(view.state);
+    if (view.isDestroyed || !current.enabled || !view.state.doc.eq(doc3)) return;
+    view.dispatch(view.state.tr.setMeta(grammarKey, { issues, enabled: true }));
+  }
+  var POPOVER_ACTIONS = (view) => ({
+    apply(issue, replacement) {
+      applyFixToView(view, issue, replacement);
+      view.focus();
+    },
+    async dismiss(issue) {
+      try {
+        view.dispatch(view.state.tr.setMeta(grammarKey, { hide: issue.ignoreHash }));
+        await dismissGrammarIssue(issue);
+        await recheck(view);
+      } catch (error) {
+        console.error("Could not dismiss grammar suggestion:", error);
+      }
+    }
+  });
   var GrammarExtension = Extension.create({
     name: "quillGrammar",
     addProseMirrorPlugins() {
@@ -25677,6 +25855,14 @@ ${fromBody}`;
               };
             }
             if (meta?.toggle != null) return { ...previous, enabled: meta.toggle };
+            if (meta?.hide != null) {
+              const hidden = previous.decorations.find(void 0, void 0, (spec) => spec.issue?.ignoreHash === meta.hide);
+              return {
+                ...previous,
+                issues: previous.issues.filter((issue) => issue.ignoreHash !== meta.hide),
+                decorations: previous.decorations.remove(hidden)
+              };
+            }
             if (tr.docChanged && previous.decorations !== DecorationSet.empty) {
               return { ...previous, decorations: previous.decorations.map(tr.mapping, tr.doc) };
             }
@@ -25684,9 +25870,20 @@ ${fromBody}`;
           }
         },
         props: { decorations: (state) => grammarKey.getState(state).decorations },
-        view() {
+        view(editorView) {
+          const onClick = (event) => {
+            if (event.button !== 0 || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) return;
+            if (!event.target?.closest?.(".grammar-issue")) return;
+            const hit = editorView.posAtCoords({ left: event.clientX, top: event.clientY });
+            const deco = hit && decorationAt(editorView, hit.pos);
+            if (deco) openGrammarPopover(editorView, deco, POPOVER_ACTIONS(editorView));
+          };
+          editorView.dom.addEventListener("click", onClick);
           return {
             update(view, prevState) {
+              if (prevState && isGrammarPopoverOpen(view) && (!view.state.doc.eq(prevState.doc) || grammarKey.getState(view.state).decorations !== grammarKey.getState(prevState).decorations)) {
+                closeGrammarPopover(view);
+              }
               const state = grammarKey.getState(view.state);
               if (!state.enabled) return;
               if (!prevState || !view.state.doc.eq(prevState.doc)) {
@@ -25706,6 +25903,8 @@ ${fromBody}`;
               }
             },
             destroy() {
+              editorView.dom.removeEventListener("click", onClick);
+              closeGrammarPopover(editorView);
               destroyed = true;
               analysisVersion++;
               clearTimeout(debounceTimer);
@@ -25760,14 +25959,18 @@ ${fromBody}`;
     return issues;
   }
   function applyGrammarFix(editor3, issue, replacement) {
-    if (!editor3 || replacement == null) return;
-    const { state } = editor3;
+    if (!editor3 || editor3.isDestroyed) return;
+    applyFixToView(editor3.view, issue, replacement);
+  }
+  function applyFixToView(view, issue, replacement) {
+    if (!view || replacement == null) return;
+    const { state } = view;
     let tr;
     if (issue.markFix) {
       const type = state.schema.marks[issue.markFix.mark];
       tr = state.tr;
       for (const [from2, to] of issue.markFix.ranges) tr.removeMark(from2, to, type);
-      editor3.view.dispatch(tr);
+      view.dispatch(tr);
       return;
     }
     if (replacement === "") {
@@ -25776,7 +25979,7 @@ ${fromBody}`;
       const marks = state.doc.nodeAt(issue.from)?.marks || state.doc.resolve(issue.from).marks();
       tr = state.tr.replaceWith(issue.from, issue.to, state.schema.text(replacement, marks));
     }
-    editor3.view.dispatch(tr);
+    view.dispatch(tr);
   }
   async function dismissGrammarIssue(issue) {
     if (!issue?.ignoreHash) return false;

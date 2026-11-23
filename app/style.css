@@ -1069,6 +1069,22 @@ textarea.insp-field{line-height:1.5}
 #entry-body .grammar-style,#chapter-body .grammar-style{text-decoration-color:var(--c-research)}
 #entry-body .grammar-formatting,#chapter-body .grammar-formatting{text-decoration-color:var(--c-revisit)}
 
+/* Tap or click an underline: what it means and how to fix it (grammar-popover.js). */
+.grammar-pop{position:fixed;z-index:400;max-width:min(360px,calc(100vw - 16px));
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-2);
+  padding:var(--sp-3) var(--sp-3) var(--sp-2);font-family:var(--ui);color:var(--text)}
+.grammar-pop-kind{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;--k:var(--c-research)}
+.grammar-pop-kind::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--k)}
+.grammar-pop-kind.grammar-grammar{--k:var(--danger)}
+.grammar-pop-kind.grammar-punctuation{--k:var(--c-rewrite)}
+.grammar-pop-kind.grammar-repeated{--k:var(--c-cut)}
+.grammar-pop-kind.grammar-formatting{--k:var(--c-revisit)}
+.grammar-pop-message{margin-top:var(--sp-1);font-size:var(--fs-md);line-height:1.45}
+.grammar-pop-note{margin-top:var(--sp-2);font-size:var(--fs-sm);color:var(--muted)}
+.grammar-pop-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--sp-3)}
+.grammar-pop-actions .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ── Stubs ─────────────────────────────────────────────────────
    A parked `[placeholder]`. Visible enough to find while scanning the page, quiet enough
    that it never reads as prose — the whole point is that it is not written yet. */

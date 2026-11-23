@@ -43,6 +43,10 @@ html.web-page-scaled #chapter-scroll>#chapter-body{max-width:none;margin-right:0
   margin-left:calc((100% - min(calc(100% / var(--web-page-scale)),var(--page-width,820px))) / 2);
   transform:scale(var(--web-page-scale));transform-origin:top center}
 @media print{html.web-page-scaled #editor-inner,html.web-page-scaled #chapter-scroll>#chapter-body{transform:none}}
+
+/* The selection word count sits at the top of the page on the iPad. At the bottom it was always
+   behind the on-screen keyboard, or the shortcut bar a hardware keyboard shows in its place. */
+html.web-ipad #selection-wc{top:12px;bottom:auto}
 html.quill-web .settings-modal{height:min(560px,calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
 /* Dialogs are sized in vh, which the same zoom stretches past the screen; cap them to the
    overlay, which is pinned to the screen edges and so is never taller than it. */
