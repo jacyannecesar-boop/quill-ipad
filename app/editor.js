@@ -227,11 +227,9 @@ const Editor = (() => {
       placeholder: 'Start writing…',
       onUpdate: () => {
         if (_loadingDocument) return
-        updateStats(); updateGoalBar(); scheduleSave()
+        scheduleSave()
         Comments.onDocumentUpdate()
-        Stubs.render()
-        RevisionNotes.refreshInspector()
-        refreshFindStatus()
+        scheduleAfterEdit()
       },
     })
     window.quill.onEditorCommand?.(handleEditorCommand)
@@ -321,26 +319,71 @@ const Editor = (() => {
       if (commentToolbar.style.display === 'none') return
       if (window.getSelection()?.isCollapsed) commentToolbar.style.display = 'none'
     })
+    // On the Mac the toolbar opens when the mouse lets go of a selection. A finger selection on
+    // the iPad, or one adjusted by its handles, never sends a mouseup, so there it opens once the
+    // selection has stopped changing. iPadOS puts its own Copy/Paste menu above the selection,
+    // so on the iPad the toolbar goes below it.
+    const touchSelection = document.documentElement.classList.contains('quill-web') &&
+      (/iPad|iPhone/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+    let shownRange = null
+    const showSelectionToolbar = () => {
+      const editor = window.QuillEditor.editor()
+      const selection = editor?.state.selection
+      const native = window.getSelection()
+      if (!selection || selection.empty || !native?.rangeCount || native.isCollapsed) {
+        commentToolbar.style.display = 'none'; shownRange = null; return
+      }
+      const range = native.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      saveSelection()
+      // Synonyms only make sense for one word.
+      const synonyms = document.getElementById('ct-synonyms-btn')
+      if (synonyms) synonyms.style.display = window.QuillEditor.wordAtCursor?.() ? '' : 'none'
+      commentToolbar.style.display = 'flex'
+      shownRange = { from: selection.from, to: selection.to }
+      const width = commentToolbar.offsetWidth
+      const height = commentToolbar.offsetHeight
+      // The toolbar is position:fixed, so it is placed in viewport coordinates.
+      let top
+      if (touchSelection) {
+        const vv = window.visualViewport
+        const visibleTop = vv ? vv.offsetTop : 0
+        const visibleBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+        const rects = range.getClientRects()
+        const last = rects.length ? rects[rects.length - 1] : rect
+        // Clear of the end handle's knob.
+        top = last.bottom + 18
+        if (top + height > visibleBottom - 8) top = Math.max(visibleTop + 8, Math.min(rect.top, visibleBottom) - height - 8)
+        top = Math.max(visibleTop + 8, Math.min(top, visibleBottom - height - 8))
+      } else {
+        top = rect.top - height - 8
+      }
+      const left = Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8))
+      commentToolbar.style.top = top + 'px'
+      commentToolbar.style.left = left + 'px'
+    }
     document.getElementById('entry-body').addEventListener('mouseup', () => {
-      setTimeout(() => {
-        const editor = window.QuillEditor.editor()
-        const selection = editor?.state.selection
-        const native = window.getSelection()
-        if (!selection || selection.empty || !native?.rangeCount || native.isCollapsed) {
-          commentToolbar.style.display = 'none'; return
-        }
-        const rect = native.getRangeAt(0).getBoundingClientRect()
-        saveSelection()
-        // Synonyms only make sense for one word.
-        const synonyms = document.getElementById('ct-synonyms-btn')
-        if (synonyms) synonyms.style.display = window.QuillEditor.wordAtCursor?.() ? '' : 'none'
-        commentToolbar.style.display = 'flex'
-        const left = Math.max(8, Math.min(rect.left + rect.width / 2 - commentToolbar.offsetWidth / 2,
-          window.innerWidth - commentToolbar.offsetWidth - 8))
-        commentToolbar.style.top = (rect.top + window.scrollY - commentToolbar.offsetHeight - 8) + 'px'
-        commentToolbar.style.left = left + 'px'
-      }, 10)
+      if (!touchSelection) setTimeout(showSelectionToolbar, 10)
     })
+    if (touchSelection) {
+      let settleTimer = null
+      // A tick later, so the editor has read the new selection too (its listener runs after this
+      // one) and it can be compared with the one the toolbar was opened for.
+      document.addEventListener('selectionchange', () => setTimeout(selectionMoved, 0))
+      const selectionMoved = () => {
+        const native = window.getSelection()
+        const body = document.getElementById('entry-body')
+        if (!native || !body?.contains(native.anchorNode)) return
+        clearTimeout(settleTimer)
+        if (native.isCollapsed) return
+        // Out of the way while the handles move; back when they stop.
+        const selection = window.QuillEditor.editor()?.state.selection
+        const showing = commentToolbar.style.display !== 'none'
+        if (showing && shownRange && selection && selection.from === shownRange.from && selection.to === shownRange.to) return
+        if (showing) commentToolbar.style.display = 'none'
+        settleTimer = setTimeout(showSelectionToolbar, 350)
+      }
+    }
     // A tap on highlighted text shows its comment but leaves the caret where the tap put it, so
     // the highlighted words can still be edited (on the iPad, focusing the note box was the only
     // thing a tap there could do). Selecting inside a highlight shows the selection toolbar
@@ -627,7 +670,8 @@ const Editor = (() => {
     document.getElementById('meta-fields').style.display = data.folder_type === 'journal' ? 'flex' : 'none'
 
     _goalVal = parseInt(data.meta.word_goal||'0', 10)
-    updateStats(); updateGoalBar(); Stubs.render()
+    clearTimeout(_afterEditTimer); _afterEditTimer = null
+    updateGoalBar(updateStats()); Stubs.render()
 
     // Everything save() sends must belong to this scene from the moment _path does. If this
     // open is cancelled at one of the awaits below, the previous scene's inspector values,
@@ -774,6 +818,27 @@ const Editor = (() => {
 
   function esc(s) { return escapeHtml(s) }
 
+  // ── after an edit ─────────────────────────────────────────
+  // The word count reads the whole scene's rendered text, which forces a layout, and the
+  // inspector lists are rebuilt from scratch. Done on every keystroke, that is most of the cost
+  // of typing in a long scene on the iPad, so a burst of typing gets one pass when it pauses.
+  // save() and opening another scene run a pending pass first, so nothing is left stale.
+  const AFTER_EDIT_MS = 200
+  let _afterEditTimer = null
+  function scheduleAfterEdit() {
+    clearTimeout(_afterEditTimer)
+    _afterEditTimer = setTimeout(runAfterEdit, AFTER_EDIT_MS)
+  }
+  function runAfterEdit() {
+    clearTimeout(_afterEditTimer)
+    _afterEditTimer = null
+    updateGoalBar(updateStats())
+    Stubs.render()
+    RevisionNotes.refreshInspector()
+    refreshFindStatus()
+  }
+  function flushAfterEdit() { if (_afterEditTimer) runAfterEdit() }
+
   // ── stats ─────────────────────────────────────────────────
   let _totalWords = 0
   function updateStats() {
@@ -786,12 +851,28 @@ const Editor = (() => {
     return words
   }
 
+  // Dragging a selection handle fires selectionchange many times a frame, and the native
+  // selection's toString() lays out the whole range each time. Count once a frame, from the
+  // document.
+  let _selectionFrame = 0
   document.addEventListener('selectionchange', () => {
+    if (!_selectionFrame) _selectionFrame = requestAnimationFrame(updateSelectionCount)
+  })
+  function selectedText(sel) {
+    const editor = window.QuillEditor.editor?.()
+    if (editor && !editor.isDestroyed && editor.view.dom.contains(sel.anchorNode)) {
+      const { from, to } = editor.state.selection
+      return editor.state.doc.textBetween(from, to, '\n\n', '\n').trim()
+    }
+    return sel.toString().trim()
+  }
+  function updateSelectionCount() {
+    _selectionFrame = 0
     const sel = window.getSelection()
     const body = document.getElementById('entry-body')
     const bar = document.getElementById('selection-wc')
     if (!sel || !body || !bar) return
-    const text = sel.toString().trim()
+    const text = sel.isCollapsed ? '' : selectedText(sel)
     if (text && body.contains(sel.anchorNode)) {
       const selWords = QuillWords.countPlain(text)
       if (selWords > 0) {
@@ -802,13 +883,14 @@ const Editor = (() => {
       }
     }
     bar.classList.remove('visible')
-  })
+  }
 
-  function updateGoalBar() {
+  // Callers that have just counted pass the count, so the scene isn't counted twice.
+  function updateGoalBar(words) {
     const row = document.getElementById('goal-row')
     if (!_goalVal) { row.classList.remove('on'); return }
     row.classList.add('on')
-    const wc  = updateStats()
+    const wc  = words ?? updateStats()
     const pct = Math.min(100, Math.round((wc/_goalVal)*100))
     document.getElementById('goal-fill').style.width  = pct+'%'
     document.getElementById('goal-label').textContent = wc.toLocaleString()+' / '+_goalVal.toLocaleString()
@@ -861,6 +943,7 @@ const Editor = (() => {
   // is what makes flushPending() treat the scene as unsaved.
   async function save() {
     if (!_path || _loadingDocument || _loadedMd === null) return true
+    flushAfterEdit()
     clearTimeout(_saveTimer)
     _saveTimer = null
     _flushTime()  // persist elapsed time on every save
@@ -1747,11 +1830,19 @@ const Comments = (() => {
     _saveTimer = setTimeout(() => { _saveTimer = null; save() }, 500)
   }
 
+  // Anchors follow every edit, since a save may come at any moment. The comment list and an
+  // open popover are redrawn once typing pauses.
+  let _redrawTimer = null
+  function redraw() {
+    clearTimeout(_redrawTimer); _redrawTimer = null
+    render()
+    CommentPopover.refreshFor()
+  }
   function onDocumentUpdate() {
     if (_loading || !_path || !_comments.length) return
     _comments = window.QuillEditor.getCommentAnchors(_comments)
-    render()
-    CommentPopover.refreshFor()
+    clearTimeout(_redrawTimer)
+    _redrawTimer = setTimeout(redraw, 200)
     scheduleSave()
   }
 

@@ -21622,14 +21622,25 @@ ${prefix}
               scrollTypewriter(view);
             });
           };
+          let releaseTimer = null;
           const onPointerDown = () => {
+            clearTimeout(releaseTimer);
             pointerActive = true;
           };
           const onPointerUp = () => {
-            pointerActive = false;
+            clearTimeout(releaseTimer);
+            releaseTimer = setTimeout(() => {
+              pointerActive = false;
+            }, 350);
           };
+          const capture = { capture: true, passive: true };
           view.dom.addEventListener("mousedown", onPointerDown);
+          view.dom.addEventListener("pointerdown", onPointerDown, capture);
+          view.dom.addEventListener("touchstart", onPointerDown, capture);
           window.addEventListener("mouseup", onPointerUp);
+          window.addEventListener("pointerup", onPointerUp, capture);
+          window.addEventListener("touchend", onPointerUp, capture);
+          window.addEventListener("pointercancel", onPointerUp, capture);
           window.addEventListener("dragend", onPointerUp);
           return {
             update(_view, previous) {
@@ -21644,8 +21655,14 @@ ${prefix}
             },
             destroy() {
               if (frame != null) cancelAnimationFrame(frame);
+              clearTimeout(releaseTimer);
               view.dom.removeEventListener("mousedown", onPointerDown);
+              view.dom.removeEventListener("pointerdown", onPointerDown, capture);
+              view.dom.removeEventListener("touchstart", onPointerDown, capture);
               window.removeEventListener("mouseup", onPointerUp);
+              window.removeEventListener("pointerup", onPointerUp, capture);
+              window.removeEventListener("touchend", onPointerUp, capture);
+              window.removeEventListener("pointercancel", onPointerUp, capture);
               window.removeEventListener("dragend", onPointerUp);
             }
           };
@@ -26004,32 +26021,45 @@ ${fromBody}`;
   }
   function scanStubs(doc3) {
     const out = [];
-    const re = pattern();
     doc3.descendants((node, pos) => {
       if (!node.isTextblock) return;
+      for (const stub of blockStubs(node)) {
+        out.push({ from: pos + stub.from, to: pos + stub.to, text: stub.text, inner: stub.inner });
+      }
+      return false;
+    });
+    return out;
+  }
+  var _blockCache = /* @__PURE__ */ new WeakMap();
+  function blockStubs(node) {
+    const cached = _blockCache.get(node);
+    if (cached) return cached;
+    let found2 = [];
+    if (node.textContent.includes("[")) {
+      const re = pattern();
       let text = "";
       const positions = [];
       node.descendants((child, rel) => {
         if (child.isText) {
           for (let i3 = 0; i3 < child.text.length; i3++) {
             text += child.text[i3];
-            positions.push(pos + 1 + rel + i3);
+            positions.push(1 + rel + i3);
           }
         } else if (child.type.name === "hardBreak") {
           text += "\n";
-          positions.push(pos + 1 + rel);
+          positions.push(1 + rel);
         }
       });
-      re.lastIndex = 0;
       let match;
       while (match = re.exec(text)) {
         const from2 = positions[match.index];
         const last = positions[match.index + match[0].length - 1];
         if (from2 == null || last == null) continue;
-        out.push({ from: from2, to: last + 1, text: match[0], inner: match[0].slice(1, -1) });
+        found2.push({ from: from2, to: last + 1, text: match[0], inner: match[0].slice(1, -1) });
       }
-    });
-    return out;
+    }
+    _blockCache.set(node, found2);
+    return found2;
   }
   function build(doc3) {
     const stubs = scanStubs(doc3);
@@ -26066,7 +26096,7 @@ ${fromBody}`;
       return [new Plugin({
         key: stubKey,
         state: {
-          // Cheap enough to redo on every keystroke: one regex over the scene, no worker,
+          // Cheap enough to redo on every keystroke (scanStubs rescans only changed paragraphs),
           // so there is nothing to debounce and no stale decoration to map forward.
           init: (_config, state) => build(state.doc),
           apply: (tr, previous) => tr.docChanged ? build(tr.doc) : previous
@@ -26491,6 +26521,8 @@ ${fromBody}`;
   // renderer/src/editor/held-selection.js
   var key = new PluginKey("heldSelection");
   var SETTLE_MS = 150;
+  var TOUCH_SETTLE_MS = 700;
+  var onIOS = typeof navigator !== "undefined" && (/iPad|iPhone/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var HeldSelection = Extension.create({
     name: "heldSelection",
     addProseMirrorPlugins() {
@@ -26524,7 +26556,13 @@ ${fromBody}`;
           };
           const schedule = () => {
             clearTimeout(timer);
-            timer = setTimeout(show, SETTLE_MS);
+            timer = setTimeout(show, onIOS && view.hasFocus() ? TOUCH_SETTLE_MS : SETTLE_MS);
+          };
+          const blurred = () => {
+            if (!onIOS) return;
+            pressed = false;
+            clearTimeout(timer);
+            timer = setTimeout(show, 0);
           };
           const down = () => {
             pressed = true;
@@ -26541,6 +26579,7 @@ ${fromBody}`;
           document.addEventListener("pointerup", up, opts);
           document.addEventListener("touchend", up, opts);
           document.addEventListener("pointercancel", up, opts);
+          view.dom.addEventListener("blur", blurred);
           return {
             update(view2, prev) {
               if (view2.state.selection.empty || key.getState(view2.state)) return;
@@ -26553,6 +26592,7 @@ ${fromBody}`;
               document.removeEventListener("pointerup", up, opts);
               document.removeEventListener("touchend", up, opts);
               document.removeEventListener("pointercancel", up, opts);
+              view.dom.removeEventListener("blur", blurred);
             }
           };
         }
@@ -26747,6 +26787,9 @@ ${fromBody}`;
     _editor = new Editor({
       element: _opts.element,
       extensions: buildExtensions({ placeholder: _opts.placeholder }),
+      // Tiptap's delete extension diffs every transaction to emit 'delete' events, which nothing
+      // here listens for; it was a fixed cost on every keystroke in a long scene.
+      enableCoreExtensions: { delete: false },
       // The host div stops being the editable one; spellcheck has to live on the inner node
       // or Electron's native spell checker won't see the text.
       editorProps: { attributes: { spellcheck: spellcheckAttr(), autocapitalize: autocapitalizeAttr() } },
@@ -27032,6 +27075,9 @@ ${fromBody}`;
     _editor2 = new Editor({
       element: _opts2.element,
       extensions: buildChapterExtensions({ placeholder: "This chapter has no scenes yet." }),
+      // Tiptap's delete extension diffs every transaction to emit 'delete' events, which nothing
+      // here listens for; it was a fixed cost on every keystroke in a long scene.
+      enableCoreExtensions: { delete: false },
       editorProps: { attributes: { spellcheck: spellcheckAttr2(), autocapitalize: autocapitalizeAttr2() } },
       content,
       onUpdate: () => {
