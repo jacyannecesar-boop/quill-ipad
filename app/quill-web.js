@@ -20627,6 +20627,10 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
     const view = document.getElementById("view-editor");
     if (badge && view && badge.parentElement !== view) view.appendChild(badge);
     let shown = null;
+    const pages = ["editor-inner", "chapter-body"].map((id) => document.getElementById(id)).filter(Boolean);
+    const fit = (page) => {
+      page.style.marginBottom = shown && shown !== 1 ? `${Math.round(page.offsetHeight * (shown - 1))}px` : "";
+    };
     const update = () => {
       const editorZoom = parseFloat(root2.style.getPropertyValue("--editor-zoom")) || 1;
       const uiScale = parseFloat(root2.style.getPropertyValue("--ui-scale")) || 1;
@@ -20635,7 +20639,12 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
       shown = scale;
       root2.classList.toggle("web-page-scaled", scale !== 1);
       root2.style.setProperty("--web-page-scale", String(scale));
+      pages.forEach(fit);
     };
+    if (typeof ResizeObserver !== "undefined") {
+      const resized = new ResizeObserver((entries) => entries.forEach((entry) => fit(entry.target)));
+      pages.forEach((page) => resized.observe(page));
+    }
     update();
     new MutationObserver(update).observe(root2, { attributes: true, attributeFilter: ["style"] });
   }
@@ -20894,7 +20903,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-23T05:19:30.952Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-26T04:54:14.096Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
