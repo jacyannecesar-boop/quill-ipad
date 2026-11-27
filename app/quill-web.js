@@ -13530,16 +13530,14 @@ ${backup ? "If you leave, a local copy is kept and Style Study will offer to res
         if (days.size > 0) {
           const sorted = Array.from(days).sort();
           let run2 = 1;
+          longestStreak = 1;
           for (let i2 = 1; i2 < sorted.length; i2++) {
-            const prev = /* @__PURE__ */ new Date(sorted[i2 - 1] + "T12:00:00");
-            const curr = /* @__PURE__ */ new Date(sorted[i2] + "T12:00:00");
-            const diff = (curr - prev) / 864e5;
-            if (Math.abs(diff - 1) < 0.01) run2++;
-            else run2 = 1;
+            const next = localDateKey(addLocalDays(/* @__PURE__ */ new Date(sorted[i2 - 1] + "T12:00:00"), 1));
+            run2 = next === sorted[i2] ? run2 + 1 : 1;
             if (run2 > longestStreak) longestStreak = run2;
           }
-          if (longestStreak < 1) longestStreak = 1;
         }
+        if (streak > longestStreak) longestStreak = streak;
         const weekWords = {};
         for (let i2 = 6; i2 >= 0; i2--) {
           const k = localDateKey(addLocalDays(now, -i2));
@@ -20925,7 +20923,7 @@ Tap Back Up Now in Settings \u2192 Backups and save the ZIP to iCloud Drive.`,
   });
   document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("web-version");
-    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-26T05:51:52.138Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+    if (label) label.textContent = `Quill for ${name} \xB7 updated ${(/* @__PURE__ */ new Date("2026-11-27T06:42:36.972Z")).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
   });
   navigator.serviceWorker?.register("../sw.js", { scope: "../" }).catch((error) => console.warn("Offline mode unavailable:", error));
   if (navigator.serviceWorker?.controller) {
